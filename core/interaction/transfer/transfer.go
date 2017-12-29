@@ -9,5 +9,6 @@ import (
 )
 
 type Transfer interface {
-	ExecuteMethod(req *fasthttp.Request) (resp *fasthttp.Response, err error)
+	ExecuteMethod(Request) (resp *fasthttp.Response, err error)
+
 }

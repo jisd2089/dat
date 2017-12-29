@@ -7,12 +7,16 @@ package dataman
 import (
 	"runtime"
 	"bytes"
+	"math/rand"
 
 	"dat/core/dataflow"
 	"dat/core/interaction/request"
 	"dat/core/interaction"
 	"dat/runtime/cache"
 	"dat/core/pipeline"
+	"time"
+
+	"github.com/henrylee2cn/pholcus/logs"
 )
 
 // 数据信使配送引擎
@@ -20,29 +24,42 @@ type (
 	DataMan interface {
 		Init(flow *dataflow.DataFlow) DataMan //初始化配送引擎
 		Run()                                 //运行配送任务
+		Stop()                                //主动终止
+		CanStop() bool                        //能否终止
+		GetId() int                           //获取引擎ID
 	}
 	dataMan struct {
 		*dataflow.DataFlow  //执行的采集规则
 		interaction.Carrier //全局公用的信息交互载体
-		pipeline.Pipeline
-		id int              // 信使ID
+		pipeline.Pipeline   // 拆包与核验管道
+		id    int           // 信使ID
+		pause [2]int64      //[请求间隔的最短时长,请求间隔的增幅时长]
 	}
 )
 
 func New(id int) DataMan {
 	return &dataMan{
-		id: id,
+		id:      id,
+		Carrier: interaction.CrossHandler,
 	}
 }
 
 func (m *dataMan) Init(f *dataflow.DataFlow) DataMan {
+	m.DataFlow = f.ReqmatrixInit()
+	m.Pipeline = pipeline.New(f)
+	m.pause[0] = f.Pausetime / 2
+	if m.pause[0] > 0 {
+		m.pause[1] = m.pause[0] * 3
+	} else {
+		m.pause[1] = 1
+	}
 	return m
 }
 
 // 任务执行入口
 func (m *dataMan) Run() {
-	// 预先启动数据收集/输出管道
-	//m.Pipeline.Start()
+	// 预先启动数据拆包/核验管道
+	m.Pipeline.Start()
 
 	// 运行处理协程
 	c := make(chan bool)
@@ -56,45 +73,52 @@ func (m *dataMan) Run() {
 
 	<-c // 等待处理协程退出
 
-	// 停止数据收集/输出管道
-	//m.Pipeline.Stop()
+	// 停止数据拆包/核验管道
+	m.Pipeline.Stop()
 }
 
 func (m *dataMan) run() {
-	//for {
-	//	// 队列中取出一条请求并处理
-	//	req := self.GetOne()
-	//	if req == nil {
-	//		// 停止任务
-	//		if self.Spider.CanStop() {
-	//			break
-	//		}
-	//		time.Sleep(20 * time.Millisecond)
-	//		continue
-	//	}
-	//
-	//	// 执行请求
-	//	self.UseOne()
-	//	go func() {
-	//		defer func() {
-	//			self.FreeOne()
-	//		}()
-	//		logs.Log.Debug(" *     Start: %v", req.GetUrl())
-	//		self.Process(req)
-	//	}()
-	//
-	//	// 随机等待
-	//	self.sleep()
-	//}
-	//
-	//// 等待处理中的任务完成
-	//self.Spider.Defer()
+	for {
+		// 队列中取出一条请求并处理
+		req := m.GetOne()
+		if req == nil {
+			// 停止任务
+			if m.DataFlow.CanStop() {
+				break
+			}
+			time.Sleep(20 * time.Millisecond)
+			continue
+		}
+
+		// 执行请求
+		m.UseOne()
+		go func() {
+			defer func() {
+				m.FreeOne()
+			}()
+			logs.Log.Debug(" *     Start: %v", req.GetUrl())
+			m.Process(req)
+		}()
+
+		// 随机等待
+		m.sleep()
+	}
+
+	// 等待处理中的任务完成
+	m.DataFlow.Defer()
+}
+
+// 主动终止
+func (m *dataMan) Stop() {
+	// 主动崩溃DataFlow运行协程
+	m.DataFlow.Stop()
+	m.Pipeline.Stop()
 }
 
 // core processer
-func (m *dataMan) Process(req *request.Request) {
+func (m *dataMan) Process(req *request.DataRequest) {
 	var (
-		downUrl = req.GetUrl()
+		//downUrl = req.GetUrl()
 		df      = m.DataFlow
 	)
 	defer func() {
@@ -123,7 +147,7 @@ func (m *dataMan) Process(req *request.Request) {
 		}
 	}()
 
-	// TODO execute http、kafka... communication
+	// TODO execute http、kafka、protocolbuffer... communication
 	var ctx = m.Carrier.Handle(df, req)
 	//var ctx = self.Downloader.Download(sp, req) // download page
 
@@ -165,4 +189,33 @@ func (m *dataMan) Process(req *request.Request) {
 
 	// 释放ctx准备复用
 	dataflow.PutContext(ctx)
+}
+
+// 从调度读取一个请求
+func (m *dataMan) GetOne() *request.DataRequest {
+	return m.DataFlow.RequestPull()
+}
+
+//从调度使用一个资源空位
+func (m *dataMan) UseOne() {
+	m.DataFlow.RequestUse()
+}
+
+//从调度释放一个资源空位
+func (m *dataMan) FreeOne() {
+	m.DataFlow.RequestFree()
+}
+
+// 常用基础方法
+func (m *dataMan) sleep() {
+	sleeptime := m.pause[0] + rand.Int63n(m.pause[1])
+	time.Sleep(time.Duration(sleeptime) * time.Millisecond)
+}
+
+func (m *dataMan) SetId(id int) {
+	m.id = id
+}
+
+func (m *dataMan) GetId() int {
+	return m.id
 }

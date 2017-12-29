@@ -3,7 +3,7 @@ package dataflow
 import (
 	"fmt"
 
-	"github.com/henrylee2cn/pholcus/common/pinyin"
+	"dat/common/pinyin"
 )
 
 // 数据流产品种类列表
@@ -45,7 +45,7 @@ func (self *DataFlowSpecies) Get() []*DataFlow {
 			initials[i] = self.list[i].GetName()
 			newlist[initials[i]] = self.list[i]
 		}
-		pinyin.SortInitials(initials)
+		pinyin.SortInitials(initials)  // TODO 定制化排序方法
 		for i := 0; i < l; i++ {
 			self.list[i] = newlist[initials[i]]
 		}

@@ -2,10 +2,11 @@ package dataflow
 
 import (
 	"bytes"
-	"io"
-	"io/ioutil"
+	//"io"
+	//"io/ioutil"
 	"mime"
 	"net/http"
+	"github.com/valyala/fasthttp"
 	"path"
 	"strings"
 	"sync"
@@ -13,23 +14,23 @@ import (
 	"unsafe"
 
 	"dat/core/interaction/request"
+	"dat/core/pipeline/collector/data"
+	"dat/common/util"
 
-	"github.com/henrylee2cn/pholcus/app/pipeline/collector/data"
 	"github.com/henrylee2cn/pholcus/common/goquery"
-	"github.com/henrylee2cn/pholcus/common/util"
 	"github.com/henrylee2cn/pholcus/logs"
-	"golang.org/x/net/html/charset"
+	//"golang.org/x/net/html/charset"
 )
 
 type Context struct {
-	dataFlow   *DataFlow           // 规则
-	Request  *request.Request  // 原始请求
-	Response *http.Response    // 响应流，其中URL拷贝自*request.Request
-	text     []byte            // 下载内容Body的字节流格式
-	dom      *goquery.Document // 下载内容Body为html时，可转换为Dom的对象
-	items    []data.DataCell   // 存放以文本形式输出的结果数据
-	files    []data.FileCell   // 存放欲直接输出的文件("Name": string; "Body": io.ReadCloser)
-	err      error             // 错误标记
+	dataFlow    *DataFlow            // 规则
+	DataRequest *request.DataRequest // 原始请求
+	Response    *fasthttp.Response   // 响应流，其中URL拷贝自*request.DataRequest
+	text        []byte               // 下载内容Body的字节流格式
+	dom         *goquery.Document    // 下载内容Body为html时，可转换为Dom的对象
+	items       []data.DataCell      // 存放以文本形式输出的结果数据
+	files       []data.FileCell      // 存放欲直接输出的文件("Name": string; "Body": io.ReadCloser)
+	err         error                // 错误标记
 	sync.Mutex
 }
 
@@ -46,10 +47,10 @@ var (
 
 //**************************************** 初始化 *******************************************\\
 
-func GetContext(df *DataFlow, req *request.Request) *Context {
+func GetContext(df *DataFlow, req *request.DataRequest) *Context {
 	ctx := contextPool.Get().(*Context)
 	ctx.dataFlow = df
-	ctx.Request = req
+	ctx.DataRequest = req
 	return ctx
 }
 
@@ -57,7 +58,7 @@ func PutContext(ctx *Context) {
 	ctx.items = ctx.items[:0]
 	ctx.files = ctx.files[:0]
 	ctx.dataFlow = nil
-	ctx.Request = nil
+	ctx.DataRequest = nil
 	ctx.Response = nil
 	ctx.text = nil
 	ctx.dom = nil
@@ -65,7 +66,7 @@ func PutContext(ctx *Context) {
 	contextPool.Put(ctx)
 }
 
-func (self *Context) SetResponse(resp *http.Response) *Context {
+func (self *Context) SetResponse(resp *fasthttp.Response) *Context {
 	self.Response = resp
 	return self
 }
@@ -78,20 +79,20 @@ func (self *Context) SetError(err error) {
 //**************************************** Set与Exec类公开方法 *******************************************\\
 
 // 生成并添加请求至队列。
-// Request.Url与Request.Rule必须设置。
-// Request.DataFlow无需手动设置(由系统自动设置)。
-// Request.EnableCookie在DataFlow字段中统一设置，规则请求中指定的无效。
+// DataRequest.Url与DataRequest.Rule必须设置。
+// DataRequest.DataFlow无需手动设置(由系统自动设置)。
+// DataRequest.EnableCookie在DataFlow字段中统一设置，规则请求中指定的无效。
 // 以下字段有默认值，可不设置:
-// Request.Method默认为GET方法;
-// Request.DialTimeout默认为常量request.DefaultDialTimeout，小于0时不限制等待响应时长;
-// Request.ConnTimeout默认为常量request.DefaultConnTimeout，小于0时不限制下载超时;
-// Request.TryTimes默认为常量request.DefaultTryTimes，小于0时不限制失败重载次数;
-// Request.RedirectTimes默认不限制重定向次数，小于0时可禁止重定向跳转;
-// Request.RetryPause默认为常量request.DefaultRetryPause;
-// Request.DownloaderID指定下载器ID，0为默认的Surf高并发下载器，功能完备，1为PhantomJS下载器，特点破防力强，速度慢，低并发。
+// DataRequest.Method默认为GET方法;
+// DataRequest.DialTimeout默认为常量request.DefaultDialTimeout，小于0时不限制等待响应时长;
+// DataRequest.ConnTimeout默认为常量request.DefaultConnTimeout，小于0时不限制下载超时;
+// DataRequest.TryTimes默认为常量request.DefaultTryTimes，小于0时不限制失败重载次数;
+// DataRequest.RedirectTimes默认不限制重定向次数，小于0时可禁止重定向跳转;
+// DataRequest.RetryPause默认为常量request.DefaultRetryPause;
+// DataRequest.DownloaderID指定下载器ID，0为默认的Surf高并发下载器，功能完备，1为PhantomJS下载器，特点破防力强，速度慢，低并发。
 // 默认自动补填Referer。
-func (self *Context) AddQueue(req *request.Request) *Context {
-	// 若已主动终止任务，则崩溃爬虫协程
+func (self *Context) AddQueue(req *request.DataRequest) *Context {
+	// 若已主动终止任务，则崩溃DataFlow协程
 	self.dataFlow.tryPanic()
 
 	err := req.
@@ -118,7 +119,7 @@ func (self *Context) JsAddQueue(jreq map[string]interface{}) *Context {
 	// 若已主动终止任务，则崩溃爬虫协程
 	self.dataFlow.tryPanic()
 
-	req := &request.Request{}
+	req := &request.DataRequest{}
 	u, ok := jreq["Url"].(string)
 	if !ok {
 		return self
@@ -210,7 +211,8 @@ func (self *Context) Output(item interface{}, ruleName ...string) {
 	if self.dataFlow.NotDefaultField {
 		self.items = append(self.items, data.GetDataCell(_ruleName, _item, "", "", ""))
 	} else {
-		self.items = append(self.items, data.GetDataCell(_ruleName, _item, self.GetUrl(), self.GetReferer(), time.Now().Format("2006-01-02 15:04:05")))
+		self.items = append(self.items, data.GetDataCell(_ruleName, _item, self.GetUrl(), "", time.Now().Format("2006-01-02 15:04:05")))
+		//self.items = append(self.items, data.GetDataCell(_ruleName, _item, self.GetUrl(), self.GetReferer(), time.Now().Format("2006-01-02 15:04:05")))
 	}
 	self.Unlock()
 }
@@ -219,12 +221,13 @@ func (self *Context) Output(item interface{}, ruleName ...string) {
 // name指定文件名，为空时默认保持原文件名不变。
 func (self *Context) FileOutput(name ...string) {
 	// 读取完整文件流
-	bytes, err := ioutil.ReadAll(self.Response.Body)
-	self.Response.Body.Close()
-	if err != nil {
-		panic(err.Error())
-		return
-	}
+	bytes := self.Response.Body()
+	//bytes, err := ioutil.ReadAll(self.Response.Body)
+	//self.Response.Body.Close()
+	//if err != nil {
+	//	panic(err.Error())
+	//	return
+	//}
 
 	// 智能设置完整文件名
 	_, s := path.Split(self.GetUrl())
@@ -258,7 +261,7 @@ func (self *Context) FileOutput(name ...string) {
 func (self *Context) CreatItem(item map[int]interface{}, ruleName ...string) map[string]interface{} {
 	_, rule, found := self.getRule(ruleName...)
 	if !found {
-		logs.Log.Error("蜘蛛 %s 调用CreatItem()时，指定的规则名不存在！", self.dataFlow.GetName())
+		logs.Log.Error("DataFlow %s 调用CreatItem()时，指定的规则名不存在！", self.dataFlow.GetName())
 		return nil
 	}
 
@@ -272,17 +275,17 @@ func (self *Context) CreatItem(item map[int]interface{}, ruleName ...string) map
 
 // 在请求中保存临时数据。
 func (self *Context) SetTemp(key string, value interface{}) *Context {
-	self.Request.SetTemp(key, value)
+	self.DataRequest.SetTemp(key, value)
 	return self
 }
 
 func (self *Context) SetUrl(url string) *Context {
-	self.Request.Url = url
+	self.DataRequest.Url = url
 	return self
 }
 
 func (self *Context) SetReferer(referer string) *Context {
-	self.Request.Header.Set("Referer", referer)
+	self.DataRequest.Header.Set("Referer", referer)
 	return self
 }
 
@@ -292,7 +295,7 @@ func (self *Context) SetReferer(referer string) *Context {
 func (self *Context) UpsertItemField(field string, ruleName ...string) (index int) {
 	_, rule, found := self.getRule(ruleName...)
 	if !found {
-		logs.Log.Error("蜘蛛 %s 调用UpsertItemField()时，指定的规则名不存在！", self.dataFlow.GetName())
+		logs.Log.Error("DataFlow %s 调用UpsertItemField()时，指定的规则名不存在！", self.dataFlow.GetName())
 		return
 	}
 	return self.dataFlow.UpsertItemField(rule, field)
@@ -307,14 +310,14 @@ func (self *Context) Aid(aid map[string]interface{}, ruleName ...string) interfa
 	_, rule, found := self.getRule(ruleName...)
 	if !found {
 		if len(ruleName) > 0 {
-			logs.Log.Error("调用蜘蛛 %s 不存在的规则: %s", self.dataFlow.GetName(), ruleName[0])
+			logs.Log.Error("调用DataFlow %s 不存在的规则: %s", self.dataFlow.GetName(), ruleName[0])
 		} else {
-			logs.Log.Error("调用蜘蛛 %s 的Aid()时未指定的规则名", self.dataFlow.GetName())
+			logs.Log.Error("调用DataFlow %s 的Aid()时未指定的规则名", self.dataFlow.GetName())
 		}
 		return nil
 	}
 	if rule.AidFunc == nil {
-		logs.Log.Error("蜘蛛 %s 的规则 %s 未定义AidFunc", self.dataFlow.GetName(), ruleName[0])
+		logs.Log.Error("DataFlow %s 的规则 %s 未定义AidFunc", self.dataFlow.GetName(), ruleName[0])
 		return nil
 	}
 	return rule.AidFunc(self, aid)
@@ -323,19 +326,19 @@ func (self *Context) Aid(aid map[string]interface{}, ruleName ...string) interfa
 // 解析响应流。
 // 用ruleName指定匹配的ParseFunc字段，为空时默认调用Root()。
 func (self *Context) Parse(ruleName ...string) *Context {
-	// 若已主动终止任务，则崩溃爬虫协程
+	// 若已主动终止任务，则崩溃DataFlow协程
 	self.dataFlow.tryPanic()
 
 	_ruleName, rule, found := self.getRule(ruleName...)
 	if self.Response != nil {
-		self.Request.SetRuleName(_ruleName)
+		self.DataRequest.SetRuleName(_ruleName)
 	}
 	if !found {
 		self.dataFlow.RuleTree.Root(self)
 		return self
 	}
 	if rule.ParseFunc == nil {
-		logs.Log.Error("蜘蛛 %s 的规则 %s 未定义ParseFunc", self.dataFlow.GetName(), ruleName[0])
+		logs.Log.Error("DataFlow %s 的规则 %s 未定义ParseFunc", self.dataFlow.GetName(), ruleName[0])
 		return self
 	}
 	rule.ParseFunc(self)
@@ -374,7 +377,7 @@ func (self *Context) RunTimer(id string) bool {
 	return self.dataFlow.RunTimer(id)
 }
 
-// 重置下载的文本内容，
+// 重置下载的文本内容，TODO
 func (self *Context) ResetText(body string) *Context {
 	x := (*[2]uintptr)(unsafe.Pointer(&body))
 	h := [3]uintptr{x[0], x[1], x[1]}
@@ -397,36 +400,36 @@ func (*Context) Log() logs.Logs {
 	return logs.Log
 }
 
-// 获取蜘蛛名称。
+// 获取DataFlow名称。
 func (self *Context) GetDataFlow() *DataFlow {
 	return self.dataFlow
 }
 
 // 获取响应流。
-func (self *Context) GetResponse() *http.Response {
+func (self *Context) GetResponse() *fasthttp.Response {
 	return self.Response
 }
 
 // 获取响应状态码。
 func (self *Context) GetStatusCode() int {
-	return self.Response.StatusCode
+	return self.Response.StatusCode()
 }
 
 // 获取原始请求。
-func (self *Context) GetRequest() *request.Request {
-	return self.Request
+func (self *Context) GetRequest() *request.DataRequest {
+	return self.DataRequest
 }
 
 // 获得一个原始请求的副本。
-func (self *Context) CopyRequest() *request.Request {
-	return self.Request.Copy()
+func (self *Context) CopyRequest() *request.DataRequest {
+	return self.DataRequest.Copy()
 }
 
 // 获取结果字段名列表。
 func (self *Context) GetItemFields(ruleName ...string) []string {
 	_, rule, found := self.getRule(ruleName...)
 	if !found {
-		logs.Log.Error("蜘蛛 %s 调用GetItemFields()时，指定的规则名不存在！", self.dataFlow.GetName())
+		logs.Log.Error("DataFlow %s 调用GetItemFields()时，指定的规则名不存在！", self.dataFlow.GetName())
 		return nil
 	}
 	return self.dataFlow.GetItemFields(rule)
@@ -437,7 +440,7 @@ func (self *Context) GetItemFields(ruleName ...string) []string {
 func (self *Context) GetItemField(index int, ruleName ...string) (field string) {
 	_, rule, found := self.getRule(ruleName...)
 	if !found {
-		logs.Log.Error("蜘蛛 %s 调用GetItemField()时，指定的规则名不存在！", self.dataFlow.GetName())
+		logs.Log.Error("DataFlow %s 调用GetItemField()时，指定的规则名不存在！", self.dataFlow.GetName())
 		return
 	}
 	return self.dataFlow.GetItemField(rule, index)
@@ -448,7 +451,7 @@ func (self *Context) GetItemField(index int, ruleName ...string) (field string) 
 func (self *Context) GetItemFieldIndex(field string, ruleName ...string) (index int) {
 	_, rule, found := self.getRule(ruleName...)
 	if !found {
-		logs.Log.Error("蜘蛛 %s 调用GetItemField()时，指定的规则名不存在！", self.dataFlow.GetName())
+		logs.Log.Error("DataFlow %s 调用GetItemField()时，指定的规则名不存在！", self.dataFlow.GetName())
 		return
 	}
 	return self.dataFlow.GetItemFieldIndex(rule, field)
@@ -497,24 +500,24 @@ func (self *Context) GetRule(ruleName string) (*Rule, bool) {
 
 // 获取当前规则名。
 func (self *Context) GetRuleName() string {
-	return self.Request.GetRuleName()
+	return self.DataRequest.GetRuleName()
 }
 
 // 获取请求中临时缓存数据
 // defaultValue 不能为 interface{}(nil)
 func (self *Context) GetTemp(key string, defaultValue interface{}) interface{} {
-	return self.Request.GetTemp(key, defaultValue)
+	return self.DataRequest.GetTemp(key, defaultValue)
 }
 
 // 获取请求中全部缓存数据
 func (self *Context) GetTemps() request.Temp {
-	return self.Request.GetTemps()
+	return self.DataRequest.GetTemps()
 }
 
 // 获得一个请求的缓存数据副本。
 func (self *Context) CopyTemps() request.Temp {
 	temps := make(request.Temp)
-	for k, v := range self.Request.GetTemps() {
+	for k, v := range self.DataRequest.GetTemps() {
 		temps[k] = v
 	}
 	return temps
@@ -522,35 +525,36 @@ func (self *Context) CopyTemps() request.Temp {
 
 // 从原始请求获取Url，从而保证请求前后的Url完全相等，且中文未被编码。
 func (self *Context) GetUrl() string {
-	return self.Request.Url
+	return self.DataRequest.Url
 }
 
 func (self *Context) GetMethod() string {
-	return self.Request.GetMethod()
+	return self.DataRequest.GetMethod()
 }
 
-func (self *Context) GetHost() string {
-	return self.Response.Request.URL.Host
-}
+// TODO
+//func (self *Context) GetHost() string {
+//	return self.Response.Request.URL.Host
+//}
 
 // 获取响应头信息。
-func (self *Context) GetHeader() http.Header {
-	return self.Response.Header
-}
+//func (self *Context) GetHeader() http.Header {
+//	return self.Response.Header
+//}
 
 // 获取请求头信息。
-func (self *Context) GetRequestHeader() http.Header {
-	return self.Response.Request.Header
-}
-
-func (self *Context) GetReferer() string {
-	return self.Response.Request.Header.Get("Referer")
-}
+//func (self *Context) GetRequestHeader() http.Header {
+//	return self.Response.Request.Header
+//}
+//
+//func (self *Context) GetReferer() string {
+//	return self.Response.Request.Header.Get("Referer")
+//}
 
 // 获取响应的Cookie。
-func (self *Context) GetCookie() string {
-	return self.Response.Header.Get("Set-Cookie")
-}
+//func (self *Context) GetCookie() string {
+//	return self.Response.Header.Get("Set-Cookie")
+//}
 
 // GetHtmlParser returns goquery object binded to target crawl result.
 func (self *Context) GetDom() *goquery.Document {
@@ -602,10 +606,10 @@ func (self *Context) initText() {
 	var err error
 
 	// 采用surf内核下载时，尝试自动转码
-	if self.Request.DownloaderID == request.SURF_ID {
+	if self.DataRequest.DownloaderID == request.SURF_ID {
 		var contentType, pageEncode string
-		// 优先从响应头读取编码类型
-		contentType = self.Response.Header.Get("Content-Type")
+		// 优先从响应头读取编码类型 TODO
+		contentType = string(self.Response.Header.ContentType())
 		if _, params, err := mime.ParseMediaType(contentType); err == nil {
 			if cs, ok := params["charset"]; ok {
 				pageEncode = strings.ToLower(strings.TrimSpace(cs))
@@ -613,7 +617,7 @@ func (self *Context) initText() {
 		}
 		// 响应头未指定编码类型时，从请求头读取
 		if len(pageEncode) == 0 {
-			contentType = self.Request.Header.Get("Content-Type")
+			contentType = string(self.Response.Header.ContentType())
 			if _, params, err := mime.ParseMediaType(contentType); err == nil {
 				if cs, ok := params["charset"]; ok {
 					pageEncode = strings.ToLower(strings.TrimSpace(cs))
@@ -628,22 +632,25 @@ func (self *Context) initText() {
 			// 指定了编码类型，但不是utf8时，自动转码为utf8
 			// get converter to utf-8
 			// Charset auto determine. Use golang.org/x/net/html/charset. Get response body and change it to utf-8
-			var destReader io.Reader
-
-			if len(pageEncode) == 0 {
-				destReader, err = charset.NewReader(self.Response.Body, "")
-			} else {
-				destReader, err = charset.NewReaderLabel(pageEncode, self.Response.Body)
-			}
+			// TODO
+			//var destReader io.Reader
+			//
+			//if len(pageEncode) == 0 {
+			//	destReader, err = charset.NewReader(self.Response.Body, "")
+			//} else {
+			//	destReader, err = charset.NewReaderLabel(pageEncode, self.Response.Body)
+			//}
 
 			if err == nil {
-				self.text, err = ioutil.ReadAll(destReader)
-				if err == nil {
-					self.Response.Body.Close()
-					return
-				} else {
-					logs.Log.Warning(" *     [convert][%v]: %v (ignore transcoding)\n", self.GetUrl(), err)
-				}
+				self.text = self.Response.Body()
+				return
+				//self.text, err = ioutil.ReadAll(destReader)
+				//if err == nil {
+				//	self.Response.Body.Close()
+				//	return
+				//} else {
+				//	logs.Log.Warning(" *     [convert][%v]: %v (ignore transcoding)\n", self.GetUrl(), err)
+				//}
 			} else {
 				logs.Log.Warning(" *     [convert][%v]: %v (ignore transcoding)\n", self.GetUrl(), err)
 			}
@@ -651,13 +658,14 @@ func (self *Context) initText() {
 	}
 
 	// 不做转码处理
-	self.text, err = ioutil.ReadAll(self.Response.Body)
-	self.Response.Body.Close()
-	if err != nil {
-		panic(err.Error())
-		return
-	}
-
+	// TODO
+	//self.text, err = ioutil.ReadAll(self.Response.Body)
+	//self.Response.Body.Close()
+	//if err != nil {
+	//	panic(err.Error())
+	//	return
+	//}
+	self.text = self.Response.Body()
 }
 
 /**

@@ -3,7 +3,8 @@ package pipeline
 import (
 	"sort"
 
-	"github.com/henrylee2cn/pholcus/app/pipeline/collector"
+	"dat/core/pipeline/collector"
+
 	"github.com/henrylee2cn/pholcus/common/kafka"
 	"github.com/henrylee2cn/pholcus/common/mgo"
 	"github.com/henrylee2cn/pholcus/common/mysql"

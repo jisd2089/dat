@@ -31,10 +31,10 @@ var Task = new(AppConf)
 //****************************************任务报告*******************************************\\
 
 type Report struct {
-	SpiderName string
-	Keyin      string
-	DataNum    uint64
-	FileNum    uint64
+	DataFlowName string
+	Keyin        string
+	DataNum      uint64
+	FileNum      uint64
 	// DataSize   uint64
 	// FileSize uint64
 	Time time.Duration

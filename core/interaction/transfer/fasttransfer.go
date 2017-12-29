@@ -13,7 +13,7 @@ type FastTransfer struct {
 
 }
 
-func New() *FastTransfer {
+func NewFastTransfer() *FastTransfer {
 	s := new(FastTransfer)
 	return s
 }

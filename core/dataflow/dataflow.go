@@ -47,10 +47,10 @@ type (
 	// 数据产品流规则
 	RuleTree struct {
 		Root  func(*Context)   // 根节点(执行入口)
-		Trunk map[string]*Rule // 节点散列表(执行采集过程)
+		Trunk map[string]*Rule // 节点散列表(业务规则过程)
 	}
 	Rule struct {
-		ItemFields []string                                           // 结果字段列表(选填，写上可保证字段顺序)
+		ItemFields []string                                           // 结果字段列表(选填，写上可保证字段顺序) TODO 清点内容明细项
 		ParseFunc  func(*Context)                                     // 内容解析函数
 		AidFunc    func(*Context, map[string]interface{}) interface{} // 通用辅助函数
 		FileFunc   func(*Context)                                     // 文件处理函数
@@ -78,10 +78,11 @@ func (self *DataFlow) Start() {
 		self.status = status.RUN
 		self.lock.Unlock()
 	}()
-	//self.RuleTree.Root(GetContext(self, nil))
+	// 执行业务规则入口Function
+	self.RuleTree.Root(GetContext(self, nil))
 }
 
-// 主动崩溃爬虫运行协程
+// 主动崩溃DataFlow运行协程
 func (self *DataFlow) Stop() {
 	self.lock.Lock()
 	defer self.lock.Unlock()
@@ -94,6 +95,31 @@ func (self *DataFlow) Stop() {
 		self.timer.drop()
 		self.timer = nil
 	}
+}
+
+// 若已主动终止任务，则崩溃DataFlow协程
+func (self *DataFlow) tryPanic() {
+	if self.IsStopping() {
+		panic(FORCED_STOP)
+	}
+}
+
+// 退出任务前收尾工作
+func (self *DataFlow) Defer() {
+	// 取消所有定时器
+	if self.timer != nil {
+		self.timer.drop()
+		self.timer = nil
+	}
+	// 等待处理中的请求完成
+	self.reqMatrix.Wait()
+	// 更新失败记录
+	self.reqMatrix.TryFlushFailure()
+}
+
+// 是否输出默认添加的字段 Url/ParentUrl/DownloadTime
+func (self *DataFlow) OutDefaultField() bool {
+	return !self.NotDefaultField
 }
 
 /**
@@ -180,7 +206,7 @@ func (self *DataFlow) GetRules() map[string]*Rule {
 	return self.RuleTree.Trunk
 }
 
-// 获取蜘蛛描述
+// 获取DataFlow描述
 func (self *DataFlow) GetDescription() string {
 	return self.Description
 }
@@ -277,6 +303,7 @@ func (self *DataFlow) Copy() *DataFlow {
 	return ghost
 }
 
+// DataRequest矩阵初始化
 func (self *DataFlow) ReqmatrixInit() *DataFlow {
 	if self.Limit < 0 {
 		self.reqMatrix = scheduler.AddMatrix(self.GetName(), self.GetSubName(), self.Limit)
@@ -332,27 +359,4 @@ func (self *DataFlow) IsStopping() bool {
 	return self.status == status.STOP
 }
 
-// 若已主动终止任务，则崩溃爬虫协程
-func (self *DataFlow) tryPanic() {
-	if self.IsStopping() {
-		panic(FORCED_STOP)
-	}
-}
 
-// 退出任务前收尾工作
-func (self *DataFlow) Defer() {
-	// 取消所有定时器
-	if self.timer != nil {
-		self.timer.drop()
-		self.timer = nil
-	}
-	// 等待处理中的请求完成
-	self.reqMatrix.Wait()
-	// 更新失败记录
-	self.reqMatrix.TryFlushFailure()
-}
-
-// 是否输出默认添加的字段 Url/ParentUrl/DownloadTime
-func (self *DataFlow) OutDefaultField() bool {
-	return !self.NotDefaultField
-}

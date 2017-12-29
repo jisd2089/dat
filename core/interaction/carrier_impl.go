@@ -5,8 +5,8 @@ package interaction
     Created: 2017-12-28 14:20:45
 */
 import (
-	"net/http"
 	"errors"
+	"github.com/valyala/fasthttp"
 
 	"dat/core/dataflow"
 	"dat/core/interaction/request"
@@ -20,21 +20,21 @@ type Cross struct {
 var CrossHandler = &Cross{
 }
 
-func (c *Cross) Execute(df *dataflow.DataFlow, cReq *request.Request) *dataflow.Context {
+func (c *Cross) Handle(df *dataflow.DataFlow, cReq *request.DataRequest) *dataflow.Context {
 	ctx := dataflow.GetContext(df, cReq)
 
-	var resp *http.Response
+	var resp *fasthttp.Response
 	var err error
 
 	switch cReq.GetDownloaderID() {
 	case request.SURF_ID:
-		resp, err = c.transfer.ExecuteMethod()
+		resp, err = c.transfer.ExecuteMethod(cReq)
 	}
 	//case request.PHANTOM_ID:
 	//	resp, err = self.phantom.Download(cReq)
 	//}
 
-	if resp.StatusCode >= 400 {
+	if resp.StatusCode() >= 400 {
 		err = errors.New("响应状态 " + resp.Status)
 	}
 

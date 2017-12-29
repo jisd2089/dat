@@ -5,8 +5,8 @@ import (
 	"regexp"
 	"sync"
 
-	"github.com/henrylee2cn/pholcus/common/kafka"
-	"github.com/henrylee2cn/pholcus/common/util"
+	"dat/common/kafka"
+	"dat/common/util"
 	"github.com/henrylee2cn/pholcus/logs"
 )
 
@@ -69,7 +69,7 @@ func init() {
 					data[title] = util.JsonString(vd[title])
 				}
 			}
-			if self.Spider.OutDefaultField() {
+			if self.DataFlow.OutDefaultField() {
 				data["url"] = datacell["Url"].(string)
 				data["parent_url"] = datacell["ParentUrl"].(string)
 				data["download_time"] = datacell["DownloadTime"].(string)

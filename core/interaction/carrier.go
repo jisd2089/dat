@@ -14,5 +14,5 @@ import (
 // You can implement the interface by implement function Handler.
 // Function Handler need to return http response from Request.
 type Carrier interface {
-	Handle(*dataflow.DataFlow, *request.Request) *dataflow.Context
+	Handle(*dataflow.DataFlow, *request.DataRequest) *dataflow.Context
 }

@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/henrylee2cn/pholcus/common/mysql"
-	"github.com/henrylee2cn/pholcus/common/util"
+	"dat/common/mysql"
+	"dat/common/util"
 	"github.com/henrylee2cn/pholcus/logs"
 )
 
@@ -56,7 +56,7 @@ func init() {
 					for _, title := range self.MustGetRule(datacell["RuleName"].(string)).ItemFields {
 						table.AddColumn(title + ` MEDIUMTEXT`)
 					}
-					if self.Spider.OutDefaultField() {
+					if self.DataFlow.OutDefaultField() {
 						table.AddColumn(`Url VARCHAR(255)`, `ParentUrl VARCHAR(255)`, `DownloadTime VARCHAR(50)`)
 					}
 					if err := table.Create(); err != nil {
@@ -77,7 +77,7 @@ func init() {
 					data = append(data, util.JsonString(vd[title]))
 				}
 			}
-			if self.Spider.OutDefaultField() {
+			if self.DataFlow.OutDefaultField() {
 				data = append(data, datacell["Url"].(string), datacell["ParentUrl"].(string), datacell["DownloadTime"].(string))
 			}
 			table.AutoInsert(data)

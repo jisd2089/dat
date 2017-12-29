@@ -7,36 +7,36 @@ import (
 	"time"
 
 	"dat/core/interaction/request"
-	"github.com/henrylee2cn/pholcus/app/aid/history"
+	"dat/core/aid/history"
 	"github.com/henrylee2cn/pholcus/logs"
 	"github.com/henrylee2cn/pholcus/runtime/cache"
 	"github.com/henrylee2cn/pholcus/runtime/status"
 )
 
-// 一个Spider实例的请求矩阵
+// 一个DataFlow实例的请求矩阵
 type Matrix struct {
 	maxPage         int64                       // 最大采集页数，以负数形式表示
 	resCount        int32                       // 资源使用情况计数
-	spiderName      string                      // 所属Spider
-	reqs            map[int][]*request.Request  // [优先级]队列，优先级默认为0
+	dataFlowName    string                      // 所属DataFlow
+	reqs            map[int][]*request.DataRequest  // [优先级]队列，优先级默认为0
 	priorities      []int                       // 优先级顺序，从低到高
 	history         history.Historier           // 历史记录
 	tempHistory     map[string]bool             // 临时记录 [reqUnique(url+method)]true
-	failures        map[string]*request.Request // 历史及本次失败请求
+	failures        map[string]*request.DataRequest // 历史及本次失败请求
 	tempHistoryLock sync.RWMutex
 	failureLock     sync.Mutex
 	sync.Mutex
 }
 
-func newMatrix(spiderName, spiderSubName string, maxPage int64) *Matrix {
+func newMatrix(dataFlowName, dataFlowSubName string, maxPage int64) *Matrix {
 	matrix := &Matrix{
-		spiderName:  spiderName,
-		maxPage:     maxPage,
-		reqs:        make(map[int][]*request.Request),
-		priorities:  []int{},
-		history:     history.New(spiderName, spiderSubName),
-		tempHistory: make(map[string]bool),
-		failures:    make(map[string]*request.Request),
+		dataFlowName: dataFlowName,
+		maxPage:      maxPage,
+		reqs:         make(map[int][]*request.DataRequest),
+		priorities:   []int{},
+		history:      history.New(dataFlowName, dataFlowSubName),
+		tempHistory:  make(map[string]bool),
+		failures:     make(map[string]*request.DataRequest),
 	}
 	if cache.Task.Mode != status.SERVER {
 		matrix.history.ReadSuccess(cache.Task.OutType, cache.Task.SuccessInherit)
@@ -47,7 +47,7 @@ func newMatrix(spiderName, spiderSubName string, maxPage int64) *Matrix {
 }
 
 // 添加请求到队列，并发安全
-func (self *Matrix) Push(req *request.Request) {
+func (self *Matrix) Push(req *request.DataRequest) {
 	// 禁止并发，降低请求积存量
 	self.Lock()
 	defer self.Unlock()
@@ -93,11 +93,11 @@ func (self *Matrix) Push(req *request.Request) {
 
 	var priority = req.GetPriority()
 
-	// 初始化该蜘蛛下该优先级队列
+	// 初始化该DataFlow下该优先级队列
 	if _, found := self.reqs[priority]; !found {
 		self.priorities = append(self.priorities, priority)
 		sort.Ints(self.priorities) // 从小到大排序
-		self.reqs[priority] = []*request.Request{}
+		self.reqs[priority] = []*request.DataRequest{}
 	}
 
 	// 添加请求到队列
@@ -108,7 +108,7 @@ func (self *Matrix) Push(req *request.Request) {
 }
 
 // 从队列取出请求，不存在时返回nil，并发安全
-func (self *Matrix) Pull() (req *request.Request) {
+func (self *Matrix) Pull() (req *request.DataRequest) {
 	self.Lock()
 	defer self.Unlock()
 	if !sdl.checkStatus(status.RUN) {
@@ -145,7 +145,7 @@ func (self *Matrix) Free() {
 }
 
 // 返回是否作为新的失败请求被添加至队列尾部
-func (self *Matrix) DoHistory(req *request.Request, ok bool) bool {
+func (self *Matrix) DoHistory(req *request.DataRequest, ok bool) bool {
 	if !req.IsReloadable() {
 		self.tempHistoryLock.Lock()
 		delete(self.tempHistory, req.Unique())
@@ -261,7 +261,7 @@ func (self *Matrix) insertTempHistory(reqUnique string) {
 	self.tempHistoryLock.Unlock()
 }
 
-func (self *Matrix) setFailures(reqs map[string]*request.Request) {
+func (self *Matrix) setFailures(reqs map[string]*request.DataRequest) {
 	self.failureLock.Lock()
 	defer self.failureLock.Unlock()
 	for key, req := range reqs {
@@ -274,11 +274,11 @@ func (self *Matrix) setFailures(reqs map[string]*request.Request) {
 // func (self *Matrix) windup() {
 // 	self.Lock()
 
-// 	self.reqs = make(map[int][]*request.Request)
+// 	self.reqs = make(map[int][]*request.DataRequest)
 // 	self.priorities = []int{}
 // 	self.tempHistory = make(map[string]bool)
 
-// 	self.failures = make(map[string]*request.Request)
+// 	self.failures = make(map[string]*request.DataRequest)
 
 // 	self.Unlock()
 // }

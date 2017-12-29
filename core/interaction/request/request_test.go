@@ -6,14 +6,14 @@ import (
 )
 
 func TestReqTemp(t *testing.T) {
-	var a = &Request{
+	var a = &DataRequest{
 		Temp: Temp{"3": map[string]int{"33": 33}},
 	}
 	a.Prepare()
 	a.SetTemp("6", 66)
 	c, _ := json.Marshal(&a)
 
-	var b = Request{}
+	var b = DataRequest{}
 	json.Unmarshal(c, &b)
 
 	b.SetTemp("1", map[string]int{"11": 11})

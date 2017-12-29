@@ -10,11 +10,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/henrylee2cn/pholcus/common/util"
+	"dat/common/util"
 )
 
-// Request represents object waiting for being crawled.
-type Request struct {
+// DataRequest represents object waiting for being crawled.
+type DataRequest struct {
 	DataFlow      string          //规则名，自动设置，禁止人为填写
 	Url           string          //目标URL，必须设置
 	Rule          string          //用于解析响应的规则节点名，必须设置
@@ -54,18 +54,18 @@ const (
 )
 
 // 发送请求前的准备工作，设置一系列默认值
-// Request.Url与Request.Rule必须设置
-// Request.DataFlow无需手动设置(由系统自动设置)
-// Request.EnableCookie在DataFlow字段中统一设置，规则请求中指定的无效
+// DataRequest.Url与Request.Rule必须设置
+// DataRequest.DataFlow无需手动设置(由系统自动设置)
+// DataRequest.EnableCookie在DataFlow字段中统一设置，规则请求中指定的无效
 // 以下字段有默认值，可不设置:
-// Request.Method默认为GET方法;
-// Request.DialTimeout默认为常量DefaultDialTimeout，小于0时不限制等待响应时长;
-// Request.ConnTimeout默认为常量DefaultConnTimeout，小于0时不限制下载超时;
-// Request.TryTimes默认为常量DefaultTryTimes，小于0时不限制失败重载次数;
-// Request.RedirectTimes默认不限制重定向次数，小于0时可禁止重定向跳转;
-// Request.RetryPause默认为常量DefaultRetryPause;
-// Request.DownloaderID指定下载器ID，0为默认的Surf高并发下载器，功能完备，1为PhantomJS下载器，特点破防力强，速度慢，低并发。
-func (self *Request) Prepare() error {
+// DataRequest.Method默认为GET方法;
+// DataRequest.DialTimeout默认为常量DefaultDialTimeout，小于0时不限制等待响应时长;
+// DataRequest.ConnTimeout默认为常量DefaultConnTimeout，小于0时不限制下载超时;
+// DataRequest.TryTimes默认为常量DefaultTryTimes，小于0时不限制失败重载次数;
+// DataRequest.RedirectTimes默认不限制重定向次数，小于0时可禁止重定向跳转;
+// DataRequest.RetryPause默认为常量DefaultRetryPause;
+// DataRequest.DownloaderID指定下载器ID，0为默认的Surf高并发下载器，功能完备，1为PhantomJS下载器，特点破防力强，速度慢，低并发。
+func (self *DataRequest) Prepare() error {
 	// 确保url正确，且和Response中Url字符串相等
 	URL, err := url.Parse(self.Url)
 	if err != nil {
@@ -108,6 +108,7 @@ func (self *Request) Prepare() error {
 		self.Priority = 0
 	}
 
+	// TODO
 	if self.DownloaderID < SURF_ID || self.DownloaderID > PHANTOM_ID {
 		self.DownloaderID = SURF_ID
 	}
@@ -123,13 +124,13 @@ func (self *Request) Prepare() error {
 }
 
 // 反序列化
-func UnSerialize(s string) (*Request, error) {
-	req := new(Request)
+func UnSerialize(s string) (*DataRequest, error) {
+	req := new(DataRequest)
 	return req, json.Unmarshal([]byte(s), req)
 }
 
 // 序列化
-func (self *Request) Serialize() string {
+func (self *DataRequest) Serialize() string {
 	for k, v := range self.Temp {
 		self.Temp.set(k, v)
 		self.TempIsJson[k] = true
@@ -139,7 +140,7 @@ func (self *Request) Serialize() string {
 }
 
 // 请求的唯一识别码
-func (self *Request) Unique() string {
+func (self *DataRequest) Unique() string {
 	if self.unique == "" {
 		block := md5.Sum([]byte(self.DataFlow + self.Rule + self.Url + self.Method))
 		self.unique = hex.EncodeToString(block[:])
@@ -148,140 +149,140 @@ func (self *Request) Unique() string {
 }
 
 // 获取副本
-func (self *Request) Copy() *Request {
-	reqcopy := new(Request)
+func (self *DataRequest) Copy() *DataRequest {
+	reqcopy := new(DataRequest)
 	b, _ := json.Marshal(self)
 	json.Unmarshal(b, reqcopy)
 	return reqcopy
 }
 
 // 获取Url
-func (self *Request) GetUrl() string {
+func (self *DataRequest) GetUrl() string {
 	return self.Url
 }
 
 // 获取Http请求的方法名称 (注意这里不是指Http GET方法)
-func (self *Request) GetMethod() string {
+func (self *DataRequest) GetMethod() string {
 	return self.Method
 }
 
 // 设定Http请求方法的类型
-func (self *Request) SetMethod(method string) *Request {
+func (self *DataRequest) SetMethod(method string) *DataRequest {
 	self.Method = strings.ToUpper(method)
 	return self
 }
 
-func (self *Request) SetUrl(url string) *Request {
+func (self *DataRequest) SetUrl(url string) *DataRequest {
 	self.Url = url
 	return self
 }
 
-func (self *Request) GetReferer() string {
+func (self *DataRequest) GetReferer() string {
 	return self.Header.Get("Referer")
 }
 
-func (self *Request) SetReferer(referer string) *Request {
+func (self *DataRequest) SetReferer(referer string) *DataRequest {
 	self.Header.Set("Referer", referer)
 	return self
 }
 
-func (self *Request) GetPostData() string {
+func (self *DataRequest) GetPostData() string {
 	return self.PostData
 }
 
-func (self *Request) GetHeader() http.Header {
+func (self *DataRequest) GetHeader() http.Header {
 	return self.Header
 }
 
-func (self *Request) SetHeader(key, value string) *Request {
+func (self *DataRequest) SetHeader(key, value string) *DataRequest {
 	self.Header.Set(key, value)
 	return self
 }
 
-func (self *Request) AddHeader(key, value string) *Request {
+func (self *DataRequest) AddHeader(key, value string) *DataRequest {
 	self.Header.Add(key, value)
 	return self
 }
 
-func (self *Request) GetEnableCookie() bool {
+func (self *DataRequest) GetEnableCookie() bool {
 	return self.EnableCookie
 }
 
-func (self *Request) SetEnableCookie(enableCookie bool) *Request {
+func (self *DataRequest) SetEnableCookie(enableCookie bool) *DataRequest {
 	self.EnableCookie = enableCookie
 	return self
 }
 
-func (self *Request) GetCookies() string {
+func (self *DataRequest) GetCookies() string {
 	return self.Header.Get("Cookie")
 }
 
-func (self *Request) SetCookies(cookie string) *Request {
+func (self *DataRequest) SetCookies(cookie string) *DataRequest {
 	self.Header.Set("Cookie", cookie)
 	return self
 }
 
-func (self *Request) GetDialTimeout() time.Duration {
+func (self *DataRequest) GetDialTimeout() time.Duration {
 	return self.DialTimeout
 }
 
-func (self *Request) GetConnTimeout() time.Duration {
+func (self *DataRequest) GetConnTimeout() time.Duration {
 	return self.ConnTimeout
 }
 
-func (self *Request) GetTryTimes() int {
+func (self *DataRequest) GetTryTimes() int {
 	return self.TryTimes
 }
 
-func (self *Request) GetRetryPause() time.Duration {
+func (self *DataRequest) GetRetryPause() time.Duration {
 	return self.RetryPause
 }
 
-func (self *Request) GetProxy() string {
+func (self *DataRequest) GetProxy() string {
 	return self.proxy
 }
 
-func (self *Request) SetProxy(proxy string) *Request {
+func (self *DataRequest) SetProxy(proxy string) *DataRequest {
 	self.proxy = proxy
 	return self
 }
 
-func (self *Request) GetRedirectTimes() int {
+func (self *DataRequest) GetRedirectTimes() int {
 	return self.RedirectTimes
 }
 
-func (self *Request) GetRuleName() string {
+func (self *DataRequest) GetRuleName() string {
 	return self.Rule
 }
 
-func (self *Request) SetRuleName(ruleName string) *Request {
+func (self *DataRequest) SetRuleName(ruleName string) *DataRequest {
 	self.Rule = ruleName
 	return self
 }
 
-func (self *Request) GetDataFlowName() string {
+func (self *DataRequest) GetDataFlowName() string {
 	return self.DataFlow
 }
 
-func (self *Request) SetDataFlowName(dataFlowName string) *Request {
+func (self *DataRequest) SetDataFlowName(dataFlowName string) *DataRequest {
 	self.DataFlow = dataFlowName
 	return self
 }
 
-func (self *Request) IsReloadable() bool {
+func (self *DataRequest) IsReloadable() bool {
 	return self.Reloadable
 }
 
-func (self *Request) SetReloadable(can bool) *Request {
+func (self *DataRequest) SetReloadable(can bool) *DataRequest {
 	self.Reloadable = can
 	return self
 }
 
 // 获取临时缓存数据
 // defaultValue 不能为 interface{}(nil)
-func (self *Request) GetTemp(key string, defaultValue interface{}) interface{} {
+func (self *DataRequest) GetTemp(key string, defaultValue interface{}) interface{} {
 	if defaultValue == nil {
-		panic("*Request.GetTemp()的defaultValue不能为nil，错误位置：key=" + key)
+		panic("*DataRequest.GetTemp()的defaultValue不能为nil，错误位置：key=" + key)
 	}
 	self.lock.RLock()
 	defer self.lock.RUnlock()
@@ -297,11 +298,11 @@ func (self *Request) GetTemp(key string, defaultValue interface{}) interface{} {
 	return self.Temp[key]
 }
 
-func (self *Request) GetTemps() Temp {
+func (self *DataRequest) GetTemps() Temp {
 	return self.Temp
 }
 
-func (self *Request) SetTemp(key string, value interface{}) *Request {
+func (self *DataRequest) SetTemp(key string, value interface{}) *DataRequest {
 	self.lock.Lock()
 	self.Temp[key] = value
 	delete(self.TempIsJson, key)
@@ -309,7 +310,7 @@ func (self *Request) SetTemp(key string, value interface{}) *Request {
 	return self
 }
 
-func (self *Request) SetTemps(temp map[string]interface{}) *Request {
+func (self *DataRequest) SetTemps(temp map[string]interface{}) *DataRequest {
 	self.lock.Lock()
 	self.Temp = temp
 	self.TempIsJson = make(map[string]bool)
@@ -317,25 +318,25 @@ func (self *Request) SetTemps(temp map[string]interface{}) *Request {
 	return self
 }
 
-func (self *Request) GetPriority() int {
+func (self *DataRequest) GetPriority() int {
 	return self.Priority
 }
 
-func (self *Request) SetPriority(priority int) *Request {
+func (self *DataRequest) SetPriority(priority int) *DataRequest {
 	self.Priority = priority
 	return self
 }
 
-func (self *Request) GetDownloaderID() int {
+func (self *DataRequest) GetDownloaderID() int {
 	return self.DownloaderID
 }
 
-func (self *Request) SetDownloaderID(id int) *Request {
+func (self *DataRequest) SetDownloaderID(id int) *DataRequest {
 	self.DownloaderID = id
 	return self
 }
 
-func (self *Request) MarshalJSON() ([]byte, error) {
+func (self *DataRequest) MarshalJSON() ([]byte, error) {
 	for k, v := range self.Temp {
 		if self.TempIsJson[k] {
 			continue

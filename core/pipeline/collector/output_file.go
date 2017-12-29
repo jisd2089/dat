@@ -7,12 +7,12 @@ import (
 	"path/filepath"
 	"sync/atomic"
 
-	"github.com/henrylee2cn/pholcus/app/pipeline/collector/data"
-	bytesSize "github.com/henrylee2cn/pholcus/common/bytes"
-	"github.com/henrylee2cn/pholcus/common/util"
-	"github.com/henrylee2cn/pholcus/config"
+	"dat/core/pipeline/collector/data"
+	//"dat/runtime/cache"
+	"dat/common/util"
+	"dat/config"
+	bytesSize "dat/common/bytes"
 	"github.com/henrylee2cn/pholcus/logs"
-	// "github.com/henrylee2cn/pholcus/runtime/cache"
 )
 
 // 文件输出
@@ -37,7 +37,7 @@ func (self *Collector) outputFile(file data.FileCell) {
 		if err := os.MkdirAll(dir, 0777); err != nil {
 			logs.Log.Error(
 				" *     Fail  [文件下载：%v | KEYIN：%v | 批次：%v]   %v [ERROR]  %v\n",
-				self.Spider.GetName(), self.Spider.GetKeyin(), atomic.LoadUint64(&self.fileBatch), fileName, err,
+				self.DataFlow.GetName(), self.DataFlow.GetKeyin(), atomic.LoadUint64(&self.fileBatch), fileName, err,
 			)
 			return
 		}
@@ -48,7 +48,7 @@ func (self *Collector) outputFile(file data.FileCell) {
 	if err != nil {
 		logs.Log.Error(
 			" *     Fail  [文件下载：%v | KEYIN：%v | 批次：%v]   %v [ERROR]  %v\n",
-			self.Spider.GetName(), self.Spider.GetKeyin(), atomic.LoadUint64(&self.fileBatch), fileName, err,
+			self.DataFlow.GetName(), self.DataFlow.GetKeyin(), atomic.LoadUint64(&self.fileBatch), fileName, err,
 		)
 		return
 	}
@@ -58,7 +58,7 @@ func (self *Collector) outputFile(file data.FileCell) {
 	if err != nil {
 		logs.Log.Error(
 			" *     Fail  [文件下载：%v | KEYIN：%v | 批次：%v]   %v (%s) [ERROR]  %v\n",
-			self.Spider.GetName(), self.Spider.GetKeyin(), atomic.LoadUint64(&self.fileBatch), fileName, bytesSize.Format(uint64(size)), err,
+			self.DataFlow.GetName(), self.DataFlow.GetKeyin(), atomic.LoadUint64(&self.fileBatch), fileName, bytesSize.Format(uint64(size)), err,
 		)
 		return
 	}
@@ -70,7 +70,7 @@ func (self *Collector) outputFile(file data.FileCell) {
 	logs.Log.Informational(" * ")
 	logs.Log.App(
 		" *     [文件下载：%v | KEYIN：%v | 批次：%v]   %v (%s)\n",
-		self.Spider.GetName(), self.Spider.GetKeyin(), atomic.LoadUint64(&self.fileBatch), fileName, bytesSize.Format(uint64(size)),
+		self.DataFlow.GetName(), self.Spider.GetKeyin(), atomic.LoadUint64(&self.fileBatch), fileName, bytesSize.Format(uint64(size)),
 	)
 	logs.Log.Informational(" * ")
 }

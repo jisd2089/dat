@@ -7,84 +7,84 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/henrylee2cn/pholcus/app/pipeline/collector/data"
-	"github.com/henrylee2cn/pholcus/app/spider"
-	"github.com/henrylee2cn/pholcus/runtime/cache"
+	"dat/core/pipeline/collector/data"
+	"dat/runtime/cache"
+	"dat/core/dataflow"
 )
 
 // 结果收集与输出
 type Collector struct {
-	*spider.Spider                    //绑定的采集规则
-	DataChan       chan data.DataCell //文本数据收集通道
-	FileChan       chan data.FileCell //文件收集通道
-	dataDocker     []data.DataCell    //分批输出结果缓存
-	outType        string             //输出方式
+	*dataflow.DataFlow            //绑定的流通规则
+	DataChan   chan data.DataCell //文本数据收集通道
+	FileChan   chan data.FileCell //文件收集通道
+	dataDocker []data.DataCell    //分批输出结果缓存
+	outType    string             //输出方式
+	dataBatch  uint64             //当前文本输出批次
+	fileBatch  uint64             //当前文件输出批次
+	sum        [4]uint64          //收集的数据总数[上次输出后文本总数，本次输出后文本总数，上次输出后文件总数，本次输出后文件总数]，非并发安全
 	// size     [2]uint64 //数据总输出流量统计[文本，文件]，文本暂时未统计
-	dataBatch   uint64 //当前文本输出批次
-	fileBatch   uint64 //当前文件输出批次
 	wait        sync.WaitGroup
-	sum         [4]uint64 //收集的数据总数[上次输出后文本总数，本次输出后文本总数，上次输出后文件总数，本次输出后文件总数]，非并发安全
 	dataSumLock sync.RWMutex
 	fileSumLock sync.RWMutex
 }
 
-func NewCollector(sp *spider.Spider) *Collector {
-	var self = &Collector{}
-	self.Spider = sp
-	self.outType = cache.Task.OutType
+func NewCollector(df *dataflow.DataFlow) *Collector {
+	var c = &Collector{}
+	c.DataFlow = df
+	c.outType = cache.Task.OutType
 	if cache.Task.DockerCap < 1 {
 		cache.Task.DockerCap = 1
 	}
-	self.DataChan = make(chan data.DataCell, cache.Task.DockerCap)
-	self.FileChan = make(chan data.FileCell, cache.Task.DockerCap)
-	self.dataDocker = make([]data.DataCell, 0, cache.Task.DockerCap)
-	self.sum = [4]uint64{}
+	c.DataChan = make(chan data.DataCell, cache.Task.DockerCap)
+	c.FileChan = make(chan data.FileCell, cache.Task.DockerCap)
+	c.dataDocker = make([]data.DataCell, 0, cache.Task.DockerCap)
+	c.sum = [4]uint64{}
 	// self.size = [2]uint64{}
-	self.dataBatch = 0
-	self.fileBatch = 0
-	return self
+	c.dataBatch = 0
+	c.fileBatch = 0
+	return c
 }
 
-func (self *Collector) CollectData(dataCell data.DataCell) error {
+func (c *Collector) CollectData(dataCell data.DataCell) error {
 	var err error
 	defer func() {
 		if recover() != nil {
 			err = fmt.Errorf("输出协程已终止")
 		}
 	}()
-	self.DataChan <- dataCell
+	c.DataChan <- dataCell
 	return err
 }
 
-func (self *Collector) CollectFile(fileCell data.FileCell) error {
+func (c *Collector) CollectFile(fileCell data.FileCell) error {
 	var err error
 	defer func() {
 		if recover() != nil {
 			err = fmt.Errorf("输出协程已终止")
 		}
 	}()
-	self.FileChan <- fileCell
+	c.FileChan <- fileCell
 	return err
 }
 
 // 停止
-func (self *Collector) Stop() {
+func (c *Collector) Stop() {
 	go func() {
 		defer func() {
 			recover()
 		}()
-		close(self.DataChan)
+		close(c.DataChan)
 	}()
 	go func() {
 		defer func() {
 			recover()
 		}()
-		close(self.FileChan)
+		close(c.FileChan)
 	}()
 }
 
-// 启动数据收集/输出管道
-func (self *Collector) Start() {
+// 启动数据拆包/核验管道
+func (c *Collector) Start() {
 	// 启动输出协程
 	go func() {
 		dataStop := make(chan bool)
@@ -95,22 +95,22 @@ func (self *Collector) Start() {
 				recover()
 				// println("DataChanStop$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$")
 			}()
-			for data := range self.DataChan {
+			for data := range c.DataChan {
 				// 缓存分批数据
-				self.dataDocker = append(self.dataDocker, data)
+				c.dataDocker = append(c.dataDocker, data)
 
 				// 未达到设定的分批量时继续收集数据
-				if len(self.dataDocker) < cache.Task.DockerCap {
+				if len(c.dataDocker) < cache.Task.DockerCap {
 					continue
 				}
 
 				// 执行输出
-				self.dataBatch++
-				self.outputData()
+				c.dataBatch++
+				c.outputData()
 			}
 			// 将剩余收集到但未输出的数据输出
-			self.dataBatch++
-			self.outputData()
+			c.dataBatch++
+			c.outputData()
 			close(dataStop)
 		}()
 
@@ -120,10 +120,10 @@ func (self *Collector) Start() {
 				// println("FileChanStop$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$")
 			}()
 			// 只有当收到退出通知并且通道内无数据时，才退出循环
-			for file := range self.FileChan {
-				atomic.AddUint64(&self.fileBatch, 1)
-				self.wait.Add(1)
-				go self.outputFile(file)
+			for file := range c.FileChan {
+				atomic.AddUint64(&c.fileBatch, 1)
+				c.wait.Add(1)
+				go c.outputFile(file)
 			}
 			close(fileStop)
 		}()
@@ -133,19 +133,19 @@ func (self *Collector) Start() {
 		// println("OutputWaitStopping++++++++++++++++++++++++++++++++")
 
 		// 等待所有输出完成
-		self.wait.Wait()
+		c.wait.Wait()
 		// println("OutputStopped$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$")
 
 		// 返回报告
-		self.Report()
+		c.Report()
 	}()
 }
 
-func (self *Collector) resetDataDocker() {
-	for _, cell := range self.dataDocker {
+func (c *Collector) resetDataDocker() {
+	for _, cell := range c.dataDocker {
 		data.PutDataCell(cell)
 	}
-	self.dataDocker = self.dataDocker[:0]
+	c.dataDocker = c.dataDocker[:0]
 }
 
 // 获取文本数据总量
@@ -201,10 +201,10 @@ func (self *Collector) addFileSum(add uint64) {
 // 返回报告
 func (self *Collector) Report() {
 	cache.ReportChan <- &cache.Report{
-		SpiderName: self.Spider.GetName(),
-		Keyin:      self.GetKeyin(),
-		DataNum:    self.dataSum(),
-		FileNum:    self.fileSum(),
+		DataFlowName: self.DataFlow.GetName(),
+		Keyin:        self.GetKeyin(),
+		DataNum:      self.dataSum(),
+		FileNum:      self.fileSum(),
 		// DataSize:   self.dataSize(),
 		// FileSize: self.fileSize(),
 		Time: time.Since(cache.StartTime),

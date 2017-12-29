@@ -5,10 +5,11 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/henrylee2cn/pholcus/common/util"
-	"github.com/henrylee2cn/pholcus/config"
+	"dat/common/util"
+	"dat/config"
+	"dat/runtime/cache"
+	
 	"github.com/henrylee2cn/pholcus/logs"
-	"github.com/henrylee2cn/pholcus/runtime/cache"
 )
 
 /************************ CSV 输出 ***************************/
@@ -55,7 +56,7 @@ func init() {
 
 				sheets[subNamespace] = csv.NewWriter(file)
 				th := self.MustGetRule(datacell["RuleName"].(string)).ItemFields
-				if self.Spider.OutDefaultField() {
+				if self.DataFlow.OutDefaultField() {
 					th = append(th, "当前链接", "上级链接", "下载时间")
 				}
 				sheets[subNamespace].Write(th)
@@ -70,7 +71,7 @@ func init() {
 					row = append(row, util.JsonString(vd[title]))
 				}
 			}
-			if self.Spider.OutDefaultField() {
+			if self.DataFlow.OutDefaultField() {
 				row = append(row, datacell["Url"].(string))
 				row = append(row, datacell["ParentUrl"].(string))
 				row = append(row, datacell["DownloadTime"].(string))

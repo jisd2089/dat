@@ -5,10 +5,10 @@ import (
 
 	mgov2 "gopkg.in/mgo.v2"
 
-	"github.com/henrylee2cn/pholcus/common/mgo"
-	"github.com/henrylee2cn/pholcus/common/pool"
-	"github.com/henrylee2cn/pholcus/common/util"
-	"github.com/henrylee2cn/pholcus/config"
+	"dat/common/mgo"
+	"dat/common/pool"
+	"dat/common/util"
+	"dat/config"
 	"github.com/henrylee2cn/pholcus/logs"
 )
 
@@ -41,7 +41,7 @@ func init() {
 				}
 				delete(datacell, "Data")
 				delete(datacell, "RuleName")
-				if !self.Spider.OutDefaultField() {
+				if !self.DataFlow.OutDefaultField() {
 					delete(datacell, "Url")
 					delete(datacell, "ParentUrl")
 					delete(datacell, "DownloadTime")
@@ -54,7 +54,7 @@ func init() {
 				count := len(docs)
 				loop := count / mgo.MaxLen
 				for i := 0; i < loop; i++ {
-					err = c.Insert(docs[i*mgo.MaxLen : (i+1)*mgo.MaxLen]...)
+					err = c.Insert(docs[i*mgo.MaxLen: (i+1)*mgo.MaxLen]...)
 					if err != nil {
 						logs.Log.Error("%v", err)
 					}

@@ -16,7 +16,7 @@ type scheduler struct {
 	count        chan bool    // 总并发量计数
 	useProxy     bool         // 标记是否使用代理IP
 	proxy        *proxy.Proxy // 全局代理IP
-	matrices     []*Matrix    // Spider实例的请求矩阵列表
+	matrices     []*Matrix    // DataFlow实例的请求矩阵列表
 	sync.RWMutex              // 全局读写锁
 }
 
@@ -52,15 +52,15 @@ func Init() {
 }
 
 // 注册资源队列
-func AddMatrix(spiderName, spiderSubName string, maxPage int64) *Matrix {
-	matrix := newMatrix(spiderName, spiderSubName, maxPage)
+func AddMatrix(dataFlowName, dataFlowSubName string, maxPage int64) *Matrix {
+	matrix := newMatrix(dataFlowName, dataFlowSubName, maxPage)
 	sdl.RLock()
 	defer sdl.RUnlock()
 	sdl.matrices = append(sdl.matrices, matrix)
 	return matrix
 }
 
-// 暂停\恢复所有爬行任务
+// 暂停\恢复所有穿越任务
 func PauseRecover() {
 	sdl.Lock()
 	defer sdl.Unlock()
@@ -90,7 +90,7 @@ func Stop() {
 	// println("scheduler$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$")
 }
 
-// 每个spider实例分配到的平均资源量
+// 每个dataFlow实例分配到的平均资源量
 func (self *scheduler) avgRes() int32 {
 	avg := int32(cap(sdl.count) / len(sdl.matrices))
 	if avg == 0 {
