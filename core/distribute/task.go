@@ -3,7 +3,7 @@ package distribute
 // 用于分布式分发的任务
 type Task struct {
 	Id             int
-	Spiders        []map[string]string // 蜘蛛规则name字段与keyin字段，规定格式map[string]string{"name":"baidu","keyin":"henry"}
+	DataFlows      []map[string]string // 蜘蛛规则name字段与keyin字段，规定格式map[string]string{"name":"baidu","keyin":"henry"}
 	ThreadNum      int                 // 全局最大并发量
 	Pausetime      int64               // 暂停时长参考/ms(随机: Pausetime/2 ~ Pausetime*2)
 	OutType        string              // 输出方式
