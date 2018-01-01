@@ -13,13 +13,12 @@ import (
 	"dat/core/pipeline/collector"
 	"time"
 	"dat/runtime/cache"
+	"dat/core/scheduler"
 	"fmt"
 	"strings"
 	"reflect"
 	"github.com/henrylee2cn/pholcus/logs"
-
-	"github.com/henrylee2cn/pholcus/app/spider"
-	"github.com/henrylee2cn/pholcus/app/crawler"
+	"github.com/henrylee2cn/teleport"
 )
 
 // 数据资产方
@@ -31,6 +30,11 @@ type (
 		SetConfig(k string, v interface{}) AssetNode             // 设置全局参数
 		DataFlowPrepare(original []*dataflow.DataFlow) AssetNode // 须在设置全局运行参数后Run()前调用（client模式下不调用该方法）
 		Run()                                                    // 阻塞式运行直至任务完成（须在所有应当配置项配置完成后调用）
+		Stop()                                                   // Offline 模式下中途终止任务（对外为阻塞式运行直至当前任务终止）
+		IsRunning() bool                                         // 检查任务是否正在运行
+		IsPause() bool                                           // 检查任务是否处于暂停状态
+		IsStopped() bool                                         // 检查任务是否已经终止
+		PauseRecover()                                           // Offline 模式下暂停\恢复任务
 		Status() int                                             // 返回当前状态
 		GetDataFlowLib() []*dataflow.DataFlow                    // 获取全部Dataflow种类
 		GetDataFlowByName(string) *dataflow.DataFlow             // 通过名字获取某DataFlow
@@ -40,14 +44,14 @@ type (
 		distribute.Distributer                                   // 实现分布式接
 	}
 	NodeEntity struct {
-		id       int              //资产方系统ID
-		rights   []string         //资产方权利
-		roleType string           //资产方角色类型
-		*cache.AppConf            // 全局配置
-		*dataflow.DataFlowSpecies //数据产品流种类
-		*distribute.TaskBase      //服务器与客户端间传递任务的存储库
-		dataman.DataFlowQueue     //当前任务的数产品流队列
-		dataman.DataManPool       //配送回收池
+		id           int           //资产方系统ID
+		rights       []string      //资产方权利
+		roleType     string        //资产方角色类型
+		*cache.AppConf             // 全局配置
+		*dataflow.DataFlowSpecies  //数据产品流种类
+		*distribute.TaskBase       //服务器与客户端间传递任务的存储库
+		dataman.DataFlowQueue      //当前任务的数产品流队列
+		dataman.DataManPool        //配送回收池
 		teleport.Teleport          // socket长连接双工通信接口，json数据传输
 		status       int           // 运行状态
 		sum          [2]uint64     // 执行计数
@@ -150,7 +154,7 @@ func (self *NodeEntity) SetAppConf(k string, v interface{}) AssetNode {
 		}
 	}()
 	if k == "Limit" && v.(int64) <= 0 {
-		v = int64(spider.LIMIT)
+		v = int64(dataflow.LIMIT)
 	} else if k == "DockerCap" && v.(int) < 1 {
 		v = int(1)
 	}
@@ -173,7 +177,7 @@ func (self *NodeEntity) DataFlowPrepare(original []*dataflow.DataFlow) AssetNode
 	for _, df := range original {
 		spcopy := df.Copy()
 		spcopy.SetPausetime(self.AppConf.Pausetime)
-		if spcopy.GetLimit() == spider.LIMIT {
+		if spcopy.GetLimit() == dataflow.LIMIT {
 			spcopy.SetLimit(self.AppConf.Limit)
 		} else {
 			spcopy.SetLimit(-1 * self.AppConf.Limit)
@@ -196,7 +200,7 @@ func (self *NodeEntity) GetDataFlowLib() []*dataflow.DataFlow {
 }
 
 // 通过名字获取某蜘蛛
-func (self *NodeEntity) GetSpiderByName(name string) *dataflow.DataFlow {
+func (self *NodeEntity) GetDataFlowByName(name string) *dataflow.DataFlow {
 	return self.DataFlowSpecies.GetByName(name)
 }
 
@@ -277,9 +281,45 @@ func (a *NodeEntity) goRun(count int) {
 	}
 }
 
-// 服务器客户端模式下返回节点数
-func (self *NodeEntity) CountNodes() int {
-	return self.Teleport.CountNodes()
+// Offline 模式下中途终止任务
+func (self *NodeEntity) Stop() {
+	if self.status == status.STOPPED {
+		return
+	}
+	if self.status != status.STOP {
+		// 不可颠倒停止的顺序
+		self.setStatus(status.STOP)
+		// println("scheduler.Stop()")
+		scheduler.Stop()
+		// println("self.DataManPool.Stop()")
+		self.DataManPool.Stop()
+	}
+	// println("wait self.IsStopped()")
+	for !self.IsStopped() {
+		time.Sleep(time.Second)
+	}
+}
+
+// 检查任务是否正在运行
+func (self *NodeEntity) IsRunning() bool {
+	return self.status == status.RUN
+}
+
+// 检查任务是否处于暂停状态
+func (self *NodeEntity) IsPause() bool {
+	return self.status == status.PAUSE
+}
+
+// 检查任务是否已经终止
+func (self *NodeEntity) IsStopped() bool {
+	return self.status == status.STOPPED
+}
+
+// 返回当前运行状态
+func (self *NodeEntity) setStatus(status int) {
+	self.RWMutex.Lock()
+	defer self.RWMutex.Unlock()
+	self.status = status
 }
 
 // ******************************************** 私有方法 ************************************************* \\
@@ -297,7 +337,7 @@ func (self *NodeEntity) server() {
 	}()
 
 	// 便利添加任务到库
-	tasksNum, spidersNum := self.addNewTask()
+	tasksNum, dataFlowsNum := self.addNewTask()
 
 	if tasksNum == 0 {
 		return
@@ -307,13 +347,13 @@ func (self *NodeEntity) server() {
 	logs.Log.Informational(" * ")
 	logs.Log.Informational(` *********************************************************************************************************************************** `)
 	logs.Log.Informational(" * ")
-	logs.Log.Informational(" *                               —— 本次成功添加 %v 条任务，共包含 %v 条采集规则 ——", tasksNum, spidersNum)
+	logs.Log.Informational(" *                               —— 本次成功添加 %v 条任务，共包含 %v 条采集规则 ——", tasksNum, dataFlowsNum)
 	logs.Log.Informational(" * ")
 	logs.Log.Informational(` *********************************************************************************************************************************** `)
 }
 
 // 服务器模式下，生成task并添加至库
-func (self *NodeEntity) addNewTask() (tasksNum, spidersNum int) {
+func (self *NodeEntity) addNewTask() (tasksNum, dataFlowsNum int) {
 	length := self.DataFlowQueue.Len()
 	t := distribute.Task{}
 	// 从配置读取字段
@@ -321,8 +361,8 @@ func (self *NodeEntity) addNewTask() (tasksNum, spidersNum int) {
 
 	for i, sp := range self.DataFlowQueue.GetAll() {
 
-		t.Spiders = append(t.Spiders, map[string]string{"name": sp.GetName(), "keyin": sp.GetKeyin()})
-		spidersNum++
+		t.DataFlows = append(t.DataFlows, map[string]string{"name": sp.GetName(), "keyin": sp.GetKeyin()})
+		dataFlowsNum++
 
 		// 每十个蜘蛛存为一个任务
 		if i > 0 && i%10 == 0 && length > 10 {
@@ -333,12 +373,12 @@ func (self *NodeEntity) addNewTask() (tasksNum, spidersNum int) {
 
 			tasksNum++
 
-			// 清空spider
-			t.Spiders = []map[string]string{}
+			// 清空dataflow
+			t.DataFlows = []map[string]string{}
 		}
 	}
 
-	if len(t.Spiders) != 0 {
+	if len(t.DataFlows) != 0 {
 		// 存入
 		one := t
 		self.TaskBase.Push(&one)
@@ -408,7 +448,7 @@ func (self *NodeEntity) taskToRun(t *distribute.Task) {
 
 	// 初始化蜘蛛队列
 	for _, n := range t.DataFlows {
-		sp := self.GetSpiderByName(n["name"])
+		sp := self.GetDataFlowByName(n["name"])
 		if sp == nil {
 			continue
 		}
