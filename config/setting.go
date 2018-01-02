@@ -6,8 +6,8 @@ import (
 	"path/filepath"
 	"strconv"
 
+	"dat/runtime/status"
 	"github.com/henrylee2cn/pholcus/common/config"
-	"github.com/henrylee2cn/pholcus/runtime/status"
 )
 
 // 配置文件涉及的默认配置。
@@ -74,7 +74,7 @@ var setting = func() config.Configer {
 }()
 
 func defaultConfig(iniconf config.Configer) {
-	iniconf.Set("crawlcap", strconv.Itoa(crawlcap))
+	iniconf.Set("dataManCap", strconv.Itoa(dataManCap))
 	// iniconf.Set("datachancap", strconv.Itoa(datachancap))
 	iniconf.Set("log::cap", strconv.FormatInt(logcap, 10))
 	iniconf.Set("log::level", loglevel)
@@ -109,8 +109,8 @@ func defaultConfig(iniconf config.Configer) {
 }
 
 func trySet(iniconf config.Configer) {
-	if v, e := iniconf.Int("crawlcap"); v <= 0 || e != nil {
-		iniconf.Set("crawlcap", strconv.Itoa(crawlcap))
+	if v, e := iniconf.Int("dataManCap"); v <= 0 || e != nil {
+		iniconf.Set("dataManCap", strconv.Itoa(dataManCap))
 	}
 
 	// if v, e := iniconf.Int("datachancap"); v <= 0 || e != nil {

@@ -315,15 +315,15 @@ func (self *DataFlow) ReqmatrixInit() *DataFlow {
 }
 
 // 返回是否作为新的失败请求被添加至队列尾部
-func (self *DataFlow) DoHistory(req *request.Request, ok bool) bool {
+func (self *DataFlow) DoHistory(req *request.DataRequest, ok bool) bool {
 	return self.reqMatrix.DoHistory(req, ok)
 }
 
-func (self *DataFlow) RequestPush(req *request.Request) {
+func (self *DataFlow) RequestPush(req *request.DataRequest) {
 	self.reqMatrix.Push(req)
 }
 
-func (self *DataFlow) RequestPull() *request.Request {
+func (self *DataFlow) RequestPull() *request.DataRequest {
 	return self.reqMatrix.Pull()
 }
 

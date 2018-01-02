@@ -70,7 +70,7 @@ func (self *Collector) outputFile(file data.FileCell) {
 	logs.Log.Informational(" * ")
 	logs.Log.App(
 		" *     [文件下载：%v | KEYIN：%v | 批次：%v]   %v (%s)\n",
-		self.DataFlow.GetName(), self.Spider.GetKeyin(), atomic.LoadUint64(&self.fileBatch), fileName, bytesSize.Format(uint64(size)),
+		self.DataFlow.GetName(), self.DataFlow.GetKeyin(), atomic.LoadUint64(&self.fileBatch), fileName, bytesSize.Format(uint64(size)),
 	)
 	logs.Log.Informational(" * ")
 }

@@ -7,31 +7,31 @@ import (
 	"os"
 	"sync"
 
-	"github.com/henrylee2cn/pholcus/app/downloader/request"
-	"github.com/henrylee2cn/pholcus/common/mgo"
-	"github.com/henrylee2cn/pholcus/common/mysql"
-	"github.com/henrylee2cn/pholcus/common/pool"
-	"github.com/henrylee2cn/pholcus/config"
+	"dat/core/interaction/request"
+	"dat/common/mgo"
+	"dat/common/mysql"
+	"dat/common/pool"
+	"dat/config"
 )
 
 type Failure struct {
 	tabName     string
 	fileName    string
-	list        map[string]*request.Request //key:url
+	list        map[string]*request.DataRequest //key:url
 	inheritable bool
 	sync.RWMutex
 }
 
-func (self *Failure) PullFailure() map[string]*request.Request {
+func (self *Failure) PullFailure() map[string]*request.DataRequest {
 	list := self.list
-	self.list = make(map[string]*request.Request)
+	self.list = make(map[string]*request.DataRequest)
 	return list
 }
 
 // 更新或加入失败记录，
 // 对比是否已存在，不存在就记录，
 // 返回值表示是否有插入操作。
-func (self *Failure) UpsertFailure(req *request.Request) bool {
+func (self *Failure) UpsertFailure(req *request.DataRequest) bool {
 	self.RWMutex.Lock()
 	defer self.RWMutex.Unlock()
 	if self.list[req.Unique()] != nil {
@@ -42,7 +42,7 @@ func (self *Failure) UpsertFailure(req *request.Request) bool {
 }
 
 // 删除失败记录
-func (self *Failure) DeleteFailure(req *request.Request) {
+func (self *Failure) DeleteFailure(req *request.DataRequest) {
 	self.RWMutex.Lock()
 	delete(self.list, req.Unique())
 	self.RWMutex.Unlock()

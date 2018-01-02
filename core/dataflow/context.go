@@ -6,7 +6,6 @@ import (
 	//"io/ioutil"
 	"mime"
 	"net/http"
-	"github.com/valyala/fasthttp"
 	"path"
 	"strings"
 	"sync"
@@ -20,17 +19,18 @@ import (
 	"github.com/henrylee2cn/pholcus/common/goquery"
 	"github.com/henrylee2cn/pholcus/logs"
 	//"golang.org/x/net/html/charset"
+	"dat/core/interaction/response"
 )
 
 type Context struct {
-	dataFlow    *DataFlow            // 规则
-	DataRequest *request.DataRequest // 原始请求
-	Response    *fasthttp.Response   // 响应流，其中URL拷贝自*request.DataRequest
-	text        []byte               // 下载内容Body的字节流格式
-	dom         *goquery.Document    // 下载内容Body为html时，可转换为Dom的对象
-	items       []data.DataCell      // 存放以文本形式输出的结果数据
-	files       []data.FileCell      // 存放欲直接输出的文件("Name": string; "Body": io.ReadCloser)
-	err         error                // 错误标记
+	dataFlow     *DataFlow              // 规则
+	DataRequest  *request.DataRequest   // 原始请求
+	DataResponse *response.DataResponse // 响应流，其中URL拷贝自*request.DataRequest
+	text         []byte                 // 下载内容Body的字节流格式
+	dom          *goquery.Document      // 下载内容Body为html时，可转换为Dom的对象
+	items        []data.DataCell        // 存放以文本形式输出的结果数据
+	files        []data.FileCell        // 存放欲直接输出的文件("Name": string; "Body": io.ReadCloser)
+	err          error                  // 错误标记
 	sync.Mutex
 }
 
@@ -59,15 +59,15 @@ func PutContext(ctx *Context) {
 	ctx.files = ctx.files[:0]
 	ctx.dataFlow = nil
 	ctx.DataRequest = nil
-	ctx.Response = nil
+	ctx.DataResponse = nil
 	ctx.text = nil
 	ctx.dom = nil
 	ctx.err = nil
 	contextPool.Put(ctx)
 }
 
-func (self *Context) SetResponse(resp *fasthttp.Response) *Context {
-	self.Response = resp
+func (self *Context) SetResponse(resp *response.DataResponse) *Context {
+	self.DataResponse = resp
 	return self
 }
 
@@ -106,7 +106,7 @@ func (self *Context) AddQueue(req *request.DataRequest) *Context {
 	}
 
 	// 自动设置Referer
-	if req.GetReferer() == "" && self.Response != nil {
+	if req.GetReferer() == "" && self.DataResponse != nil {
 		req.SetReferer(self.GetUrl())
 	}
 
@@ -174,7 +174,7 @@ func (self *Context) JsAddQueue(jreq map[string]interface{}) *Context {
 		return self
 	}
 
-	if req.GetReferer() == "" && self.Response != nil {
+	if req.GetReferer() == "" && self.DataResponse != nil {
 		req.SetReferer(self.GetUrl())
 	}
 
@@ -221,7 +221,7 @@ func (self *Context) Output(item interface{}, ruleName ...string) {
 // name指定文件名，为空时默认保持原文件名不变。
 func (self *Context) FileOutput(name ...string) {
 	// 读取完整文件流
-	bytes := self.Response.Body()
+	bytes := self.DataResponse.GetBody()
 	//bytes, err := ioutil.ReadAll(self.Response.Body)
 	//self.Response.Body.Close()
 	//if err != nil {
@@ -330,7 +330,7 @@ func (self *Context) Parse(ruleName ...string) *Context {
 	self.dataFlow.tryPanic()
 
 	_ruleName, rule, found := self.getRule(ruleName...)
-	if self.Response != nil {
+	if self.DataResponse != nil {
 		self.DataRequest.SetRuleName(_ruleName)
 	}
 	if !found {
@@ -406,13 +406,13 @@ func (self *Context) GetDataFlow() *DataFlow {
 }
 
 // 获取响应流。
-func (self *Context) GetResponse() *fasthttp.Response {
-	return self.Response
+func (self *Context) GetResponse() *response.DataResponse {
+	return self.DataResponse
 }
 
 // 获取响应状态码。
 func (self *Context) GetStatusCode() int {
-	return self.Response.StatusCode()
+	return self.DataResponse.GetStatusCode()
 }
 
 // 获取原始请求。
@@ -577,7 +577,7 @@ func (self *Context) GetText() string {
 // 获取规则。
 func (self *Context) getRule(ruleName ...string) (name string, rule *Rule, found bool) {
 	if len(ruleName) == 0 {
-		if self.Response == nil {
+		if self.DataResponse == nil {
 			return
 		}
 		name = self.GetRuleName()
@@ -609,7 +609,7 @@ func (self *Context) initText() {
 	if self.DataRequest.DownloaderID == request.SURF_ID {
 		var contentType, pageEncode string
 		// 优先从响应头读取编码类型 TODO
-		contentType = string(self.Response.Header.ContentType())
+		contentType = string(self.DataResponse.Header.ContentType())
 		if _, params, err := mime.ParseMediaType(contentType); err == nil {
 			if cs, ok := params["charset"]; ok {
 				pageEncode = strings.ToLower(strings.TrimSpace(cs))
@@ -617,7 +617,7 @@ func (self *Context) initText() {
 		}
 		// 响应头未指定编码类型时，从请求头读取
 		if len(pageEncode) == 0 {
-			contentType = string(self.Response.Header.ContentType())
+			contentType = string(self.DataResponse.Header.ContentType())
 			if _, params, err := mime.ParseMediaType(contentType); err == nil {
 				if cs, ok := params["charset"]; ok {
 					pageEncode = strings.ToLower(strings.TrimSpace(cs))
@@ -642,7 +642,7 @@ func (self *Context) initText() {
 			//}
 
 			if err == nil {
-				self.text = self.Response.Body()
+				self.text = self.DataResponse.GetBody()
 				return
 				//self.text, err = ioutil.ReadAll(destReader)
 				//if err == nil {
@@ -665,7 +665,7 @@ func (self *Context) initText() {
 	//	panic(err.Error())
 	//	return
 	//}
-	self.text = self.Response.Body()
+	self.text = self.DataResponse.GetBody()
 }
 
 /**

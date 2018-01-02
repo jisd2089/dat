@@ -3,9 +3,8 @@ package config
 import (
 	"strings"
 
-	"dat/"
+	"dat/runtime/cache"
 	"github.com/henrylee2cn/pholcus/logs/logs"
-	"github.com/henrylee2cn/pholcus/runtime/cache"
 )
 
 // 软件信息。
@@ -46,7 +45,7 @@ var (
 	MGO_CONN_GC_SECOND       int64  = setting.DefaultInt64("mgo::conngcsecond", mgoconngcsecond)                   // mongodb连接池GC时间，单位秒
 	MYSQL_CONN_STR           string = setting.String("mysql::connstring")                                          // mysql连接字符串
 	MYSQL_CONN_CAP           int    = setting.DefaultInt("mysql::conncap", mysqlconncap)                           // mysql连接池容量
-	MYSQL_MAX_ALLOWED_PACKET int    = setting.DefaultInt("mysql::maxallowedpacket", mysqlmaxallowedpacketmb) << 20 // mysql通信缓冲区的最大长度
+	MYSQL_MAX_ALLOWED_PACKET int    = setting.DefaultInt("mysql::maxallowedpacket", mysqlmaxallowedpacket) << 20 // mysql通信缓冲区的最大长度
 
 	KAFKA_BORKERS string = setting.DefaultString("kafka::brokers", kafkabrokers) //kafka brokers
 

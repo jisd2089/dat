@@ -14,6 +14,7 @@ import (
 	"time"
 	"dat/runtime/cache"
 	"dat/core/scheduler"
+	"dat/core/pipeline"
 	"fmt"
 	"strings"
 	"reflect"
@@ -26,7 +27,7 @@ type (
 	AssetNode interface {
 		Init() AssetNode                                         // 初始化
 		Empower() AssetNode                                      // 资产方赋权
-		GetAppConf(k ...string) interface{}                      // 获取全局参数
+		GetConfig(k ...string) interface{}                       // 获取全局参数
 		SetConfig(k string, v interface{}) AssetNode             // 设置全局参数
 		DataFlowPrepare(original []*dataflow.DataFlow) AssetNode // 须在设置全局运行参数后Run()前调用（client模式下不调用该方法）
 		Run()                                                    // 阻塞式运行直至任务完成（须在所有应当配置项配置完成后调用）
@@ -71,7 +72,15 @@ func New() AssetNode {
 }
 
 func newNodeEntity() *NodeEntity {
-	return &NodeEntity{}
+	return &NodeEntity{
+		AppConf:         cache.Task,
+		DataFlowSpecies: dataflow.Species,
+		status:          status.STOPPED,
+		Teleport:        teleport.New(),
+		TaskBase:        distribute.NewTaskBase(),
+		DataFlowQueue:   dataman.NewDataFlowQueue(),
+		DataManPool:     dataman.NewDataManPool(),
+	}
 }
 
 // 必要的初始化
@@ -132,7 +141,7 @@ func (a *NodeEntity) Empower() AssetNode {
 }
 
 // 获取全局参数
-func (self *NodeEntity) GetAppConf(k ...string) interface{} {
+func (self *NodeEntity) GetConfig(k ...string) interface{} {
 	defer func() {
 		if err := recover(); err != nil {
 			logs.Log.Error(fmt.Sprintf("%v", err))
@@ -147,7 +156,7 @@ func (self *NodeEntity) GetAppConf(k ...string) interface{} {
 }
 
 // 设置全局参数
-func (self *NodeEntity) SetAppConf(k string, v interface{}) AssetNode {
+func (self *NodeEntity) SetConfig(k string, v interface{}) AssetNode {
 	defer func() {
 		if err := recover(); err != nil {
 			logs.Log.Error(fmt.Sprintf("%v", err))
@@ -196,6 +205,7 @@ func (self *NodeEntity) GetOutputLib() []string {
 
 // 获取全部蜘蛛种类
 func (self *NodeEntity) GetDataFlowLib() []*dataflow.DataFlow {
+	fmt.Println(self.DataFlowSpecies)
 	return self.DataFlowSpecies.Get()
 }
 
@@ -237,16 +247,18 @@ func (ne *NodeEntity) Run() {
 	ne.setStatus(status.RUN)
 	defer ne.setStatus(status.STOPPED)
 	// 任务执行
-	switch ne.AppConf.Mode {
-	case status.OFFLINE:
-		ne.offline()
-	case status.SERVER:
-		ne.server()
-	case status.CLIENT:
-		ne.client()
-	default:
-		return
-	}
+	ne.exec()
+	//switch ne.AppConf.Mode {
+	//case status.OFFLINE:
+	//	ne.offline()
+	//case status.SERVER:
+	//	ne.server()
+	//case status.CLIENT:
+	//	ne.client()
+	//default:
+	//	return
+	//}
+
 	<-ne.finish
 }
 
@@ -258,27 +270,147 @@ func (a *NodeEntity) Status() int {
 }
 
 // 开始执行任务
-func (a *NodeEntity) exec() {
-	count := a.DataFlowQueue.Len()
+func (ne *NodeEntity) exec() {
+	count := ne.DataFlowQueue.Len()
 
-	a.DataManPool.Reset(count)
+	cache.ResetPageCount()
+	// 刷新输出方式的状态
+	pipeline.RefreshOutput()
+	// 初始化资源队列
+	scheduler.Init()
+
+	// 设置爬虫队列
+	dataManCap := ne.DataManPool.Reset(count)
+
+	logs.Log.Informational(" *     执行任务总数(任务数[*自定义配置数])为 %v 个\n", count)
+	logs.Log.Informational(" *     采集引擎池容量为 %v\n", dataManCap)
+	logs.Log.Informational(" *     并发协程最多 %v 个\n", ne.AppConf.ThreadNum)
+	logs.Log.Informational(" *     默认随机停顿 %v~%v 毫秒\n", ne.AppConf.Pausetime/2, ne.AppConf.Pausetime*2)
+	logs.Log.App(" *                                                                                                 —— 开始抓取，请耐心等候 ——")
+	logs.Log.Informational(` *********************************************************************************************************************************** `)
+
+	// 开始计时
+	cache.StartTime = time.Now()
+
+	// 根据模式选择合理的并发
+	go ne.goRun(count)
+	//if ne.AppConf.Mode == status.OFFLINE {
+	//	// 可控制执行状态
+	//	go ne.goRun(count)
+	//} else {
+	//	// 保证接收服务端任务的同步
+	//	ne.goRun(count)
+	//}
 }
 
 // 任务执行
-func (a *NodeEntity) goRun(count int) {
-	m := a.DataManPool.Use()
-	if m != nil {
-		go func(i int, c dataman.DataMan) {
-			// 执行并返回结果消息
-			m.Init(a.DataFlowQueue.GetByIndex(i)).Run()
-			// 任务结束后回收该蜘蛛
-			a.RWMutex.RLock()
-			if a.status != status.STOP {
-				a.DataManPool.Free(c)
-			}
-			a.RWMutex.RUnlock()
-		}(i, m)
+func (ne *NodeEntity) goRun(count int) {
+	//m := a.DataManPool.Use()
+	//if m != nil {
+	//	go func(i int, c dataman.DataMan) {
+	//		// 执行并返回结果消息
+	//		m.Init(a.DataFlowQueue.GetByIndex(i)).Run()
+	//		// 任务结束后回收该蜘蛛
+	//		a.RWMutex.RLock()
+	//		if a.status != status.STOP {
+	//			a.DataManPool.Free(c)
+	//		}
+	//		a.RWMutex.RUnlock()
+	//	}(i, m)
+	//}
+	// 执行任务
+	var i int
+	for i = 0; i < count && ne.Status() != status.STOP; i++ {
+	pause:
+		if ne.IsPause() {
+			time.Sleep(time.Second)
+			goto pause
+		}
+		// 从数据信使队列取出空闲信使，并发执行
+		c := ne.DataManPool.Use()
+		if c != nil {
+			go func(i int, c dataman.DataMan) {
+				// 执行并返回结果消息
+				c.Init(ne.DataFlowQueue.GetByIndex(i)).Run()
+				// 任务结束后回收该蜘蛛
+				ne.RWMutex.RLock()
+				if ne.status != status.STOP {
+					ne.DataManPool.Free(c)
+				}
+				ne.RWMutex.RUnlock()
+			}(i, c)
+		}
 	}
+	// 监控结束任务
+	for ii := 0; ii < i; ii++ {
+		s := <-cache.ReportChan
+		if (s.DataNum == 0) && (s.FileNum == 0) {
+			logs.Log.App(" *     [任务小计：%s | KEYIN：%s]   无采集结果，用时 %v！\n", s.DataFlowName, s.Keyin, s.Time)
+			continue
+		}
+		logs.Log.Informational(" * ")
+		switch {
+		case s.DataNum > 0 && s.FileNum == 0:
+			logs.Log.App(" *     [任务小计：%s | KEYIN：%s]   共采集数据 %v 条，用时 %v！\n",
+				s.DataFlowName, s.Keyin, s.DataNum, s.Time)
+		case s.DataNum == 0 && s.FileNum > 0:
+			logs.Log.App(" *     [任务小计：%s | KEYIN：%s]   共下载文件 %v 个，用时 %v！\n",
+				s.DataFlowName, s.Keyin, s.FileNum, s.Time)
+		default:
+			logs.Log.App(" *     [任务小计：%s | KEYIN：%s]   共采集数据 %v 条 + 下载文件 %v 个，用时 %v！\n",
+				s.DataFlowName, s.Keyin, s.DataNum, s.FileNum, s.Time)
+		}
+
+		ne.sum[0] += s.DataNum
+		ne.sum[1] += s.FileNum
+	}
+
+	// 总耗时
+	ne.takeTime = time.Since(cache.StartTime)
+	var prefix = func() string {
+		if ne.Status() == status.STOP {
+			return "任务中途取消："
+		}
+		return "本次"
+	}()
+	// 打印总结报告
+	logs.Log.Informational(" * ")
+	logs.Log.Informational(` *********************************************************************************************************************************** `)
+	logs.Log.Informational(" * ")
+	switch {
+	case ne.sum[0] > 0 && ne.sum[1] == 0:
+		logs.Log.App(" *                            —— %s合计采集【数据 %v 条】， 实爬【成功 %v URL + 失败 %v URL = 合计 %v URL】，耗时【%v】 ——",
+			prefix, ne.sum[0], cache.GetPageCount(1), cache.GetPageCount(-1), cache.GetPageCount(0), ne.takeTime)
+	case ne.sum[0] == 0 && ne.sum[1] > 0:
+		logs.Log.App(" *                            —— %s合计采集【文件 %v 个】， 实爬【成功 %v URL + 失败 %v URL = 合计 %v URL】，耗时【%v】 ——",
+			prefix, ne.sum[1], cache.GetPageCount(1), cache.GetPageCount(-1), cache.GetPageCount(0), ne.takeTime)
+	case ne.sum[0] == 0 && ne.sum[1] == 0:
+		logs.Log.App(" *                            —— %s无采集结果，实爬【成功 %v URL + 失败 %v URL = 合计 %v URL】，耗时【%v】 ——",
+			prefix, cache.GetPageCount(1), cache.GetPageCount(-1), cache.GetPageCount(0), ne.takeTime)
+	default:
+		logs.Log.App(" *                            —— %s合计采集【数据 %v 条 + 文件 %v 个】，实爬【成功 %v URL + 失败 %v URL = 合计 %v URL】，耗时【%v】 ——",
+			prefix, ne.sum[0], ne.sum[1], cache.GetPageCount(1), cache.GetPageCount(-1), cache.GetPageCount(0), ne.takeTime)
+	}
+	logs.Log.Informational(" * ")
+	logs.Log.Informational(` *********************************************************************************************************************************** `)
+
+	// 单机模式并发运行，需要标记任务结束
+	if ne.AppConf.Mode == status.OFFLINE {
+		//ne.LogRest()
+		ne.finishOnce.Do(func() { close(ne.finish) })
+	}
+}
+
+// Offline 模式下暂停\恢复任务
+func (self *NodeEntity) PauseRecover() {
+	switch self.Status() {
+	case status.PAUSE:
+		self.setStatus(status.RUN)
+	case status.RUN:
+		self.setStatus(status.PAUSE)
+	}
+
+	scheduler.PauseRecover()
 }
 
 // Offline 模式下中途终止任务

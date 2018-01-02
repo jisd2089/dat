@@ -16,11 +16,13 @@ import (
 // DataRequest represents object waiting for being crawled.
 type DataRequest struct {
 	DataFlow      string          //规则名，自动设置，禁止人为填写
+	TransferType  string          //传输类型
 	Url           string          //目标URL，必须设置
 	Rule          string          //用于解析响应的规则节点名，必须设置
 	Method        string          //GET POST POST-M HEAD
 	Header        http.Header     //请求头信息
 	EnableCookie  bool            //是否使用cookies，在DataFlow的EnableCookie设置
+	Parameters    []byte          // 传参
 	PostData      string          //POST values
 	DialTimeout   time.Duration   //创建连接超时 dial tcp: i/o timeout
 	ConnTimeout   time.Duration   //连接状态超时 WSARecv tcp: i/o timeout
@@ -51,6 +53,9 @@ const (
 const (
 	SURF_ID    = 0 // 默认的surf下载内核（Go原生），此值不可改动
 	PHANTOM_ID = 1 // 备用的phantomjs下载内核，一般不使用（效率差，头信息支持不完善）
+
+	HTTP = "HTTP"
+	SFTP = "SFTP"
 )
 
 // 发送请求前的准备工作，设置一系列默认值
@@ -334,6 +339,24 @@ func (self *DataRequest) GetDownloaderID() int {
 func (self *DataRequest) SetDownloaderID(id int) *DataRequest {
 	self.DownloaderID = id
 	return self
+}
+
+func (self *DataRequest) GetTransferType() string {
+	return self.TransferType
+}
+
+func (self *DataRequest) SetTransferType(transferType string) *DataRequest {
+	self.TransferType = transferType
+	return self
+}
+
+func (self *DataRequest) SetParameters(params []byte) *DataRequest {
+	self.Parameters = params
+	return self
+}
+
+func (self *DataRequest) GetParameters() []byte {
+	return self.Parameters
 }
 
 func (self *DataRequest) MarshalJSON() ([]byte, error) {

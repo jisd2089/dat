@@ -9,11 +9,11 @@ import (
 	"gopkg.in/mgo.v2/bson"
 
 	"dat/core/interaction/request"
-	"github.com/henrylee2cn/pholcus/common/mgo"
-	"github.com/henrylee2cn/pholcus/common/mysql"
-	"github.com/henrylee2cn/pholcus/common/pool"
-	"github.com/henrylee2cn/pholcus/common/util"
-	"github.com/henrylee2cn/pholcus/config"
+	"dat/common/mgo"
+	"dat/common/mysql"
+	"dat/common/pool"
+	"dat/common/util"
+	"dat/config"
 	"github.com/henrylee2cn/pholcus/logs"
 )
 
@@ -26,9 +26,9 @@ type (
 		FlushSuccess(provider string)              // I/O输出成功记录，但不清缓存
 
 		ReadFailure(provider string, inherit bool) // 取出失败记录
-		PullFailure() map[string]*request.Request  // 拉取失败记录并清空
-		UpsertFailure(*request.Request) bool       // 更新或加入失败记录
-		DeleteFailure(*request.Request)            // 删除失败记录
+		PullFailure() map[string]*request.DataRequest  // 拉取失败记录并清空
+		UpsertFailure(*request.DataRequest) bool       // 更新或加入失败记录
+		DeleteFailure(*request.DataRequest)            // 删除失败记录
 		FlushFailure(provider string)              // I/O输出失败记录，但不清缓存
 
 		Empty() // 清空缓存，但不输出
@@ -69,7 +69,7 @@ func New(name string, subName string) Historier {
 		Failure: &Failure{
 			tabName:  util.FileNameReplace(failureTabName),
 			fileName: failureFileName,
-			list:     make(map[string]*request.Request),
+			list:     make(map[string]*request.DataRequest),
 		},
 	}
 }
@@ -159,7 +159,7 @@ func (self *History) ReadFailure(provider string, inherit bool) {
 
 	if !inherit {
 		// 不继承历史记录时
-		self.Failure.list = make(map[string]*request.Request)
+		self.Failure.list = make(map[string]*request.DataRequest)
 		self.Failure.inheritable = false
 		return
 
@@ -169,7 +169,7 @@ func (self *History) ReadFailure(provider string, inherit bool) {
 
 	} else {
 		// 上次没有继承历史记录，但本次继承时
-		self.Failure.list = make(map[string]*request.Request)
+		self.Failure.list = make(map[string]*request.DataRequest)
 		self.Failure.inheritable = true
 	}
 	var fLen int
@@ -259,7 +259,7 @@ func (self *History) Empty() {
 	self.RWMutex.Lock()
 	self.Success.new = make(map[string]bool)
 	self.Success.old = make(map[string]bool)
-	self.Failure.list = make(map[string]*request.Request)
+	self.Failure.list = make(map[string]*request.DataRequest)
 	self.RWMutex.Unlock()
 }
 

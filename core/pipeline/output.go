@@ -5,10 +5,10 @@ import (
 
 	"dat/core/pipeline/collector"
 
-	"github.com/henrylee2cn/pholcus/common/kafka"
-	"github.com/henrylee2cn/pholcus/common/mgo"
-	"github.com/henrylee2cn/pholcus/common/mysql"
-	"github.com/henrylee2cn/pholcus/runtime/cache"
+	"dat/common/kafka"
+	"dat/common/mgo"
+	"dat/common/mysql"
+	"dat/runtime/cache"
 )
 
 // 初始化输出方式列表collector.DataOutputLib

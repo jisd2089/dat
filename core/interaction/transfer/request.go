@@ -29,6 +29,8 @@ type (
 		GetMethod() string
 		// POST values
 		GetPostData() string
+		// fasthttp 传参
+		GetParameters() []byte
 		// http header
 		GetHeader() http.Header
 		// enable http cookies
@@ -47,6 +49,8 @@ type (
 		GetRedirectTimes() int
 		// select Surf ro PhomtomJS
 		GetDownloaderID() int
+		// select Transfer Type
+		GetTransferType() string
 	}
 
 	// 默认实现的Request
@@ -61,6 +65,8 @@ type (
 		EnableCookie bool
 		// POST values
 		PostData string
+		// fasthttp 参数
+		Parameters []byte
 		// dial tcp: i/o timeout
 		DialTimeout time.Duration
 		// WSARecv tcp: i/o timeout
@@ -80,6 +86,9 @@ type (
 		// 0为Surf高并发下载器，各种控制功能齐全
 		// 1为PhantomJS下载器，特点破防力强，速度慢，低并发
 		DownloaderID int
+
+		// 传输类型
+		TransferType string
 
 		// 保证prepare只调用一次
 		once sync.Once
@@ -201,4 +210,14 @@ func (self *DefaultRequest) GetRedirectTimes() int {
 func (self *DefaultRequest) GetDownloaderID() int {
 	self.once.Do(self.prepare)
 	return self.DownloaderID
+}
+
+func (self *DefaultRequest) GetTransferType() string {
+	self.once.Do(self.prepare)
+	return self.TransferType
+}
+
+func (self *DefaultRequest) GetParameters() []byte {
+	self.once.Do(self.prepare)
+	return self.Parameters
 }
