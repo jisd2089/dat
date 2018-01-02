@@ -48,9 +48,9 @@ const (
 )
 
 var setting = func() config.Configer {
-	os.MkdirAll(filepath.Clean(HISTORY_DIR), 0777)
-	os.MkdirAll(filepath.Clean(CACHE_DIR), 0777)
-	os.MkdirAll(filepath.Clean(PHANTOMJS_TEMP), 0777)
+	//os.MkdirAll(filepath.Clean(HISTORY_DIR), 0777)
+	//os.MkdirAll(filepath.Clean(CACHE_DIR), 0777)
+	//os.MkdirAll(filepath.Clean(PHANTOMJS_TEMP), 0777)
 
 	iniconf, err := config.NewConfig("ini", CONFIG)
 	if err != nil {
@@ -66,9 +66,9 @@ var setting = func() config.Configer {
 		trySet(iniconf)
 	}
 
-	os.MkdirAll(filepath.Clean(iniconf.String("spiderdir")), 0777)
-	os.MkdirAll(filepath.Clean(iniconf.String("fileoutdir")), 0777)
-	os.MkdirAll(filepath.Clean(iniconf.String("textoutdir")), 0777)
+	//os.MkdirAll(filepath.Clean(iniconf.String("spiderdir")), 0777)
+	//os.MkdirAll(filepath.Clean(iniconf.String("fileoutdir")), 0777)
+	//os.MkdirAll(filepath.Clean(iniconf.String("textoutdir")), 0777)
 
 	return iniconf
 }()

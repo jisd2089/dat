@@ -1,7 +1,5 @@
 package transfer
 
-import "github.com/valyala/fasthttp"
-
 /**
     Author: luzequan
     Created: 2017-12-29 15:03:01

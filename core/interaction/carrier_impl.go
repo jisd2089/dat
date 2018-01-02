@@ -29,9 +29,9 @@ func (c *Cross) Handle(df *dataflow.DataFlow, cReq *request.DataRequest) *datafl
 
 	switch cReq.GetTransferType() {
 	case request.HTTP:
-		resp, err = c.fastHttpTsf.ExecuteMethod(cReq).(*response.DataResponse)
+		resp = c.fastHttpTsf.ExecuteMethod(cReq).(*response.DataResponse)
 	case request.SFTP:
-		resp, err = c.sftpTsf.ExecuteMethod(cReq).(*response.DataResponse)
+		resp = c.sftpTsf.ExecuteMethod(cReq).(*response.DataResponse)
 	}
 
 	if resp.GetStatusCode() >= 400 {

@@ -101,7 +101,7 @@ func (m *dataMan) run() {
 		}()
 
 		// 随机等待
-		m.sleep()
+		//m.sleep()
 	}
 
 	// 等待处理中的任务完成

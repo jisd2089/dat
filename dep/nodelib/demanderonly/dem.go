@@ -8,6 +8,7 @@ import (
 	"dat/core/interaction/request"
 	. "dat/core/dataflow"
 	"fmt"
+	"strconv"
 )
 
 func init() {
@@ -25,17 +26,32 @@ var DEM = &DataFlow{
 		Root: func(ctx *Context) {
 			fmt.Println(ctx)
 			ctx.AddQueue(&request.DataRequest{
-				Url:  "http://www.inderscience.com/info/inarticletoc.php?jcode=ijguc&year=2016&vol=7&issue=1",
-				Rule: "ruleTest",
+				Url:          "http://www.inderscience.com/info/inarticletoc.php?jcode=ijguc&year=2016&vol=7&issue=1",
+				Rule:         "ruleTest",
+				TransferType: request.HTTP,
 			})
 		},
 
 		Trunk: map[string]*Rule{
 			"ruleTest": {
 				ParseFunc: func(ctx *Context) {
-					fmt.Println(ctx)
+					fmt.Println("(((((((((((((((((")
+					for i := 1; i < 10; i++ {
+						ctx.AddQueue(&request.DataRequest{
+							Url:          "http://www.inderscience.com/info/inarticletoc.php?jcode=ijguc&year=2016&vol=7&issue=" + strconv.Itoa(i),
+							Rule:         "ruleTest2",
+							TransferType: request.HTTP,
+						})
+					}
+				},
+			},
+			"ruleTest2": {
+				ParseFunc: func(ctx *Context) {
+					fmt.Println(")))))))))))))))))))")
+					//fmt.Println(string(ctx.DataResponse.GetBody()))
 				},
 			},
 		},
 	},
 }
+
