@@ -184,14 +184,14 @@ func (self *NodeEntity) DataFlowPrepare(original []*dataflow.DataFlow) AssetNode
 	self.DataFlowQueue.Reset()
 	// 遍历任务
 	for _, df := range original {
-		spcopy := df.Copy()
-		spcopy.SetPausetime(self.AppConf.Pausetime)
-		if spcopy.GetLimit() == dataflow.LIMIT {
-			spcopy.SetLimit(self.AppConf.Limit)
+		dfcopy := df.Copy()
+		dfcopy.SetPausetime(self.AppConf.Pausetime)
+		if dfcopy.GetLimit() == dataflow.LIMIT {
+			dfcopy.SetLimit(self.AppConf.Limit)
 		} else {
-			spcopy.SetLimit(-1 * self.AppConf.Limit)
+			dfcopy.SetLimit(-1 * self.AppConf.Limit)
 		}
-		self.DataFlowQueue.Add(spcopy)
+		self.DataFlowQueue.Add(dfcopy)
 	}
 	// 遍历自定义配置
 	self.DataFlowQueue.AddKeyins(self.AppConf.Keyins)
@@ -205,7 +205,6 @@ func (self *NodeEntity) GetOutputLib() []string {
 
 // 获取全部蜘蛛种类
 func (self *NodeEntity) GetDataFlowLib() []*dataflow.DataFlow {
-	fmt.Println(self.DataFlowSpecies)
 	return self.DataFlowSpecies.Get()
 }
 
@@ -580,21 +579,21 @@ func (self *NodeEntity) taskToRun(t *distribute.Task) {
 
 	// 初始化蜘蛛队列
 	for _, n := range t.DataFlows {
-		sp := self.GetDataFlowByName(n["name"])
-		if sp == nil {
+		df := self.GetDataFlowByName(n["name"])
+		if df == nil {
 			continue
 		}
-		spcopy := sp.Copy()
-		spcopy.SetPausetime(t.Pausetime)
-		if spcopy.GetLimit() > 0 {
-			spcopy.SetLimit(t.Limit)
+		dfcopy := df.Copy()
+		dfcopy.SetPausetime(t.Pausetime)
+		if dfcopy.GetLimit() > 0 {
+			dfcopy.SetLimit(t.Limit)
 		} else {
-			spcopy.SetLimit(-1 * t.Limit)
+			dfcopy.SetLimit(-1 * t.Limit)
 		}
 		if v, ok := n["keyin"]; ok {
-			spcopy.SetKeyin(v)
+			dfcopy.SetKeyin(v)
 		}
-		self.DataFlowQueue.Add(spcopy)
+		self.DataFlowQueue.Add(dfcopy)
 	}
 }
 
@@ -610,6 +609,7 @@ func (self *NodeEntity) setAppConf(task *distribute.Task) {
 	self.AppConf.ProxyMinute = task.ProxyMinute
 	self.AppConf.Keyins = task.Keyins
 }
+
 func (self *NodeEntity) setTask(task *distribute.Task) {
 	task.ThreadNum = self.AppConf.ThreadNum
 	task.Pausetime = self.AppConf.Pausetime

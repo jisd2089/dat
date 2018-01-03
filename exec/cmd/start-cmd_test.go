@@ -64,7 +64,6 @@ func DefaultRun(uiDefault string) {
 func TestRun(t *testing.T) {
 	// 创建dataflow队列
 	df := []*dataflow.DataFlow{}
-	fmt.Println(*dataFlowFlag)
 	*dataFlowFlag = strings.TrimSpace(*dataFlowFlag)
 	if *dataFlowFlag == "*" {
 		df = assetnode.AssetNodeEntity.GetDataFlowLib()

@@ -1,4 +1,4 @@
-package service
+package web
 
 /**
     Author: luzequan
@@ -6,12 +6,18 @@ package service
 */
 import (
 	"github.com/buaazp/fasthttprouter"
+	."dat/dep/service"
 )
 type HttpRouter struct {
 	Router *fasthttprouter.Router
 }
 
+func NewHttpRouter() *HttpRouter {
+	return &HttpRouter{
+		Router: fasthttprouter.New(),
+	}
+}
+
 func (r *HttpRouter) Register() {
-	r.Router = fasthttprouter.New()
 	r.Router.POST("/api/dmp/orderRouteQry/", NewDemService().SendDemToSup)
 }

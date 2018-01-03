@@ -7,7 +7,7 @@ package transfer
 type SftpTransfer struct {}
 
 func NewSftpTransfer() *SftpTransfer {
-	return new(SftpTransfer)
+	return &SftpTransfer{}
 }
 
 // 封装sftp服务

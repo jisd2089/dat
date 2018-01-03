@@ -7,7 +7,7 @@ import (
 	"os/signal"
 
 	//"dat/config"
-	"dat/cmd"
+	"dat/exec/cmd"
 
 	"github.com/henrylee2cn/pholcus/gui" // gui版
 	"github.com/henrylee2cn/pholcus/web" // web版

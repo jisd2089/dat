@@ -1,4 +1,4 @@
-package service
+package web
 
 import (
 	"fmt"
@@ -10,10 +10,10 @@ import (
     Author: luzequan
     Created: 2018-01-02 19:39:59
 */
-type HttpServer struct {}
+type HttpServer struct{}
 
 func (s *HttpServer) Run() {
-	router := new(HttpRouter)
+	router := NewHttpRouter()
 	router.Register()
 
 	host := "0.0.0.0"

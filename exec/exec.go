@@ -11,7 +11,7 @@ import (
 	"dat/core"
 	"dat/runtime/cache"
 	"dat/runtime/status"
-	"dat/cmd"
+	"dat/exec/cmd"
 )
 
 var (

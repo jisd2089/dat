@@ -130,7 +130,7 @@ func (self *DataRequest) Prepare() error {
 
 // 反序列化
 func UnSerialize(s string) (*DataRequest, error) {
-	req := new(DataRequest)
+	req := &DataRequest{}
 	return req, json.Unmarshal([]byte(s), req)
 }
 
@@ -155,7 +155,7 @@ func (self *DataRequest) Unique() string {
 
 // 获取副本
 func (self *DataRequest) Copy() *DataRequest {
-	reqcopy := new(DataRequest)
+	reqcopy := &DataRequest{}
 	b, _ := json.Marshal(self)
 	json.Unmarshal(b, reqcopy)
 	return reqcopy

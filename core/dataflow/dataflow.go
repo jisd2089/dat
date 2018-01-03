@@ -279,7 +279,7 @@ func (self *DataFlow) Copy() *DataFlow {
 		Trunk: make(map[string]*Rule, len(self.RuleTree.Trunk)),
 	}
 	for k, v := range self.RuleTree.Trunk {
-		ghost.RuleTree.Trunk[k] = new(Rule)
+		ghost.RuleTree.Trunk[k] = &Rule{}
 
 		ghost.RuleTree.Trunk[k].ItemFields = make([]string, len(v.ItemFields))
 		copy(ghost.RuleTree.Trunk[k].ItemFields, v.ItemFields)

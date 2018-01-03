@@ -17,14 +17,14 @@ import (
 type FastTransfer struct {}
 
 func NewFastTransfer() Transfer {
-	return new(FastTransfer)
+	return &FastTransfer{}
 }
 
 // 封装fasthttp服务
 func (ft *FastTransfer) ExecuteMethod(req Request) Response {
 	fmt.Println("execute fasthttp")
 	timeout := 30*1000
-	dataResponse := new(DataResponse)
+	dataResponse := &DataResponse{}
 
 	freq := fasthttp.AcquireRequest()
 	fresp := fasthttp.AcquireResponse()

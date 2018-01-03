@@ -7,7 +7,7 @@ import (
 
 	"github.com/henrylee2cn/pholcus/config"
 
-	"github.com/henrylee2cn/pholcus/cmd" // cmd版
+	"dat/exec/cmd" // cmd版
 	"github.com/henrylee2cn/pholcus/web" // web版
 )
 

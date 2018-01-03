@@ -9,7 +9,7 @@ import "github.com/valyala/fasthttp"
 type DemService struct {}
 
 func NewDemService() *DemService {
-	return new(DemService)
+	return &DemService{}
 }
 
 func (d *DemService) SendDemToSup(ctx *fasthttp.RequestCtx) {
