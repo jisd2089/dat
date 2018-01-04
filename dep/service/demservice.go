@@ -1,6 +1,12 @@
 package service
 
-import "github.com/valyala/fasthttp"
+import (
+	"github.com/valyala/fasthttp"
+	"fmt"
+	"dat/core"
+	"dat/core/dataflow"
+	"dat/core/interaction/request"
+)
 
 /**
     Author: luzequan
@@ -14,4 +20,16 @@ func NewDemService() *DemService {
 
 func (d *DemService) SendDemToSup(ctx *fasthttp.RequestCtx) {
 
+	fmt.Println("hello data")
+
+	df := assetnode.AssetNodeEntity.GetDataFlowByName("demtest")
+
+	if df == nil {
+		fmt.Println("dataflow is nil!")
+	}
+
+	context := dataflow.GetContext(df, &request.DataRequest{})
+	dresp := context.SyncParse("ruleTest3")
+
+	ctx.Response.SetStatusCode(dresp.StatusCode)
 }

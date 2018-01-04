@@ -42,7 +42,7 @@ type (
 		GetDataFlowQueue() dataman.DataFlowQueue                 // 获取DataFlow队列接口实例
 		GetOutputLib() []string                                  // 获取全部输出方式
 		GetTaskBase() *distribute.TaskBase                       // 返回任务库
-		distribute.Distributer                                   // 实现分布式接
+		distribute.Distributer                                   // 实现分布式接口
 	}
 	NodeEntity struct {
 		id           int           //资产方系统ID
@@ -65,22 +65,29 @@ type (
 )
 
 // 全局唯一的核心接口实例
-var AssetNodeEntity = New()
+var (
+	AssetNodeEntity = New()
+	newNodeEntity   *NodeEntity
+	once            sync.Once
+)
 
 func New() AssetNode {
-	return newNodeEntity()
+	return getNewNodeEntity()
 }
 
-func newNodeEntity() *NodeEntity {
-	return &NodeEntity{
-		AppConf:         cache.Task,
-		DataFlowSpecies: dataflow.Species,
-		status:          status.STOPPED,
-		Teleport:        teleport.New(),
-		TaskBase:        distribute.NewTaskBase(),
-		DataFlowQueue:   dataman.NewDataFlowQueue(),
-		DataManPool:     dataman.NewDataManPool(),
-	}
+func getNewNodeEntity() *NodeEntity {
+	once.Do(func() {
+		newNodeEntity = &NodeEntity{
+			AppConf:         cache.Task,
+			DataFlowSpecies: dataflow.Species,
+			status:          status.STOPPED,
+			Teleport:        teleport.New(),
+			TaskBase:        distribute.NewTaskBase(),
+			DataFlowQueue:   dataman.NewDataFlowQueue(),
+			DataManPool:     dataman.NewDataManPool(),
+		}
+	})
+	return newNodeEntity
 }
 
 // 必要的初始化
@@ -116,28 +123,28 @@ func (a *NodeEntity) Init() AssetNode {
 }
 
 // 切换运行模式时使用
-//func (self *NodeEntity) ReInit(mode int, port int, master string, w ...io.Writer) AssetNode {
-//	if !self.IsStopped() {
-//		self.Stop()
+//func (n *NodeEntity) ReInit(mode int, port int, master string, w ...io.Writer) AssetNode {
+//	if !n.IsStopped() {
+//		n.Stop()
 //	}
-//	self.LogRest()
-//	if self.Teleport != nil {
-//		self.Teleport.Close()
+//	//n.LogRest()
+//	if n.Teleport != nil {
+//		n.Teleport.Close()
 //	}
 //	// 等待结束
 //	if mode == status.UNSET {
-//		self = newLogic()
-//		self.AppConf.Mode = status.UNSET
-//		return self
+//		n = newLogic()
+//		n.AppConf.Mode = status.UNSET
+//		return n
 //	}
 //	// 重新开启
-//	self = newNodeEntity().Init(mode, port, master, w...).(*NodeEntity)
-//	return self
+//	n = newNodeEntity().Init().(*NodeEntity)
+//	return n
 //}
 
 // 给资产方赋权
-func (a *NodeEntity) Empower() AssetNode {
-	return a
+func (n *NodeEntity) Empower() AssetNode {
+	return n
 }
 
 // 获取全局参数
@@ -302,6 +309,11 @@ func (ne *NodeEntity) exec() {
 	//}
 }
 
+// 开始执行任务
+func (ne *NodeEntity) syncExec() {
+
+}
+
 // 任务执行
 func (ne *NodeEntity) goRun(count int) {
 	//m := a.DataManPool.Use()
@@ -326,18 +338,18 @@ func (ne *NodeEntity) goRun(count int) {
 			goto pause
 		}
 		// 从数据信使队列取出空闲信使，并发执行
-		c := ne.DataManPool.Use()
-		if c != nil {
+		m := ne.DataManPool.Use()
+		if m != nil {
 			go func(i int, c dataman.DataMan) {
 				// 执行并返回结果消息
 				c.Init(ne.DataFlowQueue.GetByIndex(i)).Run()
-				// 任务结束后回收该蜘蛛
+				// 任务结束后回收该信使
 				ne.RWMutex.RLock()
 				if ne.status != status.STOP {
 					ne.DataManPool.Free(c)
 				}
 				ne.RWMutex.RUnlock()
-			}(i, c)
+			}(i, m)
 		}
 	}
 	// 监控结束任务

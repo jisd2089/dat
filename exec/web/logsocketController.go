@@ -5,7 +5,7 @@ import (
 	"sync"
 	"sync/atomic"
 
-	ws "github.com/henrylee2cn/pholcus/common/websocket"
+	ws "dat/common/websocket"
 	"github.com/henrylee2cn/pholcus/logs"
 )
 

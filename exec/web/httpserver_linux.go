@@ -16,7 +16,7 @@ func (s *HttpServer) Run() {
 	router := NewHttpRouter()
 	router.Register()
 
-	host := "0.0.0.0"
+	host := "127.0.0.1"
 	port := "8899"
 
 	uri := fmt.Sprintf("%s:%d", host, port)

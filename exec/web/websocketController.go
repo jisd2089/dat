@@ -3,13 +3,13 @@ package web
 import (
 	"sync"
 
-	"github.com/henrylee2cn/pholcus/app"
-	"github.com/henrylee2cn/pholcus/app/spider"
-	"github.com/henrylee2cn/pholcus/common/util"
-	ws "github.com/henrylee2cn/pholcus/common/websocket"
-	"github.com/henrylee2cn/pholcus/config"
+	"dat/core"
+	"dat/core/dataflow"
+	"dat/common/util"
+	ws "dat/common/websocket"
+	"dat/config"
 	"github.com/henrylee2cn/pholcus/logs"
-	"github.com/henrylee2cn/pholcus/runtime/status"
+	"dat/runtime/status"
 )
 
 type SocketController struct {
@@ -67,7 +67,7 @@ func (self *SocketController) Write(sessID string, void map[string]interface{}, 
 		t = to[0]
 	}
 
-	void["mode"] = app.LogicApp.GetAppConf("mode").(int)
+	void["mode"] = assetnode.AssetNodeEntity.GetConfig("mode").(int)
 
 	switch t {
 	case 1:
@@ -157,23 +157,23 @@ func init() {
 	// 初始化运行
 	wsApi["refresh"] = func(sessID string, req map[string]interface{}) {
 		// 写入发送通道
-		Sc.Write(sessID, tplData(app.LogicApp.GetAppConf("mode").(int)), 1)
+		Sc.Write(sessID, tplData(assetnode.AssetNodeEntity.GetConfig("mode").(int)), 1)
 	}
 
 	// 初始化运行
 	wsApi["init"] = func(sessID string, req map[string]interface{}) {
 		var mode = util.Atoi(req["mode"])
-		var port = util.Atoi(req["port"])
-		var master = util.Atoa(req["ip"]) //服务器(主节点)地址，不含端口
-		currMode := app.LogicApp.GetAppConf("mode").(int)
+		//var port = util.Atoi(req["port"])
+		//var master = util.Atoa(req["ip"]) //服务器(主节点)地址，不含端口
+		currMode := assetnode.AssetNodeEntity.GetConfig("mode").(int)
 		if currMode == status.UNSET {
-			app.LogicApp.Init(mode, port, master, Lsc) // 运行模式初始化，设置log输出目标
+			assetnode.AssetNodeEntity.Init() // 运行模式初始化，设置log输出目标
 		} else {
-			app.LogicApp = app.LogicApp.ReInit(mode, port, master) // 切换运行模式
+			//assetnode.AssetNodeEntity = assetnode.AssetNodeEntity.ReInit(mode, port, master) // 切换运行模式
 		}
 
 		if mode == status.CLIENT {
-			go app.LogicApp.Run()
+			go assetnode.AssetNodeEntity.Run()
 		}
 
 		// 写入发送通道
@@ -181,17 +181,17 @@ func init() {
 	}
 
 	wsApi["run"] = func(sessID string, req map[string]interface{}) {
-		if app.LogicApp.GetAppConf("mode").(int) != status.CLIENT {
+		if assetnode.AssetNodeEntity.GetConfig("mode").(int) != status.CLIENT {
 			setConf(req)
 		}
 
-		if app.LogicApp.GetAppConf("mode").(int) == status.OFFLINE {
+		if assetnode.AssetNodeEntity.GetConfig("mode").(int) == status.OFFLINE {
 			Sc.Write(sessID, map[string]interface{}{"operate": "run"})
 		}
 
 		go func() {
-			app.LogicApp.Run()
-			if app.LogicApp.GetAppConf("mode").(int) == status.OFFLINE {
+			assetnode.AssetNodeEntity.Run()
+			if assetnode.AssetNodeEntity.GetConfig("mode").(int) == status.OFFLINE {
 				Sc.Write(sessID, map[string]interface{}{"operate": "stop"})
 			}
 		}()
@@ -199,12 +199,12 @@ func init() {
 
 	// 终止当前任务，现仅支持单机模式
 	wsApi["stop"] = func(sessID string, req map[string]interface{}) {
-		if app.LogicApp.GetAppConf("mode").(int) != status.OFFLINE {
+		if assetnode.AssetNodeEntity.GetConfig("mode").(int) != status.OFFLINE {
 			Sc.Write(sessID, map[string]interface{}{"operate": "stop"})
 			return
 		} else {
 			// println("stopping^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^")
-			app.LogicApp.Stop()
+			assetnode.AssetNodeEntity.Stop()
 			// println("stopping++++++++++++++++++++++++++++++++++++++++")
 			Sc.Write(sessID, map[string]interface{}{"operate": "stop"})
 			// println("stopping$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$")
@@ -213,16 +213,16 @@ func init() {
 
 	// 任务暂停与恢复，目前仅支持单机模式
 	wsApi["pauseRecover"] = func(sessID string, req map[string]interface{}) {
-		if app.LogicApp.GetAppConf("mode").(int) != status.OFFLINE {
+		if assetnode.AssetNodeEntity.GetConfig("mode").(int) != status.OFFLINE {
 			return
 		}
-		app.LogicApp.PauseRecover()
+		assetnode.AssetNodeEntity.PauseRecover()
 		Sc.Write(sessID, map[string]interface{}{"operate": "pauseRecover"})
 	}
 
 	// 退出当前模式
 	wsApi["exit"] = func(sessID string, req map[string]interface{}) {
-		app.LogicApp = app.LogicApp.ReInit(status.UNSET, 0, "")
+		//assetnode.AssetNodeEntity = assetnode.AssetNodeEntity.ReInit(status.UNSET, 0, "")
 		Sc.Write(sessID, map[string]interface{}{"operate": "exit"})
 	}
 }
@@ -246,14 +246,14 @@ func tplData(mode int) map[string]interface{} {
 
 	// 蜘蛛家族清单
 	info["spiders"] = map[string]interface{}{
-		"menu": spiderMenu,
+		"menu": dataFlowMenu,
 		"curr": func() interface{} {
-			l := app.LogicApp.GetSpiderQueue().Len()
+			l := assetnode.AssetNodeEntity.GetDataFlowQueue().Len()
 			if l == 0 {
 				return 0
 			}
 			var curr = make(map[string]bool, l)
-			for _, sp := range app.LogicApp.GetSpiderQueue().GetAll() {
+			for _, sp := range assetnode.AssetNodeEntity.GetDataFlowQueue().GetAll() {
 				curr[sp.GetName()] = true
 			}
 
@@ -263,52 +263,52 @@ func tplData(mode int) map[string]interface{} {
 
 	// 输出方式清单
 	info["OutType"] = map[string]interface{}{
-		"menu": app.LogicApp.GetOutputLib(),
-		"curr": app.LogicApp.GetAppConf("OutType"),
+		"menu": assetnode.AssetNodeEntity.GetOutputLib(),
+		"curr": assetnode.AssetNodeEntity.GetConfig("OutType"),
 	}
 
 	// 并发协程上限
 	info["ThreadNum"] = map[string]int{
 		"max":  999999,
 		"min":  1,
-		"curr": app.LogicApp.GetAppConf("ThreadNum").(int),
+		"curr": assetnode.AssetNodeEntity.GetConfig("ThreadNum").(int),
 	}
 
 	// 暂停区间/ms(随机: Pausetime/2 ~ Pausetime*2)
 	info["Pausetime"] = map[string][]int64{
 		"menu": {0, 100, 300, 500, 1000, 3000, 5000, 10000, 15000, 20000, 30000, 60000},
-		"curr": []int64{app.LogicApp.GetAppConf("Pausetime").(int64)},
+		"curr": []int64{assetnode.AssetNodeEntity.GetConfig("Pausetime").(int64)},
 	}
 
 	// 代理IP更换的间隔分钟数
 	info["ProxyMinute"] = map[string][]int64{
 		"menu": {0, 1, 3, 5, 10, 15, 20, 30, 45, 60, 120, 180},
-		"curr": []int64{app.LogicApp.GetAppConf("ProxyMinute").(int64)},
+		"curr": []int64{assetnode.AssetNodeEntity.GetConfig("ProxyMinute").(int64)},
 	}
 
 	// 分批输出的容量
 	info["DockerCap"] = map[string]int{
 		"min":  1,
 		"max":  5000000,
-		"curr": app.LogicApp.GetAppConf("DockerCap").(int),
+		"curr": assetnode.AssetNodeEntity.GetConfig("DockerCap").(int),
 	}
 
 	// 采集上限
-	if app.LogicApp.GetAppConf("Limit").(int64) == spider.LIMIT {
+	if assetnode.AssetNodeEntity.GetConfig("Limit").(int64) == dataflow.LIMIT {
 		info["Limit"] = 0
 	} else {
-		info["Limit"] = app.LogicApp.GetAppConf("Limit")
+		info["Limit"] = assetnode.AssetNodeEntity.GetConfig("Limit")
 	}
 
 	// 自定义配置
-	info["Keyins"] = app.LogicApp.GetAppConf("Keyins")
+	info["Keyins"] = assetnode.AssetNodeEntity.GetConfig("Keyins")
 
 	// 继承历史记录
-	info["SuccessInherit"] = app.LogicApp.GetAppConf("SuccessInherit")
-	info["FailureInherit"] = app.LogicApp.GetAppConf("FailureInherit")
+	info["SuccessInherit"] = assetnode.AssetNodeEntity.GetConfig("SuccessInherit")
+	info["FailureInherit"] = assetnode.AssetNodeEntity.GetConfig("FailureInherit")
 
 	// 运行状态
-	info["status"] = app.LogicApp.Status()
+	info["status"] = assetnode.AssetNodeEntity.Status()
 
 	return info
 }
@@ -316,36 +316,36 @@ func tplData(mode int) map[string]interface{} {
 // 配置运行参数
 func setConf(req map[string]interface{}) {
 	if tn := util.Atoi(req["ThreadNum"]); tn == 0 {
-		app.LogicApp.SetAppConf("ThreadNum", 1)
+		assetnode.AssetNodeEntity.SetConfig("ThreadNum", 1)
 	} else {
-		app.LogicApp.SetAppConf("ThreadNum", tn)
+		assetnode.AssetNodeEntity.SetConfig("ThreadNum", tn)
 	}
 
-	app.LogicApp.
-		SetAppConf("Pausetime", int64(util.Atoi(req["Pausetime"]))).
-		SetAppConf("ProxyMinute", int64(util.Atoi(req["ProxyMinute"]))).
-		SetAppConf("OutType", util.Atoa(req["OutType"])).
-		SetAppConf("DockerCap", util.Atoi(req["DockerCap"])).
-		SetAppConf("Limit", int64(util.Atoi(req["Limit"]))).
-		SetAppConf("Keyins", util.Atoa(req["Keyins"])).
-		SetAppConf("SuccessInherit", req["SuccessInherit"] == "true").
-		SetAppConf("FailureInherit", req["FailureInherit"] == "true")
+	assetnode.AssetNodeEntity.
+		SetConfig("Pausetime", int64(util.Atoi(req["Pausetime"]))).
+		SetConfig("ProxyMinute", int64(util.Atoi(req["ProxyMinute"]))).
+		SetConfig("OutType", util.Atoa(req["OutType"])).
+		SetConfig("DockerCap", util.Atoi(req["DockerCap"])).
+		SetConfig("Limit", int64(util.Atoi(req["Limit"]))).
+		SetConfig("Keyins", util.Atoa(req["Keyins"])).
+		SetConfig("SuccessInherit", req["SuccessInherit"] == "true").
+		SetConfig("FailureInherit", req["FailureInherit"] == "true")
 
 	setSpiderQueue(req)
 }
 
 func setSpiderQueue(req map[string]interface{}) {
-	spNames, ok := req["spiders"].([]interface{})
+	dfNames, ok := req["dataFlows"].([]interface{})
 	if !ok {
 		return
 	}
-	spiders := []*spider.Spider{}
-	for _, sp := range app.LogicApp.GetSpiderLib() {
-		for _, spName := range spNames {
-			if util.Atoa(spName) == sp.GetName() {
-				spiders = append(spiders, sp.Copy())
+	dataFlows := []*dataflow.DataFlow{}
+	for _, df := range assetnode.AssetNodeEntity.GetDataFlowLib() {
+		for _, dfName := range dfNames {
+			if util.Atoa(dfName) == df.GetName() {
+				dataFlows = append(dataFlows, df.Copy())
 			}
 		}
 	}
-	app.LogicApp.SpiderPrepare(spiders)
+	assetnode.AssetNodeEntity.DataFlowPrepare(dataFlows)
 }

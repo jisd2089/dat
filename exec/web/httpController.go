@@ -3,18 +3,24 @@ package web
 import (
 	"net/http"
 	"text/template"
+	"encoding/json"
 
-	"github.com/henrylee2cn/pholcus/app"
-	"github.com/henrylee2cn/pholcus/common/session"
-	"github.com/henrylee2cn/pholcus/config"
+	"dat/core"
+	"dat/common/session"
+	"dat/config"
 	"github.com/henrylee2cn/pholcus/logs"
-	"github.com/henrylee2cn/pholcus/runtime/status"
+	"dat/runtime/status"
 )
 
 var globalSessions *session.Manager
 
 func init() {
-	globalSessions, _ = session.NewManager("memory", `{"cookieName":"pholcusSession", "enableSetCookie,omitempty": true, "secure": false, "sessionIDHashFunc": "sha1", "sessionIDHashKey": "", "cookieLifeTime": 157680000, "providerConfig": ""}`)
+	config := `{"cookieName":"pholcusSession", "enableSetCookie,omitempty": true, "secure": false, "sessionIDHashFunc": "sha1", "sessionIDHashKey": "", "cookieLifeTime": 157680000, "providerConfig": ""}`
+	conf := new(session.ManagerConfig)
+	if err := json.Unmarshal([]byte(config), conf); err != nil {
+		//t.Fatal("json decode error", err)
+	}
+	globalSessions, _ = session.NewManager("memory", conf)
 	// go globalSessions.GC()
 }
 
@@ -39,7 +45,7 @@ func web(rw http.ResponseWriter, req *http.Request) {
 			"server":  status.SERVER,
 			"client":  status.CLIENT,
 			"unset":   status.UNSET,
-			"curr":    app.LogicApp.GetAppConf("mode").(int),
+			"curr":    assetnode.AssetNodeEntity.GetConfig("mode").(int),
 		},
 		"status": map[string]int{
 			"stopped": status.STOPPED,
@@ -47,8 +53,8 @@ func web(rw http.ResponseWriter, req *http.Request) {
 			"run":     status.RUN,
 			"pause":   status.PAUSE,
 		},
-		"port": app.LogicApp.GetAppConf("port").(int),
-		"ip":   app.LogicApp.GetAppConf("master").(string),
+		"port": assetnode.AssetNodeEntity.GetConfig("port").(int),
+		"ip":   assetnode.AssetNodeEntity.GetConfig("master").(string),
 	}
 	t.Execute(rw, data) //执行模板的merger操作
 }

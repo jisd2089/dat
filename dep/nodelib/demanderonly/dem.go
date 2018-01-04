@@ -9,6 +9,7 @@ import (
 	. "dat/core/dataflow"
 	"fmt"
 	"strconv"
+	"dat/core/interaction/response"
 )
 
 func init() {
@@ -49,6 +50,15 @@ var DEM = &DataFlow{
 				ParseFunc: func(ctx *Context) {
 					fmt.Println(")))))))))))))))))))")
 					//fmt.Println(string(ctx.DataResponse.GetBody()))
+				},
+			},
+			"ruleTest3": {
+				SyncFunc: func(ctx *Context) *response.DataResponse {
+					fmt.Println(")))))))))))))))))))")
+					//fmt.Println(string(ctx.DataResponse.GetBody()))
+					dResponse := &response.DataResponse{}
+					dResponse.StatusCode = 303
+					return dResponse
 				},
 			},
 		},

@@ -12,6 +12,7 @@ import (
 	"dat/common/util"
 	"dat/core/scheduler"
 	"dat/core/interaction/request"
+	"dat/core/interaction/response"
 )
 
 const (
@@ -54,9 +55,9 @@ type (
 		ParseFunc  func(*Context)                                     // 内容解析函数
 		AidFunc    func(*Context, map[string]interface{}) interface{} // 通用辅助函数
 		FileFunc   func(*Context)                                     // 文件处理函数
+		SyncFunc   func(*Context) *response.DataResponse              // 同步处理函数，带返回值
 	}
 )
-
 
 /**
  *Action Function
@@ -359,5 +360,3 @@ func (self *DataFlow) IsStopping() bool {
 	defer self.lock.RUnlock()
 	return self.status == status.STOP
 }
-
-

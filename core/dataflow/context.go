@@ -345,6 +345,26 @@ func (self *Context) Parse(ruleName ...string) *Context {
 	return self
 }
 
+// 同步解析Rule，返回DataResponse，rule为空默认返回自己。
+func (self *Context) SyncParse(ruleName ...string) *response.DataResponse {
+	// 若已主动终止任务，则崩溃DataFlow协程
+	self.dataFlow.tryPanic()
+
+	_ruleName, rule, found := self.getRule(ruleName...)
+	if self.DataResponse != nil {
+		self.DataRequest.SetRuleName(_ruleName)
+	}
+
+	if !found {
+		return self.DataResponse
+	}
+	if rule.SyncFunc == nil {
+		logs.Log.Error("DataFlow %s 的规则 %s 未定义SyncFunc", self.dataFlow.GetName(), ruleName[0])
+		return self.DataResponse
+	}
+	return rule.SyncFunc(self)
+}
+
 // 设置自定义配置。
 func (self *Context) SetKeyin(keyin string) *Context {
 	self.dataFlow.SetKeyin(keyin)
