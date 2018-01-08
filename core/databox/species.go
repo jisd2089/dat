@@ -1,4 +1,4 @@
-package dataflow
+package databox
 
 import (
 	"fmt"
@@ -7,20 +7,20 @@ import (
 )
 
 // 数据流产品种类列表
-type DataFlowSpecies struct {
-	list   []*DataFlow
-	hash   map[string]*DataFlow
+type DataBoxSpecies struct {
+	list   []*DataBox
+	hash   map[string]*DataBox
 	sorted bool
 }
 
 // 全局数据流产品种类实例
-var Species = &DataFlowSpecies{
-	list: []*DataFlow{},
-	hash: map[string]*DataFlow{},
+var Species = &DataBoxSpecies{
+	list: []*DataBox{},
+	hash: map[string]*DataBox{},
 }
 
 // 向数据流产品种类清单添加新种类
-func (self *DataFlowSpecies) Add(sp *DataFlow) *DataFlow {
+func (self *DataBoxSpecies) Add(sp *DataBox) *DataBox {
 	name := sp.Name
 	for i := 2; true; i++ {
 		if _, ok := self.hash[name]; !ok {
@@ -36,11 +36,11 @@ func (self *DataFlowSpecies) Add(sp *DataFlow) *DataFlow {
 }
 
 // 获取全部数据流产品种类
-func (self *DataFlowSpecies) Get() []*DataFlow {
+func (self *DataBoxSpecies) Get() []*DataBox {
 	if !self.sorted {
 		l := len(self.list)
 		initials := make([]string, l)
-		newlist := map[string]*DataFlow{}
+		newlist := map[string]*DataBox{}
 		for i := 0; i < l; i++ {
 			initials[i] = self.list[i].GetName()
 			newlist[initials[i]] = self.list[i]
@@ -54,6 +54,6 @@ func (self *DataFlowSpecies) Get() []*DataFlow {
 	return self.list
 }
 
-func (self *DataFlowSpecies) GetByName(name string) *DataFlow {
+func (self *DataBoxSpecies) GetByName(name string) *DataBox {
 	return self.hash[name]
 }

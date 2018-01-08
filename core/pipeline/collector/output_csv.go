@@ -56,7 +56,7 @@ func init() {
 
 				sheets[subNamespace] = csv.NewWriter(file)
 				th := self.MustGetRule(datacell["RuleName"].(string)).ItemFields
-				if self.DataFlow.OutDefaultField() {
+				if self.DataBox.OutDefaultField() {
 					th = append(th, "当前链接", "上级链接", "下载时间")
 				}
 				sheets[subNamespace].Write(th)
@@ -71,7 +71,7 @@ func init() {
 					row = append(row, util.JsonString(vd[title]))
 				}
 			}
-			if self.DataFlow.OutDefaultField() {
+			if self.DataBox.OutDefaultField() {
 				row = append(row, datacell["Url"].(string))
 				row = append(row, datacell["ParentUrl"].(string))
 				row = append(row, datacell["DownloadTime"].(string))

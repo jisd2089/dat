@@ -14,7 +14,7 @@ import (
 
 type (
 	DataManPool interface {
-		Reset(dataFlowNum int) int // 设置数据信使数量，根据数据流产品数量按需分配
+		Reset(dataBoxNum int) int // 设置数据信使数量，根据数据流产品数量按需分配
 		Use() DataMan              // 并发安全的使用数据信使
 		Free(DataMan)              // 释放信使资源
 		Stop()
@@ -36,14 +36,14 @@ func NewDataManPool() DataManPool {
 	}
 }
 
-// 根据要执行的dataFlow数量设置DataManPool
+// 根据要执行的dataBox数量设置DataManPool
 // 在二次使用Pool实例时，可根据容量高效转换
-func (dmp *dataManPool) Reset(dataFlowNum int) int {
+func (dmp *dataManPool) Reset(dataBoxNum int) int {
 	dmp.Lock()
 	defer dmp.Unlock()
 	var wantNum int
-	if dataFlowNum < config.DATAMANS_CAP {
-		wantNum = dataFlowNum
+	if dataBoxNum < config.DATAMANS_CAP {
+		wantNum = dataBoxNum
 	} else {
 		wantNum = config.DATAMANS_CAP
 	}

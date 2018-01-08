@@ -31,7 +31,7 @@ var Task = &AppConf{}
 //****************************************任务报告*******************************************\\
 
 type Report struct {
-	DataFlowName string
+	DataBoxName string
 	Keyin        string
 	DataNum      uint64
 	FileNum      uint64

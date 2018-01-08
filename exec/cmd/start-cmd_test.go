@@ -14,7 +14,7 @@ import (
 	"dat/core"
 	"dat/runtime/cache"
 	"dat/runtime/status"
-	"dat/core/dataflow"
+	"dat/core/databox"
 	"dat/config"
 	"fmt"
 	_ "dat/dep/nodelib/demanderonly"
@@ -62,24 +62,24 @@ func DefaultRun(uiDefault string) {
 }
 
 func TestRun(t *testing.T) {
-	// 创建dataflow队列
-	df := []*dataflow.DataFlow{}
-	*dataFlowFlag = strings.TrimSpace(*dataFlowFlag)
-	if *dataFlowFlag == "*" {
-		df = assetnode.AssetNodeEntity.GetDataFlowLib()
+	// 创建databox队列
+	df := []*databox.DataBox{}
+	*dataBoxFlag = strings.TrimSpace(*dataBoxFlag)
+	if *dataBoxFlag == "*" {
+		df = assetnode.AssetNodeEntity.GetDataBoxLib()
 
 	} else {
-		for _, idx := range strings.Split(*dataFlowFlag, ",") {
+		for _, idx := range strings.Split(*dataBoxFlag, ",") {
 			idx = strings.TrimSpace(idx)
 			if idx == "" {
 				//continue
 			}
 			i, _ := strconv.Atoi(idx)
-			df = append(df, assetnode.AssetNodeEntity.GetDataFlowLib()[i])
+			df = append(df, assetnode.AssetNodeEntity.GetDataBoxLib()[i])
 		}
 	}
 
-	assetnode.AssetNodeEntity.DataFlowPrepare(df).Run()
+	assetnode.AssetNodeEntity.DataBoxPrepare(df).Run()
 }
 
 func flagCommon() {

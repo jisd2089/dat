@@ -1,4 +1,4 @@
-package dataflow
+package databox
 
 import (
 	"bytes"
@@ -23,7 +23,7 @@ import (
 )
 
 type Context struct {
-	dataFlow     *DataFlow              // 规则
+	dataBox      *DataBox              // 规则
 	DataRequest  *request.DataRequest   // 原始请求
 	DataResponse *response.DataResponse // 响应流，其中URL拷贝自*request.DataRequest
 	text         []byte                 // 下载内容Body的字节流格式
@@ -47,9 +47,9 @@ var (
 
 //**************************************** 初始化 *******************************************\\
 
-func GetContext(df *DataFlow, req *request.DataRequest) *Context {
+func GetContext(df *DataBox, req *request.DataRequest) *Context {
 	ctx := contextPool.Get().(*Context)
-	ctx.dataFlow = df
+	ctx.dataBox = df
 	ctx.DataRequest = req
 	return ctx
 }
@@ -57,7 +57,7 @@ func GetContext(df *DataFlow, req *request.DataRequest) *Context {
 func PutContext(ctx *Context) {
 	ctx.items = ctx.items[:0]
 	ctx.files = ctx.files[:0]
-	ctx.dataFlow = nil
+	ctx.dataBox = nil
 	ctx.DataRequest = nil
 	ctx.DataResponse = nil
 	ctx.text = nil
@@ -80,8 +80,8 @@ func (self *Context) SetError(err error) {
 
 // 生成并添加请求至队列。
 // DataRequest.Url与DataRequest.Rule必须设置。
-// DataRequest.DataFlow无需手动设置(由系统自动设置)。
-// DataRequest.EnableCookie在DataFlow字段中统一设置，规则请求中指定的无效。
+// DataRequest.DataBox无需手动设置(由系统自动设置)。
+// DataRequest.EnableCookie在DataBox字段中统一设置，规则请求中指定的无效。
 // 以下字段有默认值，可不设置:
 // DataRequest.Method默认为GET方法;
 // DataRequest.DialTimeout默认为常量request.DefaultDialTimeout，小于0时不限制等待响应时长;
@@ -92,12 +92,12 @@ func (self *Context) SetError(err error) {
 // DataRequest.DownloaderID指定下载器ID，0为默认的Surf高并发下载器，功能完备，1为PhantomJS下载器，特点破防力强，速度慢，低并发。
 // 默认自动补填Referer。
 func (self *Context) AddQueue(req *request.DataRequest) *Context {
-	// 若已主动终止任务，则崩溃DataFlow协程
-	self.dataFlow.tryPanic()
+	// 若已主动终止任务，则崩溃DataBox协程
+	self.dataBox.tryPanic()
 
 	err := req.
-		SetDataFlowName(self.dataFlow.GetName()).
-		SetEnableCookie(self.dataFlow.GetEnableCookie()).
+		SetDataBoxName(self.dataBox.GetName()).
+		SetEnableCookie(self.dataBox.GetEnableCookie()).
 		Prepare()
 
 	if err != nil {
@@ -110,14 +110,14 @@ func (self *Context) AddQueue(req *request.DataRequest) *Context {
 		req.SetReferer(self.GetUrl())
 	}
 
-	self.dataFlow.RequestPush(req)
+	self.dataBox.RequestPush(req)
 	return self
 }
 
 // 用于动态规则添加请求。
 func (self *Context) JsAddQueue(jreq map[string]interface{}) *Context {
 	// 若已主动终止任务，则崩溃爬虫协程
-	self.dataFlow.tryPanic()
+	self.dataBox.tryPanic()
 
 	req := &request.DataRequest{}
 	u, ok := jreq["Url"].(string)
@@ -165,8 +165,8 @@ func (self *Context) JsAddQueue(jreq map[string]interface{}) *Context {
 	}
 
 	err := req.
-		SetDataFlowName(self.dataFlow.GetName()).
-		SetEnableCookie(self.dataFlow.GetEnableCookie()).
+		SetDataBoxName(self.dataBox.GetName()).
+		SetEnableCookie(self.dataBox.GetEnableCookie()).
 		Prepare()
 
 	if err != nil {
@@ -178,7 +178,7 @@ func (self *Context) JsAddQueue(jreq map[string]interface{}) *Context {
 		req.SetReferer(self.GetUrl())
 	}
 
-	self.dataFlow.RequestPush(req)
+	self.dataBox.RequestPush(req)
 	return self
 }
 
@@ -189,7 +189,7 @@ func (self *Context) JsAddQueue(jreq map[string]interface{}) *Context {
 func (self *Context) Output(item interface{}, ruleName ...string) {
 	_ruleName, rule, found := self.getRule(ruleName...)
 	if !found {
-		logs.Log.Error("蜘蛛 %s 调用Output()时，指定的规则名不存在！", self.dataFlow.GetName())
+		logs.Log.Error("蜘蛛 %s 调用Output()时，指定的规则名不存在！", self.dataBox.GetName())
 		return
 	}
 	var _item map[string]interface{}
@@ -198,17 +198,17 @@ func (self *Context) Output(item interface{}, ruleName ...string) {
 		_item = self.CreatItem(item2, _ruleName)
 	case request.Temp:
 		for k := range item2 {
-			self.dataFlow.UpsertItemField(rule, k)
+			self.dataBox.UpsertItemField(rule, k)
 		}
 		_item = item2
 	case map[string]interface{}:
 		for k := range item2 {
-			self.dataFlow.UpsertItemField(rule, k)
+			self.dataBox.UpsertItemField(rule, k)
 		}
 		_item = item2
 	}
 	self.Lock()
-	if self.dataFlow.NotDefaultField {
+	if self.dataBox.NotDefaultField {
 		self.items = append(self.items, data.GetDataCell(_ruleName, _item, "", "", ""))
 	} else {
 		self.items = append(self.items, data.GetDataCell(_ruleName, _item, self.GetUrl(), "", time.Now().Format("2006-01-02 15:04:05")))
@@ -261,13 +261,13 @@ func (self *Context) FileOutput(name ...string) {
 func (self *Context) CreatItem(item map[int]interface{}, ruleName ...string) map[string]interface{} {
 	_, rule, found := self.getRule(ruleName...)
 	if !found {
-		logs.Log.Error("DataFlow %s 调用CreatItem()时，指定的规则名不存在！", self.dataFlow.GetName())
+		logs.Log.Error("DataBox %s 调用CreatItem()时，指定的规则名不存在！", self.dataBox.GetName())
 		return nil
 	}
 
 	var item2 = make(map[string]interface{}, len(item))
 	for k, v := range item {
-		field := self.dataFlow.GetItemField(rule, k)
+		field := self.dataBox.GetItemField(rule, k)
 		item2[field] = v
 	}
 	return item2
@@ -295,29 +295,29 @@ func (self *Context) SetReferer(referer string) *Context {
 func (self *Context) UpsertItemField(field string, ruleName ...string) (index int) {
 	_, rule, found := self.getRule(ruleName...)
 	if !found {
-		logs.Log.Error("DataFlow %s 调用UpsertItemField()时，指定的规则名不存在！", self.dataFlow.GetName())
+		logs.Log.Error("DataBox %s 调用UpsertItemField()时，指定的规则名不存在！", self.dataBox.GetName())
 		return
 	}
-	return self.dataFlow.UpsertItemField(rule, field)
+	return self.dataBox.UpsertItemField(rule, field)
 }
 
 // 调用指定Rule下辅助函数AidFunc()。
 // 用ruleName指定匹配的AidFunc，为空时默认当前规则。
 func (self *Context) Aid(aid map[string]interface{}, ruleName ...string) interface{} {
 	// 若已主动终止任务，则崩溃爬虫协程
-	self.dataFlow.tryPanic()
+	self.dataBox.tryPanic()
 
 	_, rule, found := self.getRule(ruleName...)
 	if !found {
 		if len(ruleName) > 0 {
-			logs.Log.Error("调用DataFlow %s 不存在的规则: %s", self.dataFlow.GetName(), ruleName[0])
+			logs.Log.Error("调用DataBox %s 不存在的规则: %s", self.dataBox.GetName(), ruleName[0])
 		} else {
-			logs.Log.Error("调用DataFlow %s 的Aid()时未指定的规则名", self.dataFlow.GetName())
+			logs.Log.Error("调用DataBox %s 的Aid()时未指定的规则名", self.dataBox.GetName())
 		}
 		return nil
 	}
 	if rule.AidFunc == nil {
-		logs.Log.Error("DataFlow %s 的规则 %s 未定义AidFunc", self.dataFlow.GetName(), ruleName[0])
+		logs.Log.Error("DataBox %s 的规则 %s 未定义AidFunc", self.dataBox.GetName(), ruleName[0])
 		return nil
 	}
 	return rule.AidFunc(self, aid)
@@ -326,19 +326,19 @@ func (self *Context) Aid(aid map[string]interface{}, ruleName ...string) interfa
 // 解析响应流。
 // 用ruleName指定匹配的ParseFunc字段，为空时默认调用Root()。
 func (self *Context) Parse(ruleName ...string) *Context {
-	// 若已主动终止任务，则崩溃DataFlow协程
-	self.dataFlow.tryPanic()
+	// 若已主动终止任务，则崩溃DataBox协程
+	self.dataBox.tryPanic()
 
 	_ruleName, rule, found := self.getRule(ruleName...)
 	if self.DataResponse != nil {
 		self.DataRequest.SetRuleName(_ruleName)
 	}
 	if !found {
-		self.dataFlow.RuleTree.Root(self)
+		self.dataBox.RuleTree.Root(self)
 		return self
 	}
 	if rule.ParseFunc == nil {
-		logs.Log.Error("DataFlow %s 的规则 %s 未定义ParseFunc", self.dataFlow.GetName(), ruleName[0])
+		logs.Log.Error("DataBox %s 的规则 %s 未定义ParseFunc", self.dataBox.GetName(), ruleName[0])
 		return self
 	}
 	rule.ParseFunc(self)
@@ -347,8 +347,8 @@ func (self *Context) Parse(ruleName ...string) *Context {
 
 // 同步解析Rule，返回DataResponse，rule为空默认返回自己。
 func (self *Context) SyncParse(ruleName ...string) *response.DataResponse {
-	// 若已主动终止任务，则崩溃DataFlow协程
-	self.dataFlow.tryPanic()
+	// 若已主动终止任务，则崩溃DataBox协程
+	self.dataBox.tryPanic()
 
 	_ruleName, rule, found := self.getRule(ruleName...)
 	if self.DataResponse != nil {
@@ -359,7 +359,7 @@ func (self *Context) SyncParse(ruleName ...string) *response.DataResponse {
 		return self.DataResponse
 	}
 	if rule.SyncFunc == nil {
-		logs.Log.Error("DataFlow %s 的规则 %s 未定义SyncFunc", self.dataFlow.GetName(), ruleName[0])
+		logs.Log.Error("DataBox %s 的规则 %s 未定义SyncFunc", self.dataBox.GetName(), ruleName[0])
 		return self.DataResponse
 	}
 	return rule.SyncFunc(self)
@@ -367,20 +367,20 @@ func (self *Context) SyncParse(ruleName ...string) *response.DataResponse {
 
 // 设置自定义配置。
 func (self *Context) SetKeyin(keyin string) *Context {
-	self.dataFlow.SetKeyin(keyin)
+	self.dataBox.SetKeyin(keyin)
 	return self
 }
 
 // 设置采集上限。
 func (self *Context) SetLimit(max int) *Context {
-	self.dataFlow.SetLimit(int64(max))
+	self.dataBox.SetLimit(int64(max))
 	return self
 }
 
 // 自定义暂停区间(随机: Pausetime/2 ~ Pausetime*2)，优先级高于外部传参。
 // 当且仅当runtime[0]为true时可覆盖现有值。
 func (self *Context) SetPausetime(pause int64, runtime ...bool) *Context {
-	self.dataFlow.SetPausetime(pause, runtime...)
+	self.dataBox.SetPausetime(pause, runtime...)
 	return self
 }
 
@@ -389,12 +389,12 @@ func (self *Context) SetPausetime(pause int64, runtime ...bool) *Context {
 // @bell==nil时为倒计时器，此时@tol为睡眠时长，
 // @bell!=nil时为闹铃，此时@tol用于指定醒来时刻（从now起遇到的第tol个bell）。
 func (self *Context) SetTimer(id string, tol time.Duration, bell *Bell) bool {
-	return self.dataFlow.SetTimer(id, tol, bell)
+	return self.dataBox.SetTimer(id, tol, bell)
 }
 
 // 启动定时器，并获取定时器是否可以继续使用。
 func (self *Context) RunTimer(id string) bool {
-	return self.dataFlow.RunTimer(id)
+	return self.dataBox.RunTimer(id)
 }
 
 // 重置下载的文本内容，TODO
@@ -411,7 +411,7 @@ func (self *Context) ResetText(body string) *Context {
 // 获取下载错误。
 func (self *Context) GetError() error {
 	// 若已主动终止任务，则崩溃爬虫协程
-	self.dataFlow.tryPanic()
+	self.dataBox.tryPanic()
 	return self.err
 }
 
@@ -420,9 +420,9 @@ func (*Context) Log() logs.Logs {
 	return logs.Log
 }
 
-// 获取DataFlow名称。
-func (self *Context) GetDataFlow() *DataFlow {
-	return self.dataFlow
+// 获取DataBox名称。
+func (self *Context) GetDataBox() *DataBox {
+	return self.dataBox
 }
 
 // 获取响应流。
@@ -449,10 +449,10 @@ func (self *Context) CopyRequest() *request.DataRequest {
 func (self *Context) GetItemFields(ruleName ...string) []string {
 	_, rule, found := self.getRule(ruleName...)
 	if !found {
-		logs.Log.Error("DataFlow %s 调用GetItemFields()时，指定的规则名不存在！", self.dataFlow.GetName())
+		logs.Log.Error("DataBox %s 调用GetItemFields()时，指定的规则名不存在！", self.dataBox.GetName())
 		return nil
 	}
-	return self.dataFlow.GetItemFields(rule)
+	return self.dataBox.GetItemFields(rule)
 }
 
 // 由索引下标获取结果字段名，不存在时获取空字符串，
@@ -460,10 +460,10 @@ func (self *Context) GetItemFields(ruleName ...string) []string {
 func (self *Context) GetItemField(index int, ruleName ...string) (field string) {
 	_, rule, found := self.getRule(ruleName...)
 	if !found {
-		logs.Log.Error("DataFlow %s 调用GetItemField()时，指定的规则名不存在！", self.dataFlow.GetName())
+		logs.Log.Error("DataBox %s 调用GetItemField()时，指定的规则名不存在！", self.dataBox.GetName())
 		return
 	}
-	return self.dataFlow.GetItemField(rule, index)
+	return self.dataBox.GetItemField(rule, index)
 }
 
 // 由结果字段名获取索引下标，不存在时索引为-1，
@@ -471,10 +471,10 @@ func (self *Context) GetItemField(index int, ruleName ...string) (field string) 
 func (self *Context) GetItemFieldIndex(field string, ruleName ...string) (index int) {
 	_, rule, found := self.getRule(ruleName...)
 	if !found {
-		logs.Log.Error("DataFlow %s 调用GetItemField()时，指定的规则名不存在！", self.dataFlow.GetName())
+		logs.Log.Error("DataBox %s 调用GetItemField()时，指定的规则名不存在！", self.dataBox.GetName())
 		return
 	}
-	return self.dataFlow.GetItemFieldIndex(rule, field)
+	return self.dataBox.GetItemFieldIndex(rule, field)
 }
 
 func (self *Context) PullItems() (ds []data.DataCell) {
@@ -495,27 +495,27 @@ func (self *Context) PullFiles() (fs []data.FileCell) {
 
 // 获取自定义配置。
 func (self *Context) GetKeyin() string {
-	return self.dataFlow.GetKeyin()
+	return self.dataBox.GetKeyin()
 }
 
 // 获取采集上限。
 func (self *Context) GetLimit() int {
-	return int(self.dataFlow.GetLimit())
+	return int(self.dataBox.GetLimit())
 }
 
 // 获取蜘蛛名。
 func (self *Context) GetName() string {
-	return self.dataFlow.GetName()
+	return self.dataBox.GetName()
 }
 
 // 获取规则树。
 func (self *Context) GetRules() map[string]*Rule {
-	return self.dataFlow.GetRules()
+	return self.dataBox.GetRules()
 }
 
 // 获取指定规则。
 func (self *Context) GetRule(ruleName string) (*Rule, bool) {
-	return self.dataFlow.GetRule(ruleName)
+	return self.dataBox.GetRule(ruleName)
 }
 
 // 获取当前规则名。
@@ -604,7 +604,7 @@ func (self *Context) getRule(ruleName ...string) (name string, rule *Rule, found
 	} else {
 		name = ruleName[0]
 	}
-	rule, found = self.dataFlow.GetRule(name)
+	rule, found = self.dataBox.GetRule(name)
 	return
 }
 

@@ -6,18 +6,18 @@ import (
 
 // 主命名空间相对于数据库名，不依赖具体数据内容，可选
 func (self *Collector) namespace() string {
-	if self.DataFlow.Namespace == nil {
-		if self.DataFlow.GetSubName() == "" {
-			return self.DataFlow.GetName()
+	if self.DataBox.Namespace == nil {
+		if self.DataBox.GetSubName() == "" {
+			return self.DataBox.GetName()
 		}
-		return self.DataFlow.GetName() + "__" + self.DataFlow.GetSubName()
+		return self.DataBox.GetName() + "__" + self.DataBox.GetSubName()
 	}
-	return self.DataFlow.Namespace(self.DataFlow)
+	return self.DataBox.Namespace(self.DataBox)
 }
 
 // 次命名空间相对于表名，可依赖具体数据内容，可选
 func (self *Collector) subNamespace(dataCell map[string]interface{}) string {
-	if self.DataFlow.SubNamespace == nil {
+	if self.DataBox.SubNamespace == nil {
 		return dataCell["RuleName"].(string)
 	}
 	defer func() {
@@ -25,7 +25,7 @@ func (self *Collector) subNamespace(dataCell map[string]interface{}) string {
 			logs.Log.Error("subNamespace: %v", p)
 		}
 	}()
-	return self.DataFlow.SubNamespace(self.DataFlow, dataCell)
+	return self.DataBox.SubNamespace(self.DataBox, dataCell)
 }
 
 // 下划线连接主次命名空间

@@ -29,7 +29,7 @@ func (self *Collector) outputData() {
 		if p := recover(); p != nil {
 			logs.Log.Informational(" * ")
 			logs.Log.App(" *     Panic  [数据输出：%v | KEYIN：%v | 批次：%v]   数据 %v 条！ [ERROR]  %v\n",
-				self.DataFlow.GetName(), self.DataFlow.GetKeyin(), self.dataBatch, dataLen, p)
+				self.DataBox.GetName(), self.DataBox.GetKeyin(), self.dataBatch, dataLen, p)
 		}
 	}()
 
@@ -42,10 +42,10 @@ func (self *Collector) outputData() {
 	logs.Log.Informational(" * ")
 	if err != nil {
 		logs.Log.App(" *     Fail  [数据输出：%v | KEYIN：%v | 批次：%v]   数据 %v 条！ [ERROR]  %v\n",
-			self.DataFlow.GetName(), self.DataFlow.GetKeyin(), self.dataBatch, dataLen, err)
+			self.DataBox.GetName(), self.DataBox.GetKeyin(), self.dataBatch, dataLen, err)
 	} else {
 		logs.Log.App(" *     [数据输出：%v | KEYIN：%v | 批次：%v]   数据 %v 条！\n",
-			self.DataFlow.GetName(), self.DataFlow.GetKeyin(), self.dataBatch, dataLen)
-		self.DataFlow.TryFlushSuccess()
+			self.DataBox.GetName(), self.DataBox.GetKeyin(), self.dataBatch, dataLen)
+		self.DataBox.TryFlushSuccess()
 	}
 }

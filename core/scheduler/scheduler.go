@@ -16,7 +16,7 @@ type scheduler struct {
 	count        chan bool    // 总并发量计数
 	useProxy     bool         // 标记是否使用代理IP
 	proxy        *proxy.Proxy // 全局代理IP
-	matrices     []*Matrix    // DataFlow实例的请求矩阵列表
+	matrices     []*Matrix    // DataBox实例的请求矩阵列表
 	sync.RWMutex              // 全局读写锁
 }
 
@@ -52,8 +52,8 @@ func Init() {
 }
 
 // 注册资源队列
-func AddMatrix(dataFlowName, dataFlowSubName string, maxPage int64) *Matrix {
-	matrix := newMatrix(dataFlowName, dataFlowSubName, maxPage)
+func AddMatrix(dataBoxName, dataBoxSubName string, maxPage int64) *Matrix {
+	matrix := newMatrix(dataBoxName, dataBoxSubName, maxPage)
 	sdl.RLock()
 	defer sdl.RUnlock()
 	sdl.matrices = append(sdl.matrices, matrix)
@@ -90,7 +90,7 @@ func Stop() {
 	// println("scheduler$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$")
 }
 
-// 每个dataFlow实例分配到的平均资源量
+// 每个dataBox实例分配到的平均资源量
 func (self *scheduler) avgRes() int32 {
 	avg := int32(cap(sdl.count) / len(sdl.matrices))
 	if avg == 0 {

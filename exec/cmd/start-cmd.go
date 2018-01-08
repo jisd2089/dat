@@ -10,7 +10,7 @@ import (
 	"strings"
 
 	"dat/core"
-	"dat/core/dataflow"
+	"dat/core/databox"
 	"dat/runtime/cache"
 	"dat/runtime/status"
 
@@ -18,7 +18,7 @@ import (
 )
 
 var (
-	dataFlowFlag *string
+	dataBoxFlag *string
 )
 
 // 获取外部参数
@@ -27,25 +27,25 @@ func Flag() {
 	flag.String("c ******************************************** only for cmd ******************************************** -c", "", "")
 
 	// 蜘蛛列表
-	dataFlowFlag = flag.String(
-		"c_dataflow",
+	dataBoxFlag = flag.String(
+		"c_databox",
 		"",
 		func() string {
-			var dataFlowList string
-			for k, v := range assetnode.AssetNodeEntity.GetDataFlowLib() {
-				dataFlowList += "   [" + strconv.Itoa(k) + "] " + v.GetName() + "  " + v.GetDescription() + "\r\n"
+			var dataBoxList string
+			for k, v := range assetnode.AssetNodeEntity.GetDataBoxLib() {
+				dataBoxList += "   [" + strconv.Itoa(k) + "] " + v.GetName() + "  " + v.GetDescription() + "\r\n"
 			}
-			return "   <DataFlow列表: 选择多DataFlow以 \",\" 间隔>\r\n" + dataFlowList
+			return "   <DataBox列表: 选择多DataBox以 \",\" 间隔>\r\n" + dataBoxList
 		}())
 
-	fmt.Println(*dataFlowFlag)
+	fmt.Println(*dataBoxFlag)
 
 	fmt.Println("########################")
 	// 备注说明
 	//flag.String(
 	//	"c_z",
 	//	"",
-	//	"CMD-EXAMPLE: $ pholcus -_ui=cmd -a_mode="+strconv.Itoa(status.OFFLINE)+" -c_dataflow=3,8 -a_outtype=csv -a_thread=20 -a_dockercap=5000 -a_pause=300 -a_proxyminute=0 -a_keyins=\"<pholcus><golang>\" -a_limit=10 -a_success=true -a_failure=true\n",
+	//	"CMD-EXAMPLE: $ pholcus -_ui=cmd -a_mode="+strconv.Itoa(status.OFFLINE)+" -c_databox=3,8 -a_outtype=csv -a_thread=20 -a_dockercap=5000 -a_pause=300 -a_proxyminute=0 -a_keyins=\"<pholcus><golang>\" -a_limit=10 -a_success=true -a_failure=true\n",
 	//)
 }
 
@@ -72,24 +72,24 @@ func Run() {
 
 // 运行
 func run() {
-	// 创建dataflow队列
-	df := []*dataflow.DataFlow{}
-	*dataFlowFlag = strings.TrimSpace(*dataFlowFlag)
-	if *dataFlowFlag == "*" {
-		df = assetnode.AssetNodeEntity.GetDataFlowLib()
+	// 创建databox队列
+	df := []*databox.DataBox{}
+	*dataBoxFlag = strings.TrimSpace(*dataBoxFlag)
+	if *dataBoxFlag == "*" {
+		df = assetnode.AssetNodeEntity.GetDataBoxLib()
 
 	} else {
-		for _, idx := range strings.Split(*dataFlowFlag, ",") {
+		for _, idx := range strings.Split(*dataBoxFlag, ",") {
 			idx = strings.TrimSpace(idx)
 			if idx == "" {
 				continue
 			}
 			i, _ := strconv.Atoi(idx)
-			df = append(df, assetnode.AssetNodeEntity.GetDataFlowLib()[i])
+			df = append(df, assetnode.AssetNodeEntity.GetDataBoxLib()[i])
 		}
 	}
 
-	assetnode.AssetNodeEntity.DataFlowPrepare(df).Run()
+	assetnode.AssetNodeEntity.DataBoxPrepare(df).Run()
 }
 
 // 服务器模式下接收添加任务的参数
@@ -106,7 +106,7 @@ func parseInput() {
 		"-a_failure"})
 	logs.Log.Informational("\n添加任务：\n")
 retry:
-	*dataFlowFlag = ""
+	*dataBoxFlag = ""
 	input := [12]string{}
 	fmt.Scanln(&input[0], &input[1], &input[2], &input[3], &input[4], &input[5], &input[6], &input[7], &input[8], &input[9])
 	if strings.Index(input[0], "=") < 4 {
@@ -170,7 +170,7 @@ retry:
 				cache.Task.FailureInherit = false
 			}
 		case "-c_spider":
-			*dataFlowFlag = value
+			*dataBoxFlag = value
 		default:
 			logs.Log.Informational("\n不可含有未知参数，必填参数：%v\n可选参数：%v\n", "-c_spider", []string{
 				"-a_keyins",

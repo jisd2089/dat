@@ -4,7 +4,7 @@ package pipeline
 import (
 	"dat/core/pipeline/collector/data"
 	"dat/core/pipeline/collector"
-	"dat/core/dataflow"
+	"dat/core/databox"
 )
 
 // 数据拆包/核验管道
@@ -15,6 +15,6 @@ type Pipeline interface {
 	CollectFile(data.FileCell) error //收集文件
 }
 
-func New(df *dataflow.DataFlow) Pipeline {
+func New(df *databox.DataBox) Pipeline {
 	return collector.NewCollector(df)
 }

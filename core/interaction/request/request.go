@@ -15,13 +15,13 @@ import (
 
 // DataRequest represents object waiting for being crawled.
 type DataRequest struct {
-	DataFlow      string          //规则名，自动设置，禁止人为填写
+	DataBox      string          //规则名，自动设置，禁止人为填写
 	TransferType  string          //传输类型
 	Url           string          //目标URL，必须设置
 	Rule          string          //用于解析响应的规则节点名，必须设置
 	Method        string          //GET POST POST-M HEAD
 	Header        http.Header     //请求头信息
-	EnableCookie  bool            //是否使用cookies，在DataFlow的EnableCookie设置
+	EnableCookie  bool            //是否使用cookies，在DataBox的EnableCookie设置
 	Parameters    []byte          // 传参
 	PostData      string          //POST values
 	DialTimeout   time.Duration   //创建连接超时 dial tcp: i/o timeout
@@ -60,8 +60,8 @@ const (
 
 // 发送请求前的准备工作，设置一系列默认值
 // DataRequest.Url与Request.Rule必须设置
-// DataRequest.DataFlow无需手动设置(由系统自动设置)
-// DataRequest.EnableCookie在DataFlow字段中统一设置，规则请求中指定的无效
+// DataRequest.DataBox无需手动设置(由系统自动设置)
+// DataRequest.EnableCookie在DataBox字段中统一设置，规则请求中指定的无效
 // 以下字段有默认值，可不设置:
 // DataRequest.Method默认为GET方法;
 // DataRequest.DialTimeout默认为常量DefaultDialTimeout，小于0时不限制等待响应时长;
@@ -147,7 +147,7 @@ func (self *DataRequest) Serialize() string {
 // 请求的唯一识别码
 func (self *DataRequest) Unique() string {
 	if self.unique == "" {
-		block := md5.Sum([]byte(self.DataFlow + self.Rule + self.Url + self.Method))
+		block := md5.Sum([]byte(self.DataBox + self.Rule + self.Url + self.Method))
 		self.unique = hex.EncodeToString(block[:])
 	}
 	return self.unique
@@ -265,12 +265,12 @@ func (self *DataRequest) SetRuleName(ruleName string) *DataRequest {
 	return self
 }
 
-func (self *DataRequest) GetDataFlowName() string {
-	return self.DataFlow
+func (self *DataRequest) GetDataBoxName() string {
+	return self.DataBox
 }
 
-func (self *DataRequest) SetDataFlowName(dataFlowName string) *DataRequest {
-	self.DataFlow = dataFlowName
+func (self *DataRequest) SetDataBoxName(dataBoxName string) *DataRequest {
+	self.DataBox = dataBoxName
 	return self
 }
 

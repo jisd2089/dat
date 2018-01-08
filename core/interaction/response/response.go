@@ -10,7 +10,7 @@ import (
 */
 
 type DataResponse struct {
-	DataFlowName string                   //规则名
+	DataBoxName string                   //规则名
 	Header       *fasthttp.ResponseHeader //response头
 	Body         []byte                   //返回消息体
 	StatusCode   int                      //返回码

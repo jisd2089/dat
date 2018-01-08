@@ -41,7 +41,7 @@ func init() {
 				}
 				delete(datacell, "Data")
 				delete(datacell, "RuleName")
-				if !self.DataFlow.OutDefaultField() {
+				if !self.DataBox.OutDefaultField() {
 					delete(datacell, "Url")
 					delete(datacell, "ParentUrl")
 					delete(datacell, "DownloadTime")

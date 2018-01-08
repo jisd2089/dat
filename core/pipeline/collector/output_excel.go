@@ -47,7 +47,7 @@ func init() {
 				for _, title := range self.MustGetRule(datacell["RuleName"].(string)).ItemFields {
 					row.AddCell().Value = title
 				}
-				if self.DataFlow.OutDefaultField() {
+				if self.DataBox.OutDefaultField() {
 					row.AddCell().Value = "当前链接"
 					row.AddCell().Value = "上级链接"
 					row.AddCell().Value = "下载时间"
@@ -64,7 +64,7 @@ func init() {
 					cell.Value = util.JsonString(vd[title])
 				}
 			}
-			if self.DataFlow.OutDefaultField() {
+			if self.DataBox.OutDefaultField() {
 				row.AddCell().Value = datacell["Url"].(string)
 				row.AddCell().Value = datacell["ParentUrl"].(string)
 				row.AddCell().Value = datacell["DownloadTime"].(string)

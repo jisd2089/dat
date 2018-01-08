@@ -6,7 +6,7 @@ package demanderonly
 */
 import (
 	"dat/core/interaction/request"
-	. "dat/core/dataflow"
+	. "dat/core/databox"
 	"fmt"
 	"strconv"
 	"dat/core/interaction/response"
@@ -16,7 +16,7 @@ func init() {
 	DEM.Register()
 }
 
-var DEM = &DataFlow{
+var DEM = &DataBox{
 	Name:        "demtest",
 	Description: "demtest",
 	// Pausetime:    300,

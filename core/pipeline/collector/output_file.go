@@ -37,7 +37,7 @@ func (self *Collector) outputFile(file data.FileCell) {
 		if err := os.MkdirAll(dir, 0777); err != nil {
 			logs.Log.Error(
 				" *     Fail  [文件下载：%v | KEYIN：%v | 批次：%v]   %v [ERROR]  %v\n",
-				self.DataFlow.GetName(), self.DataFlow.GetKeyin(), atomic.LoadUint64(&self.fileBatch), fileName, err,
+				self.DataBox.GetName(), self.DataBox.GetKeyin(), atomic.LoadUint64(&self.fileBatch), fileName, err,
 			)
 			return
 		}
@@ -48,7 +48,7 @@ func (self *Collector) outputFile(file data.FileCell) {
 	if err != nil {
 		logs.Log.Error(
 			" *     Fail  [文件下载：%v | KEYIN：%v | 批次：%v]   %v [ERROR]  %v\n",
-			self.DataFlow.GetName(), self.DataFlow.GetKeyin(), atomic.LoadUint64(&self.fileBatch), fileName, err,
+			self.DataBox.GetName(), self.DataBox.GetKeyin(), atomic.LoadUint64(&self.fileBatch), fileName, err,
 		)
 		return
 	}
@@ -58,7 +58,7 @@ func (self *Collector) outputFile(file data.FileCell) {
 	if err != nil {
 		logs.Log.Error(
 			" *     Fail  [文件下载：%v | KEYIN：%v | 批次：%v]   %v (%s) [ERROR]  %v\n",
-			self.DataFlow.GetName(), self.DataFlow.GetKeyin(), atomic.LoadUint64(&self.fileBatch), fileName, bytesSize.Format(uint64(size)), err,
+			self.DataBox.GetName(), self.DataBox.GetKeyin(), atomic.LoadUint64(&self.fileBatch), fileName, bytesSize.Format(uint64(size)), err,
 		)
 		return
 	}
@@ -70,7 +70,7 @@ func (self *Collector) outputFile(file data.FileCell) {
 	logs.Log.Informational(" * ")
 	logs.Log.App(
 		" *     [文件下载：%v | KEYIN：%v | 批次：%v]   %v (%s)\n",
-		self.DataFlow.GetName(), self.DataFlow.GetKeyin(), atomic.LoadUint64(&self.fileBatch), fileName, bytesSize.Format(uint64(size)),
+		self.DataBox.GetName(), self.DataBox.GetKeyin(), atomic.LoadUint64(&self.fileBatch), fileName, bytesSize.Format(uint64(size)),
 	)
 	logs.Log.Informational(" * ")
 }

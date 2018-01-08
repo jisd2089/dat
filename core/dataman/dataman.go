@@ -9,7 +9,7 @@ import (
 	"bytes"
 	"math/rand"
 
-	"dat/core/dataflow"
+	"dat/core/databox"
 	"dat/core/interaction/request"
 	"dat/core/interaction"
 	"dat/runtime/cache"
@@ -22,14 +22,14 @@ import (
 // 数据信使配送引擎
 type (
 	DataMan interface {
-		Init(flow *dataflow.DataFlow) DataMan //初始化配送引擎
-		Run()                                 //运行配送任务
-		Stop()                                //主动终止
-		CanStop() bool                        //能否终止
-		GetId() int                           //获取引擎ID
+		Init(box *databox.DataBox) DataMan //初始化配送引擎
+		Run()                                //运行配送任务
+		Stop()                               //主动终止
+		CanStop() bool                       //能否终止
+		GetId() int                          //获取引擎ID
 	}
 	dataMan struct {
-		*dataflow.DataFlow  //执行的采集规则
+		*databox.DataBox   //执行的采集规则
 		interaction.Carrier //全局公用的信息交互载体
 		pipeline.Pipeline   // 拆包与核验管道
 		id    int           // 信使ID
@@ -44,8 +44,8 @@ func New(id int) DataMan {
 	}
 }
 
-func (m *dataMan) Init(f *dataflow.DataFlow) DataMan {
-	m.DataFlow = f.ReqmatrixInit()
+func (m *dataMan) Init(f *databox.DataBox) DataMan {
+	m.DataBox = f.ReqmatrixInit()
 	m.Pipeline = pipeline.New(f)
 	m.pause[0] = f.Pausetime / 2
 	if m.pause[0] > 0 {
@@ -69,7 +69,7 @@ func (m *dataMan) Run() {
 	}()
 
 	// 启动任务
-	m.DataFlow.Start()
+	m.DataBox.Start()
 
 	<-c // 等待处理协程退出
 
@@ -83,7 +83,7 @@ func (m *dataMan) run() {
 		req := m.GetOne()
 		if req == nil {
 			// 停止任务
-			if m.DataFlow.CanStop() {
+			if m.DataBox.CanStop() {
 				break
 			}
 			time.Sleep(20 * time.Millisecond)
@@ -105,13 +105,13 @@ func (m *dataMan) run() {
 	}
 
 	// 等待处理中的任务完成
-	m.DataFlow.Defer()
+	m.DataBox.Defer()
 }
 
 // 主动终止
 func (m *dataMan) Stop() {
-	// 主动崩溃DataFlow运行协程
-	m.DataFlow.Stop()
+	// 主动崩溃DataBox运行协程
+	m.DataBox.Stop()
 	m.Pipeline.Stop()
 }
 
@@ -119,7 +119,7 @@ func (m *dataMan) Stop() {
 func (m *dataMan) Process(req *request.DataRequest) {
 	var (
 		//downUrl = req.GetUrl()
-		df      = m.DataFlow
+		df      = m.DataBox
 	)
 	defer func() {
 		if p := recover(); p != nil {
@@ -188,22 +188,22 @@ func (m *dataMan) Process(req *request.DataRequest) {
 	//logs.Log.Informational(" *     Success: %v\n", downUrl)
 
 	// 释放ctx准备复用
-	dataflow.PutContext(ctx)
+	databox.PutContext(ctx)
 }
 
 // 从调度读取一个请求
 func (m *dataMan) GetOne() *request.DataRequest {
-	return m.DataFlow.RequestPull()
+	return m.DataBox.RequestPull()
 }
 
 //从调度使用一个资源空位
 func (m *dataMan) UseOne() {
-	m.DataFlow.RequestUse()
+	m.DataBox.RequestUse()
 }
 
 //从调度释放一个资源空位
 func (m *dataMan) FreeOne() {
-	m.DataFlow.RequestFree()
+	m.DataBox.RequestFree()
 }
 
 // 常用基础方法

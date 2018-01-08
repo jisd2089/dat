@@ -69,7 +69,7 @@ func init() {
 					data[title] = util.JsonString(vd[title])
 				}
 			}
-			if self.DataFlow.OutDefaultField() {
+			if self.DataBox.OutDefaultField() {
 				data["url"] = datacell["Url"].(string)
 				data["parent_url"] = datacell["ParentUrl"].(string)
 				data["download_time"] = datacell["DownloadTime"].(string)

@@ -1,5 +1,9 @@
-package dataflow
+package databox
 
+/**
+    Author: luzequan
+    Created: 2017-12-28 09:50:30
+*/
 import (
 	"testing"
 	"io"
@@ -9,12 +13,7 @@ import (
 	"bufio"
 )
 
-/**
-    Author: luzequan
-    Created: 2017-12-28 09:59:25
-*/
-
-func TestDataFlow(t *testing.T) {
+func TestContext(t *testing.T) {
 	inputFile := "D:\\document\\接力配送\\after_140.data"
 	f, err := os.Open(inputFile)
 	defer f.Close()

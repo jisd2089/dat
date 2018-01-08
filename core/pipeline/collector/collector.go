@@ -9,12 +9,12 @@ import (
 
 	"dat/core/pipeline/collector/data"
 	"dat/runtime/cache"
-	"dat/core/dataflow"
+	"dat/core/databox"
 )
 
 // 结果收集与输出
 type Collector struct {
-	*dataflow.DataFlow            //绑定的流通规则
+	*databox.DataBox             //绑定的流通规则
 	DataChan   chan data.DataCell //文本数据收集通道
 	FileChan   chan data.FileCell //文件收集通道
 	dataDocker []data.DataCell    //分批输出结果缓存
@@ -28,9 +28,9 @@ type Collector struct {
 	fileSumLock sync.RWMutex
 }
 
-func NewCollector(df *dataflow.DataFlow) *Collector {
+func NewCollector(df *databox.DataBox) *Collector {
 	var c = &Collector{}
-	c.DataFlow = df
+	c.DataBox = df
 	c.outType = cache.Task.OutType
 	if cache.Task.DockerCap < 1 {
 		cache.Task.DockerCap = 1
@@ -201,7 +201,7 @@ func (self *Collector) addFileSum(add uint64) {
 // 返回报告
 func (self *Collector) Report() {
 	cache.ReportChan <- &cache.Report{
-		DataFlowName: self.DataFlow.GetName(),
+		DataBoxName: self.DataBox.GetName(),
 		Keyin:        self.GetKeyin(),
 		DataNum:      self.dataSum(),
 		FileNum:      self.fileSum(),

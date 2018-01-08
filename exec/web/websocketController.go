@@ -4,7 +4,7 @@ import (
 	"sync"
 
 	"dat/core"
-	"dat/core/dataflow"
+	"dat/core/databox"
 	"dat/common/util"
 	ws "dat/common/websocket"
 	"dat/config"
@@ -246,14 +246,14 @@ func tplData(mode int) map[string]interface{} {
 
 	// 蜘蛛家族清单
 	info["spiders"] = map[string]interface{}{
-		"menu": dataFlowMenu,
+		"menu": dataBoxMenu,
 		"curr": func() interface{} {
-			l := assetnode.AssetNodeEntity.GetDataFlowQueue().Len()
+			l := assetnode.AssetNodeEntity.GetDataBoxQueue().Len()
 			if l == 0 {
 				return 0
 			}
 			var curr = make(map[string]bool, l)
-			for _, sp := range assetnode.AssetNodeEntity.GetDataFlowQueue().GetAll() {
+			for _, sp := range assetnode.AssetNodeEntity.GetDataBoxQueue().GetAll() {
 				curr[sp.GetName()] = true
 			}
 
@@ -294,7 +294,7 @@ func tplData(mode int) map[string]interface{} {
 	}
 
 	// 采集上限
-	if assetnode.AssetNodeEntity.GetConfig("Limit").(int64) == dataflow.LIMIT {
+	if assetnode.AssetNodeEntity.GetConfig("Limit").(int64) == databox.LIMIT {
 		info["Limit"] = 0
 	} else {
 		info["Limit"] = assetnode.AssetNodeEntity.GetConfig("Limit")
@@ -335,17 +335,17 @@ func setConf(req map[string]interface{}) {
 }
 
 func setSpiderQueue(req map[string]interface{}) {
-	dfNames, ok := req["dataFlows"].([]interface{})
+	dfNames, ok := req["dataBoxs"].([]interface{})
 	if !ok {
 		return
 	}
-	dataFlows := []*dataflow.DataFlow{}
-	for _, df := range assetnode.AssetNodeEntity.GetDataFlowLib() {
+	dataBoxs := []*databox.DataBox{}
+	for _, df := range assetnode.AssetNodeEntity.GetDataBoxLib() {
 		for _, dfName := range dfNames {
 			if util.Atoa(dfName) == df.GetName() {
-				dataFlows = append(dataFlows, df.Copy())
+				dataBoxs = append(dataBoxs, df.Copy())
 			}
 		}
 	}
-	assetnode.AssetNodeEntity.DataFlowPrepare(dataFlows)
+	assetnode.AssetNodeEntity.DataBoxPrepare(dataBoxs)
 }

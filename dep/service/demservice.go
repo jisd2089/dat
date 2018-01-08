@@ -4,7 +4,7 @@ import (
 	"github.com/valyala/fasthttp"
 	"fmt"
 	"dat/core"
-	"dat/core/dataflow"
+	"dat/core/databox"
 	"dat/core/interaction/request"
 )
 
@@ -22,13 +22,13 @@ func (d *DemService) SendDemToSup(ctx *fasthttp.RequestCtx) {
 
 	fmt.Println("hello data")
 
-	df := assetnode.AssetNodeEntity.GetDataFlowByName("demtest")
+	df := assetnode.AssetNodeEntity.GetDataBoxByName("demtest")
 
 	if df == nil {
-		fmt.Println("dataflow is nil!")
+		fmt.Println("databox is nil!")
 	}
 
-	context := dataflow.GetContext(df, &request.DataRequest{})
+	context := databox.GetContext(df, &request.DataRequest{})
 	dresp := context.SyncParse("ruleTest3")
 
 	ctx.Response.SetStatusCode(dresp.StatusCode)

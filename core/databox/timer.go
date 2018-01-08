@@ -1,4 +1,4 @@
-package dataflow
+package databox
 
 import (
 	"sync"

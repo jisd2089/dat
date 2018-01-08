@@ -21,7 +21,7 @@ var (
 	ip           *string
 	port         *int
 	addr         string
-	dataFlowMenu []map[string]string
+	dataBoxMenu []map[string]string
 )
 
 // 获取外部参数
@@ -41,9 +41,9 @@ func Run() {
 func appInit() {
 	//app.LogicApp.SetLog(Lsc).SetAppConf("Mode", cache.Task.Mode)
 
-	dataFlowMenu = func() (dfmenu []map[string]string) {
+	dataBoxMenu = func() (dfmenu []map[string]string) {
 		// 获取蜘蛛家族
-		for _, df := range assetnode.AssetNodeEntity.GetDataFlowLib() {
+		for _, df := range assetnode.AssetNodeEntity.GetDataBoxLib() {
 			dfmenu = append(dfmenu, map[string]string{"name": df.GetName(), "description": df.GetDescription()})
 		}
 		return dfmenu

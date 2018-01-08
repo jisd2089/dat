@@ -13,11 +13,11 @@ import (
 	"github.com/henrylee2cn/pholcus/logs"
 )
 
-// 一个DataFlow实例的请求矩阵
+// 一个DataBox实例的请求矩阵
 type Matrix struct {
 	maxPage         int64                       // 最大采集页数，以负数形式表示
 	resCount        int32                       // 资源使用情况计数
-	dataFlowName    string                      // 所属DataFlow
+	dataBoxName    string                      // 所属DataBox
 	reqs            map[int][]*request.DataRequest  // [优先级]队列，优先级默认为0
 	priorities      []int                       // 优先级顺序，从低到高
 	history         history.Historier           // 历史记录
@@ -28,13 +28,13 @@ type Matrix struct {
 	sync.Mutex
 }
 
-func newMatrix(dataFlowName, dataFlowSubName string, maxPage int64) *Matrix {
+func newMatrix(dataBoxName, dataBoxSubName string, maxPage int64) *Matrix {
 	matrix := &Matrix{
-		dataFlowName: dataFlowName,
+		dataBoxName: dataBoxName,
 		maxPage:      maxPage,
 		reqs:         make(map[int][]*request.DataRequest),
 		priorities:   []int{},
-		history:      history.New(dataFlowName, dataFlowSubName),
+		history:      history.New(dataBoxName, dataBoxSubName),
 		tempHistory:  make(map[string]bool),
 		failures:     make(map[string]*request.DataRequest),
 	}
@@ -93,7 +93,7 @@ func (self *Matrix) Push(req *request.DataRequest) {
 
 	var priority = req.GetPriority()
 
-	// 初始化该DataFlow下该优先级队列
+	// 初始化该DataBox下该优先级队列
 	if _, found := self.reqs[priority]; !found {
 		self.priorities = append(self.priorities, priority)
 		sort.Ints(self.priorities) // 从小到大排序

@@ -6,7 +6,7 @@ package interaction
 */
 
 import (
-	"dat/core/dataflow"
+	"dat/core/databox"
 	"dat/core/interaction/request"
 )
 
@@ -14,5 +14,5 @@ import (
 // You can implement the interface by implement function Handler.
 // Function Handler need to return http response from Request.
 type Carrier interface {
-	Handle(*dataflow.DataFlow, *request.DataRequest) *dataflow.Context
+	Handle(*databox.DataBox, *request.DataRequest) *databox.Context
 }

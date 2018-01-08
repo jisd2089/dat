@@ -9,7 +9,7 @@ import (
 	"dat/core/distribute"
 	"dat/core/dataman"
 	"dat/runtime/status"
-	"dat/core/dataflow"
+	"dat/core/databox"
 	"dat/core/pipeline/collector"
 	"time"
 	"dat/runtime/cache"
@@ -20,38 +20,39 @@ import (
 	"reflect"
 	"github.com/henrylee2cn/pholcus/logs"
 	"github.com/henrylee2cn/teleport"
+	"dat/core/databox"
 )
 
 // 数据资产方
 type (
 	AssetNode interface {
-		Init() AssetNode                                         // 初始化
-		Empower() AssetNode                                      // 资产方赋权
-		GetConfig(k ...string) interface{}                       // 获取全局参数
-		SetConfig(k string, v interface{}) AssetNode             // 设置全局参数
-		DataFlowPrepare(original []*dataflow.DataFlow) AssetNode // 须在设置全局运行参数后Run()前调用（client模式下不调用该方法）
-		Run()                                                    // 阻塞式运行直至任务完成（须在所有应当配置项配置完成后调用）
-		Stop()                                                   // Offline 模式下中途终止任务（对外为阻塞式运行直至当前任务终止）
-		IsRunning() bool                                         // 检查任务是否正在运行
-		IsPause() bool                                           // 检查任务是否处于暂停状态
-		IsStopped() bool                                         // 检查任务是否已经终止
-		PauseRecover()                                           // Offline 模式下暂停\恢复任务
-		Status() int                                             // 返回当前状态
-		GetDataFlowLib() []*dataflow.DataFlow                    // 获取全部Dataflow种类
-		GetDataFlowByName(string) *dataflow.DataFlow             // 通过名字获取某DataFlow
-		GetDataFlowQueue() dataman.DataFlowQueue                 // 获取DataFlow队列接口实例
-		GetOutputLib() []string                                  // 获取全部输出方式
-		GetTaskBase() *distribute.TaskBase                       // 返回任务库
-		distribute.Distributer                                   // 实现分布式接口
+		Init() AssetNode                                        // 初始化
+		Empower() AssetNode                                     // 资产方赋权
+		GetConfig(k ...string) interface{}                      // 获取全局参数
+		SetConfig(k string, v interface{}) AssetNode            // 设置全局参数
+		DataBoxPrepare(original []*databox.DataBox) AssetNode // 须在设置全局运行参数后Run()前调用（client模式下不调用该方法）
+		Run()                                                   // 阻塞式运行直至任务完成（须在所有应当配置项配置完成后调用）
+		Stop()                                                  // Offline 模式下中途终止任务（对外为阻塞式运行直至当前任务终止）
+		IsRunning() bool                                        // 检查任务是否正在运行
+		IsPause() bool                                          // 检查任务是否处于暂停状态
+		IsStopped() bool                                        // 检查任务是否已经终止
+		PauseRecover()                                          // Offline 模式下暂停\恢复任务
+		Status() int                                            // 返回当前状态
+		GetDataBoxLib() []*databox.DataBox                    // 获取全部databox种类
+		GetDataBoxByName(string) *databox.DataBox             // 通过名字获取某DataBox
+		GetDataBoxQueue() dataman.DataBoxQueue                // 获取DataBox队列接口实例
+		GetOutputLib() []string                                 // 获取全部输出方式
+		GetTaskBase() *distribute.TaskBase                      // 返回任务库
+		distribute.Distributer                                  // 实现分布式接口
 	}
 	NodeEntity struct {
 		id           int           //资产方系统ID
 		rights       []string      //资产方权利
 		roleType     string        //资产方角色类型
 		*cache.AppConf             // 全局配置
-		*dataflow.DataFlowSpecies  //数据产品流种类
+		*databox.DataBoxSpecies   //数据产品流种类
 		*distribute.TaskBase       //服务器与客户端间传递任务的存储库
-		dataman.DataFlowQueue      //当前任务的数产品流队列
+		dataman.DataBoxQueue      //当前任务的数产品流队列
 		dataman.DataManPool        //配送回收池
 		teleport.Teleport          // socket长连接双工通信接口，json数据传输
 		status       int           // 运行状态
@@ -79,11 +80,11 @@ func getNewNodeEntity() *NodeEntity {
 	once.Do(func() {
 		newNodeEntity = &NodeEntity{
 			AppConf:         cache.Task,
-			DataFlowSpecies: dataflow.Species,
+			DataBoxSpecies: databox.Species,
 			status:          status.STOPPED,
 			Teleport:        teleport.New(),
 			TaskBase:        distribute.NewTaskBase(),
-			DataFlowQueue:   dataman.NewDataFlowQueue(),
+			DataBoxQueue:   dataman.NewDataBoxQueue(),
 			DataManPool:     dataman.NewDataManPool(),
 		}
 	})
@@ -94,7 +95,7 @@ func getNewNodeEntity() *NodeEntity {
 func (a *NodeEntity) Init() AssetNode {
 	//a.Teleport = teleport.New()
 	a.TaskBase = distribute.NewTaskBase()
-	a.DataFlowQueue = dataman.NewDataFlowQueue()
+	a.DataBoxQueue = dataman.NewDataBoxQueue()
 	a.DataManPool = dataman.NewDataManPool()
 
 	//switch a.AppConf.Mode {
@@ -170,7 +171,7 @@ func (self *NodeEntity) SetConfig(k string, v interface{}) AssetNode {
 		}
 	}()
 	if k == "Limit" && v.(int64) <= 0 {
-		v = int64(dataflow.LIMIT)
+		v = int64(databox.LIMIT)
 	} else if k == "DockerCap" && v.(int) < 1 {
 		v = int(1)
 	}
@@ -183,25 +184,25 @@ func (self *NodeEntity) SetConfig(k string, v interface{}) AssetNode {
 	return self
 }
 
-// DataFlowPrepare()必须在设置全局运行参数之后，Run()的前一刻执行
-// original为dataflow包中未有过赋值操作的原始dataflow种类
-// 已被显式赋值过的dataflow将不再重新分配Keyin
+// DataBoxPrepare()必须在设置全局运行参数之后，Run()的前一刻执行
+// original为databox包中未有过赋值操作的原始databox种类
+// 已被显式赋值过的databox将不再重新分配Keyin
 // client模式下不调用该方法
-func (self *NodeEntity) DataFlowPrepare(original []*dataflow.DataFlow) AssetNode {
-	self.DataFlowQueue.Reset()
+func (self *NodeEntity) DataBoxPrepare(original []*databox.DataBox) AssetNode {
+	self.DataBoxQueue.Reset()
 	// 遍历任务
 	for _, df := range original {
 		dfcopy := df.Copy()
 		dfcopy.SetPausetime(self.AppConf.Pausetime)
-		if dfcopy.GetLimit() == dataflow.LIMIT {
+		if dfcopy.GetLimit() == databox.LIMIT {
 			dfcopy.SetLimit(self.AppConf.Limit)
 		} else {
 			dfcopy.SetLimit(-1 * self.AppConf.Limit)
 		}
-		self.DataFlowQueue.Add(dfcopy)
+		self.DataBoxQueue.Add(dfcopy)
 	}
 	// 遍历自定义配置
-	self.DataFlowQueue.AddKeyins(self.AppConf.Keyins)
+	self.DataBoxQueue.AddKeyins(self.AppConf.Keyins)
 	return self
 }
 
@@ -211,13 +212,13 @@ func (self *NodeEntity) GetOutputLib() []string {
 }
 
 // 获取全部蜘蛛种类
-func (self *NodeEntity) GetDataFlowLib() []*dataflow.DataFlow {
-	return self.DataFlowSpecies.Get()
+func (self *NodeEntity) GetDataBoxLib() []*databox.DataBox {
+	return self.DataBoxSpecies.Get()
 }
 
 // 通过名字获取某蜘蛛
-func (self *NodeEntity) GetDataFlowByName(name string) *dataflow.DataFlow {
-	return self.DataFlowSpecies.GetByName(name)
+func (self *NodeEntity) GetDataBoxByName(name string) *databox.DataBox {
+	return self.DataBoxSpecies.GetByName(name)
 }
 
 // 返回当前运行模式
@@ -236,8 +237,8 @@ func (self *NodeEntity) CountNodes() int {
 }
 
 // 获取蜘蛛队列接口实例
-func (self *NodeEntity) GetDataFlowQueue() dataman.DataFlowQueue {
-	return self.DataFlowQueue
+func (self *NodeEntity) GetDataBoxQueue() dataman.DataBoxQueue {
+	return self.DataBoxQueue
 }
 
 // 系统启动
@@ -277,7 +278,7 @@ func (a *NodeEntity) Status() int {
 
 // 开始执行任务
 func (ne *NodeEntity) exec() {
-	count := ne.DataFlowQueue.Len()
+	count := ne.DataBoxQueue.Len()
 
 	cache.ResetPageCount()
 	// 刷新输出方式的状态
@@ -320,7 +321,7 @@ func (ne *NodeEntity) goRun(count int) {
 	//if m != nil {
 	//	go func(i int, c dataman.DataMan) {
 	//		// 执行并返回结果消息
-	//		m.Init(a.DataFlowQueue.GetByIndex(i)).Run()
+	//		m.Init(a.DataBoxQueue.GetByIndex(i)).Run()
 	//		// 任务结束后回收该蜘蛛
 	//		a.RWMutex.RLock()
 	//		if a.status != status.STOP {
@@ -342,7 +343,7 @@ func (ne *NodeEntity) goRun(count int) {
 		if m != nil {
 			go func(i int, c dataman.DataMan) {
 				// 执行并返回结果消息
-				c.Init(ne.DataFlowQueue.GetByIndex(i)).Run()
+				c.Init(ne.DataBoxQueue.GetByIndex(i)).Run()
 				// 任务结束后回收该信使
 				ne.RWMutex.RLock()
 				if ne.status != status.STOP {
@@ -356,20 +357,20 @@ func (ne *NodeEntity) goRun(count int) {
 	for ii := 0; ii < i; ii++ {
 		s := <-cache.ReportChan
 		if (s.DataNum == 0) && (s.FileNum == 0) {
-			logs.Log.App(" *     [任务小计：%s | KEYIN：%s]   无采集结果，用时 %v！\n", s.DataFlowName, s.Keyin, s.Time)
+			logs.Log.App(" *     [任务小计：%s | KEYIN：%s]   无采集结果，用时 %v！\n", s.DataBoxName, s.Keyin, s.Time)
 			continue
 		}
 		logs.Log.Informational(" * ")
 		switch {
 		case s.DataNum > 0 && s.FileNum == 0:
 			logs.Log.App(" *     [任务小计：%s | KEYIN：%s]   共采集数据 %v 条，用时 %v！\n",
-				s.DataFlowName, s.Keyin, s.DataNum, s.Time)
+				s.DataBoxName, s.Keyin, s.DataNum, s.Time)
 		case s.DataNum == 0 && s.FileNum > 0:
 			logs.Log.App(" *     [任务小计：%s | KEYIN：%s]   共下载文件 %v 个，用时 %v！\n",
-				s.DataFlowName, s.Keyin, s.FileNum, s.Time)
+				s.DataBoxName, s.Keyin, s.FileNum, s.Time)
 		default:
 			logs.Log.App(" *     [任务小计：%s | KEYIN：%s]   共采集数据 %v 条 + 下载文件 %v 个，用时 %v！\n",
-				s.DataFlowName, s.Keyin, s.DataNum, s.FileNum, s.Time)
+				s.DataBoxName, s.Keyin, s.DataNum, s.FileNum, s.Time)
 		}
 
 		ne.sum[0] += s.DataNum
@@ -471,7 +472,7 @@ func (self *NodeEntity) offline() {
 	self.exec()
 }
 
-// 服务器模式运行，必须在DataFlowPrepare()执行之后调用才可以成功添加任务
+// 服务器模式运行，必须在DataBoxPrepare()执行之后调用才可以成功添加任务
 // 生成的任务与自身当前全局配置相同
 func (self *NodeEntity) server() {
 	// 标记结束
@@ -480,7 +481,7 @@ func (self *NodeEntity) server() {
 	}()
 
 	// 便利添加任务到库
-	tasksNum, dataFlowsNum := self.addNewTask()
+	tasksNum, dataBoxsNum := self.addNewTask()
 
 	if tasksNum == 0 {
 		return
@@ -490,22 +491,22 @@ func (self *NodeEntity) server() {
 	logs.Log.Informational(" * ")
 	logs.Log.Informational(` *********************************************************************************************************************************** `)
 	logs.Log.Informational(" * ")
-	logs.Log.Informational(" *                               —— 本次成功添加 %v 条任务，共包含 %v 条采集规则 ——", tasksNum, dataFlowsNum)
+	logs.Log.Informational(" *                               —— 本次成功添加 %v 条任务，共包含 %v 条采集规则 ——", tasksNum, dataBoxsNum)
 	logs.Log.Informational(" * ")
 	logs.Log.Informational(` *********************************************************************************************************************************** `)
 }
 
 // 服务器模式下，生成task并添加至库
-func (self *NodeEntity) addNewTask() (tasksNum, dataFlowsNum int) {
-	length := self.DataFlowQueue.Len()
+func (self *NodeEntity) addNewTask() (tasksNum, dataBoxsNum int) {
+	length := self.DataBoxQueue.Len()
 	t := distribute.Task{}
 	// 从配置读取字段
 	self.setTask(&t)
 
-	for i, sp := range self.DataFlowQueue.GetAll() {
+	for i, sp := range self.DataBoxQueue.GetAll() {
 
-		t.DataFlows = append(t.DataFlows, map[string]string{"name": sp.GetName(), "keyin": sp.GetKeyin()})
-		dataFlowsNum++
+		t.DataBoxs = append(t.DataBoxs, map[string]string{"name": sp.GetName(), "keyin": sp.GetKeyin()})
+		dataBoxsNum++
 
 		// 每十个蜘蛛存为一个任务
 		if i > 0 && i%10 == 0 && length > 10 {
@@ -516,12 +517,12 @@ func (self *NodeEntity) addNewTask() (tasksNum, dataFlowsNum int) {
 
 			tasksNum++
 
-			// 清空dataflow
-			t.DataFlows = []map[string]string{}
+			// 清空databox
+			t.DataBoxs = []map[string]string{}
 		}
 	}
 
-	if len(t.DataFlows) != 0 {
+	if len(t.DataBoxs) != 0 {
 		// 存入
 		one := t
 		self.TaskBase.Push(&one)
@@ -584,14 +585,14 @@ ReStartLabel:
 // client模式下从task准备运行条件
 func (self *NodeEntity) taskToRun(t *distribute.Task) {
 	// 清空历史任务
-	self.DataFlowQueue.Reset()
+	self.DataBoxQueue.Reset()
 
 	// 更改全局配置
 	self.setAppConf(t)
 
 	// 初始化蜘蛛队列
-	for _, n := range t.DataFlows {
-		df := self.GetDataFlowByName(n["name"])
+	for _, n := range t.DataBoxs {
+		df := self.GetDataBoxByName(n["name"])
 		if df == nil {
 			continue
 		}
@@ -605,7 +606,7 @@ func (self *NodeEntity) taskToRun(t *distribute.Task) {
 		if v, ok := n["keyin"]; ok {
 			dfcopy.SetKeyin(v)
 		}
-		self.DataFlowQueue.Add(dfcopy)
+		self.DataBoxQueue.Add(dfcopy)
 	}
 }
 
