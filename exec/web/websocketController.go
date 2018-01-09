@@ -244,8 +244,8 @@ func tplData(mode int) map[string]interface{} {
 		return info
 	}
 
-	// 蜘蛛家族清单
-	info["spiders"] = map[string]interface{}{
+	// databoxs家族清单
+	info["databoxs"] = map[string]interface{}{
 		"menu": dataBoxMenu,
 		"curr": func() interface{} {
 			l := assetnode.AssetNodeEntity.GetDataBoxQueue().Len()

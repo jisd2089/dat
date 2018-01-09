@@ -116,7 +116,7 @@ func (self *Context) AddQueue(req *request.DataRequest) *Context {
 
 // 用于动态规则添加请求。
 func (self *Context) JsAddQueue(jreq map[string]interface{}) *Context {
-	// 若已主动终止任务，则崩溃爬虫协程
+	// 若已主动终止任务，则崩溃databox协程
 	self.dataBox.tryPanic()
 
 	req := &request.DataRequest{}
@@ -189,7 +189,7 @@ func (self *Context) JsAddQueue(jreq map[string]interface{}) *Context {
 func (self *Context) Output(item interface{}, ruleName ...string) {
 	_ruleName, rule, found := self.getRule(ruleName...)
 	if !found {
-		logs.Log.Error("蜘蛛 %s 调用Output()时，指定的规则名不存在！", self.dataBox.GetName())
+		logs.Log.Error("DataBox %s 调用Output()时，指定的规则名不存在！", self.dataBox.GetName())
 		return
 	}
 	var _item map[string]interface{}
@@ -304,7 +304,7 @@ func (self *Context) UpsertItemField(field string, ruleName ...string) (index in
 // 调用指定Rule下辅助函数AidFunc()。
 // 用ruleName指定匹配的AidFunc，为空时默认当前规则。
 func (self *Context) Aid(aid map[string]interface{}, ruleName ...string) interface{} {
-	// 若已主动终止任务，则崩溃爬虫协程
+	// 若已主动终止任务，则崩溃databox协程
 	self.dataBox.tryPanic()
 
 	_, rule, found := self.getRule(ruleName...)
@@ -410,7 +410,7 @@ func (self *Context) ResetText(body string) *Context {
 
 // 获取下载错误。
 func (self *Context) GetError() error {
-	// 若已主动终止任务，则崩溃爬虫协程
+	// 若已主动终止任务，则崩溃databox协程
 	self.dataBox.tryPanic()
 	return self.err
 }
@@ -503,7 +503,7 @@ func (self *Context) GetLimit() int {
 	return int(self.dataBox.GetLimit())
 }
 
-// 获取蜘蛛名。
+// 获取databox名。
 func (self *Context) GetName() string {
 	return self.dataBox.GetName()
 }

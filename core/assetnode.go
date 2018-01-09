@@ -210,12 +210,12 @@ func (self *NodeEntity) GetOutputLib() []string {
 	return collector.DataOutputLib
 }
 
-// 获取全部蜘蛛种类
+// 获取全部databox种类
 func (self *NodeEntity) GetDataBoxLib() []*databox.DataBox {
 	return self.DataBoxSpecies.Get()
 }
 
-// 通过名字获取某蜘蛛
+// 通过名字获取某databox
 func (self *NodeEntity) GetDataBoxByName(name string) *databox.DataBox {
 	return self.DataBoxSpecies.GetByName(name)
 }
@@ -235,7 +235,7 @@ func (self *NodeEntity) CountNodes() int {
 	return self.Teleport.CountNodes()
 }
 
-// 获取蜘蛛队列接口实例
+// 获取databox队列接口实例
 func (self *NodeEntity) GetDataBoxQueue() dataman.DataBoxQueue {
 	return self.DataBoxQueue
 }
@@ -285,7 +285,7 @@ func (ne *NodeEntity) exec() {
 	// 初始化资源队列
 	scheduler.Init()
 
-	// 设置爬虫队列
+	// 设置数据信使队列
 	dataManCap := ne.DataManPool.Reset(count)
 
 	logs.Log.Informational(" *     执行任务总数(任务数[*自定义配置数])为 %v 个\n", count)
@@ -321,7 +321,7 @@ func (ne *NodeEntity) goRun(count int) {
 	//	go func(i int, c dataman.DataMan) {
 	//		// 执行并返回结果消息
 	//		m.Init(a.DataBoxQueue.GetByIndex(i)).Run()
-	//		// 任务结束后回收该蜘蛛
+	//		// 任务结束后回收该databox
 	//		a.RWMutex.RLock()
 	//		if a.status != status.STOP {
 	//			a.DataManPool.Free(c)
@@ -507,7 +507,7 @@ func (self *NodeEntity) addNewTask() (tasksNum, dataBoxsNum int) {
 		t.DataBoxs = append(t.DataBoxs, map[string]string{"name": sp.GetName(), "keyin": sp.GetKeyin()})
 		dataBoxsNum++
 
-		// 每十个蜘蛛存为一个任务
+		// 每十个databox存为一个任务
 		if i > 0 && i%10 == 0 && length > 10 {
 			// 存入
 			one := t
@@ -589,7 +589,7 @@ func (self *NodeEntity) taskToRun(t *distribute.Task) {
 	// 更改全局配置
 	self.setAppConf(t)
 
-	// 初始化蜘蛛队列
+	// 初始化databox队列
 	for _, n := range t.DataBoxs {
 		df := self.GetDataBoxByName(n["name"])
 		if df == nil {

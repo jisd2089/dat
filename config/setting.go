@@ -12,7 +12,7 @@ import (
 
 // 配置文件涉及的默认配置。
 const (
-	dataManCap int = 50 // 蜘蛛池最大容量
+	dataManCap int = 50 // datamanpool最大容量
 	// datachancap             int    = 2 << 14                     // 收集器容量(默认65536)
 	logcap                int64  = 10000                       // 日志缓存的容量
 	loglevel              string = "debug"                     // 全局日志打印级别（亦是日志文件输出级别）

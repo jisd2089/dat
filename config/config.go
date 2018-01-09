@@ -32,7 +32,7 @@ const (
 
 // 来自配置文件的配置项。
 var (
-	DATAMANS_CAP int = setting.DefaultInt("dataManCap", dataManCap) // 蜘蛛池最大容量
+	DATAMANS_CAP int = setting.DefaultInt("dataManCap", dataManCap) //datamanpool最大容量
 	// DATA_CHAN_CAP            int    = setting.DefaultInt("datachancap", datachancap)                               // 收集器容量
 	PHANTOMJS                string = setting.String("phantomjs")                                                  // Surfer-Phantom下载器：phantomjs程序路径
 	PROXY                    string = setting.String("proxylib")                                                   // 代理IP文件路径

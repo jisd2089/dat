@@ -181,7 +181,7 @@ func (self *DataBox) UpsertItemField(rule *Rule, field string) (index int) {
 	return len(rule.ItemFields) - 1
 }
 
-// 获取蜘蛛二级标识名
+// 获取databox二级标识名
 func (self *DataBox) GetSubName() string {
 	self.once.Do(func() {
 		self.subName = self.GetKeyin()
