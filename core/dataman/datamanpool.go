@@ -53,9 +53,9 @@ func (dmp *dataManPool) Reset(dataBoxNum int) int {
 	dmp.capacity = wantNum
 	dmp.count = 0
 	dmp.usable = make(chan DataMan, wantNum)
-	for _, crawler := range dmp.all {
+	for _, dataMan := range dmp.all {
 		if dmp.count < dmp.capacity {
-			dmp.usable <- crawler
+			dmp.usable <- dataMan
 			dmp.count++
 		}
 	}
@@ -65,7 +65,7 @@ func (dmp *dataManPool) Reset(dataBoxNum int) int {
 
 // 并发安全地使用资源
 func (dmp *dataManPool) Use() DataMan {
-	var crawler DataMan
+	var dataMan DataMan
 	for {
 		dmp.Lock()
 		if dmp.status == status.STOP {
@@ -73,16 +73,16 @@ func (dmp *dataManPool) Use() DataMan {
 			return nil
 		}
 		select {
-		case crawler = <-dmp.usable:
+		case dataMan = <-dmp.usable:
 			dmp.Unlock()
-			return crawler
+			return dataMan
 		default:
 			if dmp.count < dmp.capacity {
-				crawler = New(dmp.count)
-				dmp.all = append(dmp.all, crawler)
+				dataMan = New(dmp.count)
+				dmp.all = append(dmp.all, dataMan)
 				dmp.count++
 				dmp.Unlock()
-				return crawler
+				return dataMan
 			}
 		}
 		dmp.Unlock()

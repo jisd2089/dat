@@ -65,3 +65,12 @@ var DEM = &DataBox{
 	},
 }
 
+func rootFunc(ctx *Context) {
+	fmt.Println(ctx)
+	ctx.AddQueue(&request.DataRequest{
+		Url:          "http://www.inderscience.com/info/inarticletoc.php?jcode=ijguc&year=2016&vol=7&issue=1",
+		Rule:         "ruleTest",
+		TransferType: request.HTTP,
+	})
+}
+
