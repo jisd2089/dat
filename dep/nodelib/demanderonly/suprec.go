@@ -13,12 +13,12 @@ import (
 )
 
 func init() {
-	DEM.Register()
+	SUPREC.Register()
 }
 
-var DEM = &DataBox{
-	Name:        "demtest",
-	Description: "demtest",
+var SUPREC = &DataBox{
+	Name:        "suprec",
+	Description: "suprec",
 	// Pausetime:    300,
 	// Keyin:        KEYIN,
 	// Limit:        LIMIT,

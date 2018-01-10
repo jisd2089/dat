@@ -268,6 +268,11 @@ func (ne *NodeEntity) Run() {
 	<-ne.finish
 }
 
+// 系统启动
+func (ne *NodeEntity) SyncRun() {
+
+}
+
 // 返回当前运行状态
 func (a *NodeEntity) Status() int {
 	a.RWMutex.RLock()

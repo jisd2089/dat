@@ -13,12 +13,12 @@ import (
 )
 
 func init() {
-	DEM.Register()
+	DEMREC.Register()
 }
 
-var DEM = &DataBox{
-	Name:        "demtest",
-	Description: "demtest",
+var DEMREC = &DataBox{
+	Name:        "demrec",
+	Description: "demrec",
 	// Pausetime:    300,
 	// Keyin:        KEYIN,
 	// Limit:        LIMIT,

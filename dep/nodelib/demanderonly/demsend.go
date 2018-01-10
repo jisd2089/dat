@@ -13,12 +13,12 @@ import (
 )
 
 func init() {
-	DEM.Register()
+	DEMSEND.Register()
 }
 
-var DEM = &DataBox{
-	Name:        "demtest",
-	Description: "demtest",
+var DEMSEND = &DataBox{
+	Name:        "demsend",
+	Description: "demsend",
 	// Pausetime:    300,
 	// Keyin:        KEYIN,
 	// Limit:        LIMIT,
@@ -26,11 +26,15 @@ var DEM = &DataBox{
 	RuleTree: &RuleTree{
 		Root: func(ctx *Context) {
 			fmt.Println(ctx)
-			ctx.AddQueue(&request.DataRequest{
-				Url:          "http://www.inderscience.com/info/inarticletoc.php?jcode=ijguc&year=2016&vol=7&issue=1",
-				Rule:         "ruleTest",
-				TransferType: request.HTTP,
-			})
+
+			fmt.Println(ctx.GetDataBox().GetDataFilePath())
+
+			fmt.Println("NodeAddress: %s", ctx.GetDataBox().GetNodeAddress())
+			//ctx.AddQueue(&request.DataRequest{
+			//	Url:          "http://www.inderscience.com/info/inarticletoc.php?jcode=ijguc&year=2016&vol=7&issue=1",
+			//	Rule:         "ruleTest",
+			//	TransferType: request.HTTP,
+			//})
 		},
 
 		Trunk: map[string]*Rule{
@@ -74,4 +78,12 @@ var DEM = &DataBox{
 	},
 }
 
+func rootFunc(ctx *Context) {
+	fmt.Println(ctx)
+	ctx.AddQueue(&request.DataRequest{
+		Url:          "http://www.inderscience.com/info/inarticletoc.php?jcode=ijguc&year=2016&vol=7&issue=1",
+		Rule:         "ruleTest",
+		TransferType: request.HTTP,
+	})
+}
 

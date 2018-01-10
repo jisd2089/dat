@@ -20,4 +20,5 @@ func NewHttpRouter() *HttpRouter {
 
 func (r *HttpRouter) Register() {
 	r.Router.POST("/api/dmp/orderRouteQry/", NewDemService().SendDemToSup)
+	r.Router.POST("/api/dem/send", NewDemService().SendDemReqToSup)
 }

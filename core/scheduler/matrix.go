@@ -15,13 +15,15 @@ import (
 
 // 一个DataBox实例的请求矩阵
 type Matrix struct {
-	maxPage         int64                       // 最大采集页数，以负数形式表示
-	resCount        int32                       // 资源使用情况计数
-	dataBoxName    string                      // 所属DataBox
+	maxPage         int64                           // 最大采集页数，以负数形式表示
+	resCount        int32                           // 资源使用情况计数
+	dataBoxName     string                          // 所属DataBox
+	addrs           map[int][]*request.NodeAddress  // [优先级]节点地址队列，优先级默认为0
+	addpriors       []int                           // 优先级顺序，从低到高
 	reqs            map[int][]*request.DataRequest  // [优先级]队列，优先级默认为0
-	priorities      []int                       // 优先级顺序，从低到高
-	history         history.Historier           // 历史记录
-	tempHistory     map[string]bool             // 临时记录 [reqUnique(url+method)]true
+	priorities      []int                           // 优先级顺序，从低到高
+	history         history.Historier               // 历史记录
+	tempHistory     map[string]bool                 // 临时记录 [reqUnique(url+method)]true
 	failures        map[string]*request.DataRequest // 历史及本次失败请求
 	tempHistoryLock sync.RWMutex
 	failureLock     sync.Mutex
@@ -31,12 +33,14 @@ type Matrix struct {
 func newMatrix(dataBoxName, dataBoxSubName string, maxPage int64) *Matrix {
 	matrix := &Matrix{
 		dataBoxName: dataBoxName,
-		maxPage:      maxPage,
-		reqs:         make(map[int][]*request.DataRequest),
-		priorities:   []int{},
-		history:      history.New(dataBoxName, dataBoxSubName),
-		tempHistory:  make(map[string]bool),
-		failures:     make(map[string]*request.DataRequest),
+		maxPage:     maxPage,
+		addrs:       make(map[int][]*request.NodeAddress),
+		addpriors:   []int{},
+		reqs:        make(map[int][]*request.DataRequest),
+		priorities:  []int{},
+		history:     history.New(dataBoxName, dataBoxSubName),
+		tempHistory: make(map[string]bool),
+		failures:    make(map[string]*request.DataRequest),
 	}
 	if cache.Task.Mode != status.SERVER {
 		matrix.history.ReadSuccess(cache.Task.OutType, cache.Task.SuccessInherit)
@@ -125,6 +129,43 @@ func (self *Matrix) Pull() (req *request.DataRequest) {
 			} else {
 				req.SetProxy("")
 			}
+			return
+		}
+	}
+	return
+}
+
+// 添加节点地址到队列，并发安全
+func (self *Matrix) PushAddr(addr *request.NodeAddress) {
+
+	if sdl.checkStatus(status.STOP) {
+		return
+	}
+
+	var priority = addr.GetPriority()
+
+	// 初始化该DataBox下节点地址优先级队列
+	if _, found := self.addrs[priority]; !found {
+		self.addpriors = append(self.addpriors, priority)
+		sort.Ints(self.addpriors) // 从小到大排序
+		self.addrs[priority] = []*request.NodeAddress{}
+	}
+
+	// 添加节点地址到队列
+	self.addrs[priority] = append(self.addrs[priority], addr)
+}
+
+// 从节点地址队列取出地址，不存在时返回nil，并发安全
+func (self *Matrix) PullAddr() (addr *request.NodeAddress) {
+	if !sdl.checkStatus(status.RUN) {
+		return
+	}
+	// 按优先级从高到低取出请求
+	for i := len(self.addrs) - 1; i >= 0; i-- {
+		idx := self.addpriors[i]
+		if len(self.addrs[idx]) > 0 {
+			addr = self.addrs[idx][0]
+			self.addrs[idx] = self.addrs[idx][1:]
 			return
 		}
 	}

@@ -25,16 +25,20 @@ const (
 type (
 	DataBox struct {
 		// 以下字段由用户定义
-		Name            string                                                       // 用户界面显示的名称（应保证唯一性）
-		Description     string                                                       // 用户界面显示的描述
-		Pausetime       int64                                                        // 随机暂停区间(50%~200%)，若规则中直接定义，则不被界面传参覆盖
-		Limit           int64                                                        // 默认限制请求数，0为不限；若规则中定义为LIMIT，则采用规则的自定义限制方案
-		Keyin           string                                                       // 自定义输入的配置信息，使用前须在规则中设置初始值为KEYIN
-		EnableCookie    bool                                                         // 所有请求是否使用cookie记录
-		NotDefaultField bool                                                         // 是否禁止输出结果中的默认字段 Url/ParentUrl/DownloadTime
+		Name            string                                                      // 用户界面显示的名称（应保证唯一性）
+		Description     string                                                      // 用户界面显示的描述
+		DataFilePath    string                                                      // 数据文件地址
+		NodeAddress     []*request.NodeAddress                                      // 交互节点地址
+		Pausetime       int64                                                       // 随机暂停区间(50%~200%)，若规则中直接定义，则不被界面传参覆盖
+		Limit           int64                                                       // 默认限制请求数，0为不限；若规则中定义为LIMIT，则采用规则的自定义限制方案
+		Keyin           string                                                      // 自定义输入的配置信息，使用前须在规则中设置初始值为KEYIN
+		EnableCookie    bool                                                        // 所有请求是否使用cookie记录
+		NotDefaultField bool                                                        // 是否禁止输出结果中的默认字段 Url/ParentUrl/DownloadTime
 		Namespace       func(self *DataBox) string                                  // 命名空间，用于输出文件、路径的命名
 		SubNamespace    func(self *DataBox, dataCell map[string]interface{}) string // 次级命名，用于输出文件、路径的命名，可依赖具体数据内容
-		RuleTree        *RuleTree                                                    // 定义具体的配送规则树
+		RuleTree        *RuleTree                                                   // 定义具体的配送规则树
+
+		//interaction.Carrier //全局公用的信息交互载体，使DataBox具有同步处理DataRequest请求能力
 
 		// 以下字段系统自动赋值
 		id        int               // 自动分配的DataBoxQueue中的索引
@@ -223,6 +227,26 @@ func (self *DataBox) SetKeyin(keyword string) {
 	self.Keyin = keyword
 }
 
+// 获取自定义DataFilePath配置信息
+func (b *DataBox) GetDataFilePath() string {
+	return b.DataFilePath
+}
+
+// 设置自定义DataFilePath配置信息
+func (b *DataBox) SetDataFilePath(path string) {
+	b.DataFilePath = path
+}
+
+// 获取自定义NodeAddress配置信息
+func (b *DataBox) GetNodeAddress() []*request.NodeAddress {
+	return b.NodeAddress
+}
+
+// 设置自定义DataFilePath配置信息
+func (b *DataBox) SetNodeAddress(addrs []*request.NodeAddress) {
+	b.NodeAddress = addrs
+}
+
 // 获取采集上限
 // <0 表示采用限制请求数的方案
 // >0 表示采用规则中的自定义限制方案
@@ -327,6 +351,14 @@ func (self *DataBox) RequestPush(req *request.DataRequest) {
 
 func (self *DataBox) RequestPull() *request.DataRequest {
 	return self.reqMatrix.Pull()
+}
+
+func (self *DataBox) AddressPush(addr *request.NodeAddress) {
+	self.reqMatrix.PushAddr(addr)
+}
+
+func (self *DataBox) AddressPull() *request.NodeAddress {
+	return self.reqMatrix.PullAddr()
 }
 
 func (self *DataBox) RequestUse() {
