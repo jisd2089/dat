@@ -23,7 +23,7 @@ import (
 )
 
 type Context struct {
-	dataBox      *DataBox              // 规则
+	dataBox      *DataBox               // 规则
 	DataRequest  *request.DataRequest   // 原始请求
 	DataResponse *response.DataResponse // 响应流，其中URL拷贝自*request.DataRequest
 	text         []byte                 // 下载内容Body的字节流格式

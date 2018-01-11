@@ -40,7 +40,7 @@ func (d *DemService) SendDemToSup(ctx *fasthttp.RequestCtx) {
   */
 func (d *DemService) SendDemReqToSup(ctx *fasthttp.RequestCtx) {
 
-	filePath := "D:\\dds_send\\JON20171102000000276_ID010201_20171213175701_0000.TARGET"
+	filePath := "D:/dds_send/JON20171102000000276_ID010201_20171213175701_0000.TARGET"
 
 	// 1.1 匹配相应的DataBox
 	b := assetnode.AssetNodeEntity.GetDataBoxByName("demsend")
@@ -50,10 +50,10 @@ func (d *DemService) SendDemReqToSup(ctx *fasthttp.RequestCtx) {
 	b.SetDataFilePath(filePath)
 
 	addrs := []*request.NodeAddress{}
-	addrs = append(addrs, &request.NodeAddress{"127.0.0.1", "/send01", 0})
-	addrs = append(addrs, &request.NodeAddress{"127.0.0.1", "/send02", 1})
-	addrs = append(addrs, &request.NodeAddress{"127.0.0.1", "/send03", 2})
-	addrs = append(addrs, &request.NodeAddress{"127.0.0.1", "/send04", 3})
+	addrs = append(addrs, &request.NodeAddress{MemberId: "000079", IP: "127.0.0.1", URL: "/send01", Priority: 0})
+	addrs = append(addrs, &request.NodeAddress{MemberId: "000108", IP: "127.0.0.1", URL: "/send02", Priority: 1})
+	addrs = append(addrs, &request.NodeAddress{MemberId: "000109", IP: "127.0.0.1", URL: "/send03", Priority: 2})
+	addrs = append(addrs, &request.NodeAddress{MemberId: "000115", IP: "127.0.0.1", URL: "/send04", Priority: 3})
 
 	b.SetNodeAddress(addrs)
 

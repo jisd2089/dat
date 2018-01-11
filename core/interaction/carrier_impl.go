@@ -14,11 +14,13 @@ import (
 type Cross struct {
 	fastHttpTsf transfer.Transfer
 	sftpTsf     transfer.Transfer
+	noneTsf     transfer.Transfer
 }
 
 var CrossHandler = &Cross{
 	fastHttpTsf: transfer.NewFastTransfer(),
 	sftpTsf: transfer.NewSftpTransfer(),
+	noneTsf: transfer.NewNoneTransfer(),
 }
 
 func (c *Cross) Handle(df *databox.DataBox, cReq *request.DataRequest) *databox.Context {
@@ -32,6 +34,8 @@ func (c *Cross) Handle(df *databox.DataBox, cReq *request.DataRequest) *databox.
 		resp = c.fastHttpTsf.ExecuteMethod(cReq).(*response.DataResponse)
 	case request.SFTP:
 		resp = c.sftpTsf.ExecuteMethod(cReq).(*response.DataResponse)
+	case request.NONETYPE:
+		resp = c.noneTsf.ExecuteMethod(cReq).(*response.DataResponse)
 	}
 
 	if resp.GetStatusCode() >= 400 {

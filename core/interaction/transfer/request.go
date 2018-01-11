@@ -27,6 +27,8 @@ type (
 		GetUrl() string
 		// GET POST POST-M HEAD
 		GetMethod() string
+		// GET Bobject
+		GetBobject() interface{}
 		// POST values
 		GetPostData() string
 		// fasthttp 传参

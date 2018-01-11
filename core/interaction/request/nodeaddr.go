@@ -5,9 +5,12 @@ package request
     Created: 2018-01-10 15:13:32
 */
 type NodeAddress struct {
-	IP       string // 节点IP
-	URL      string // 节点url
-	Priority int    //指定调度优先级，默认为0（最小优先级为0）
+	MemberId    string // 节点会员ID
+	IP          string // 节点IP
+	URL         string // 节点url
+	Priority    int    // 指定调度优先级，默认为0（最小优先级为0）
+	Connectable bool   // 节点地址是否可连接
+	RetryTimes  int    // 重试连接次数
 }
 
 func (self *NodeAddress) GetPriority() int {

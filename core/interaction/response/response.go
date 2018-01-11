@@ -10,10 +10,12 @@ import (
 */
 
 type DataResponse struct {
-	DataBoxName string                   //规则名
-	Header       *fasthttp.ResponseHeader //response头
-	Body         []byte                   //返回消息体
-	StatusCode   int                      //返回码
+	DataBoxName string                   // 规则名
+	Header      *fasthttp.ResponseHeader // response头
+	Body        []byte                   // 返回消息体
+	StatusCode  int                      // 返回码
+	ReturnCode  string                   // 业务返回码
+	ReturnMsg   string                   // 业务返回信息
 }
 
 func (resp *DataResponse) GetHeader() *fasthttp.ResponseHeader {

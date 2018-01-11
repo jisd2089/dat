@@ -36,6 +36,8 @@ type (
 		NotDefaultField bool                                                        // 是否禁止输出结果中的默认字段 Url/ParentUrl/DownloadTime
 		Namespace       func(self *DataBox) string                                  // 命名空间，用于输出文件、路径的命名
 		SubNamespace    func(self *DataBox, dataCell map[string]interface{}) string // 次级命名，用于输出文件、路径的命名，可依赖具体数据内容
+		DetailCount     int                                                         // 明细条数
+		TsfSuccCount    int                                                         // 流通成功明细条数
 		RuleTree        *RuleTree                                                   // 定义具体的配送规则树
 
 		//interaction.Carrier //全局公用的信息交互载体，使DataBox具有同步处理DataRequest请求能力
@@ -318,6 +320,8 @@ func (self *DataBox) Copy() *DataBox {
 	ghost.EnableCookie = self.EnableCookie
 	ghost.Limit = self.Limit
 	ghost.Keyin = self.Keyin
+	ghost.NodeAddress = self.NodeAddress
+	ghost.DataFilePath = self.DataFilePath
 
 	ghost.NotDefaultField = self.NotDefaultField
 	ghost.Namespace = self.Namespace

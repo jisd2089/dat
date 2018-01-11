@@ -15,7 +15,7 @@ import (
 
 // DataRequest represents object waiting for being crawled.
 type DataRequest struct {
-	DataBox      string          //规则名，自动设置，禁止人为填写
+	DataBox       string          //规则名，自动设置，禁止人为填写
 	TransferType  string          //传输类型
 	Url           string          //目标URL，必须设置
 	Rule          string          //用于解析响应的规则节点名，必须设置
@@ -23,6 +23,7 @@ type DataRequest struct {
 	Header        http.Header     //请求头信息
 	EnableCookie  bool            //是否使用cookies，在DataBox的EnableCookie设置
 	Parameters    []byte          // 传参
+	Bobject       interface{}     // 业务参数
 	PostData      string          //POST values
 	DialTimeout   time.Duration   //创建连接超时 dial tcp: i/o timeout
 	ConnTimeout   time.Duration   //连接状态超时 WSARecv tcp: i/o timeout
@@ -56,6 +57,7 @@ const (
 
 	HTTP = "HTTP"
 	SFTP = "SFTP"
+	NONETYPE = "NONETYPE"
 )
 
 // 发送请求前的准备工作，设置一系列默认值
@@ -147,7 +149,7 @@ func (self *DataRequest) Serialize() string {
 // 请求的唯一识别码
 func (self *DataRequest) Unique() string {
 	if self.unique == "" {
-		block := md5.Sum([]byte(self.DataBox + self.Rule + self.Url + self.Method))
+		block := md5.Sum([]byte(self.DataBox + self.Rule + self.Url + self.Method ))
 		self.unique = hex.EncodeToString(block[:])
 	}
 	return self.unique
@@ -189,6 +191,10 @@ func (self *DataRequest) GetReferer() string {
 func (self *DataRequest) SetReferer(referer string) *DataRequest {
 	self.Header.Set("Referer", referer)
 	return self
+}
+
+func (self *DataRequest) GetBobject() interface{} {
+	return self.Bobject
 }
 
 func (self *DataRequest) GetPostData() string {

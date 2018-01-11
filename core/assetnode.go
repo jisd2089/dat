@@ -345,13 +345,13 @@ func (ne *NodeEntity) goRun(count int) {
 		// 从数据信使队列取出空闲信使，并发执行
 		m := ne.DataManPool.Use()
 		if m != nil {
-			go func(i int, c dataman.DataMan) {
+			go func(i int, m dataman.DataMan) {
 				// 执行并返回结果消息
-				c.Init(ne.DataBoxQueue.GetByIndex(i)).Run()
+				m.Init(ne.DataBoxQueue.GetByIndex(i)).Run()
 				// 任务结束后回收该信使
 				ne.RWMutex.RLock()
 				if ne.status != status.STOP {
-					ne.DataManPool.Free(c)
+					ne.DataManPool.Free(m)
 				}
 				ne.RWMutex.RUnlock()
 			}(i, m)

@@ -86,7 +86,7 @@ func (m *dataMan) run() {
 			if m.DataBox.CanStop() {
 				break
 			}
-			time.Sleep(20 * time.Millisecond)
+			time.Sleep(10 * time.Millisecond)
 			continue
 		}
 
@@ -119,16 +119,16 @@ func (m *dataMan) Stop() {
 func (m *dataMan) Process(req *request.DataRequest) {
 	var (
 		//downUrl = req.GetUrl()
-		df      = m.DataBox
+		b = m.DataBox
 	)
 	defer func() {
 		if p := recover(); p != nil {
-			if df.IsStopping() {
+			if b.IsStopping() {
 				// println("Process$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$")
 				return
 			}
 			// 返回是否作为新的失败请求被添加至队列尾部
-			if df.DoHistory(req, false) {
+			if b.DoHistory(req, false) {
 				// 统计失败数
 				cache.PageFailCount()
 			}
@@ -148,12 +148,12 @@ func (m *dataMan) Process(req *request.DataRequest) {
 	}()
 
 	// TODO execute http、kafka、protocolbuffer... communication
-	var ctx = m.Carrier.Handle(df, req)
+	var ctx = m.Carrier.Handle(b, req)
 	//var ctx = self.Downloader.Download(sp, req) // download page
 
 	if err := ctx.GetError(); err != nil {
 		// 返回是否作为新的失败请求被添加至队列尾部
-		if df.DoHistory(req, false) {
+		if b.DoHistory(req, false) {
 			// 统计失败数
 			cache.PageFailCount()
 		}
@@ -179,7 +179,7 @@ func (m *dataMan) Process(req *request.DataRequest) {
 	}
 
 	// 处理成功请求记录
-	df.DoHistory(req, true)
+	b.DoHistory(req, true)
 
 	// 统计成功页数
 	cache.PageSuccCount()
