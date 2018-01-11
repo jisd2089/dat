@@ -17,19 +17,21 @@ import (
 	"time"
 
 	"github.com/henrylee2cn/pholcus/logs"
+	"dat/core/interaction/response"
 )
 
 // 数据信使配送引擎
 type (
 	DataMan interface {
-		Init(box *databox.DataBox) DataMan //初始化配送引擎
-		Run()                                //运行配送任务
-		Stop()                               //主动终止
-		CanStop() bool                       //能否终止
-		GetId() int                          //获取引擎ID
+		Init(box *databox.DataBox) DataMan // 初始化配送引擎
+		Run()                              // 运行配送任务
+		SyncRun() *response.DataResponse   // 同步运行配送任务
+		Stop()                             // 主动终止
+		CanStop() bool                     // 能否终止
+		GetId() int                        // 获取引擎ID
 	}
 	dataMan struct {
-		*databox.DataBox   //执行的采集规则
+		*databox.DataBox    //执行的采集规则
 		interaction.Carrier //全局公用的信息交互载体
 		pipeline.Pipeline   // 拆包与核验管道
 		id    int           // 信使ID
@@ -77,6 +79,22 @@ func (m *dataMan) Run() {
 	m.Pipeline.Stop()
 }
 
+// 任务同步执行入口
+func (m *dataMan) SyncRun() *response.DataResponse {
+	// 预先启动数据拆包/核验管道
+	m.Pipeline.Start()
+
+	// 启动任务
+	m.DataBox.Start()
+
+	dataResp := m.syncRun()
+
+	// 停止数据拆包/核验管道
+	m.Pipeline.Stop()
+
+	return dataResp
+}
+
 func (m *dataMan) run() {
 	for {
 		// 队列中取出一条请求并处理
@@ -106,6 +124,31 @@ func (m *dataMan) run() {
 
 	// 等待处理中的任务完成
 	m.DataBox.Defer()
+}
+
+func (m *dataMan) syncRun() *response.DataResponse {
+	// 队列中取出一条请求并处理
+	req := m.GetOne()
+	if req == nil {
+		// 停止任务
+		if m.DataBox.CanStop() {
+			return nil
+		}
+		return nil
+	}
+
+	// 执行请求
+	m.UseOne()
+	defer func() {
+		m.FreeOne()
+	}()
+	logs.Log.Debug(" *     Start: %v", req.GetUrl())
+	dataResp := m.SyncProcess(req)
+
+	// 等待处理中的任务完成
+	m.DataBox.Defer()
+
+	return dataResp
 }
 
 // 主动终止
@@ -189,6 +232,83 @@ func (m *dataMan) Process(req *request.DataRequest) {
 
 	// 释放ctx准备复用
 	databox.PutContext(ctx)
+}
+
+// core processer
+func (m *dataMan) SyncProcess(req *request.DataRequest) *response.DataResponse {
+	var (
+		//downUrl = req.GetUrl()
+		b = m.DataBox
+	)
+	defer func() {
+		if p := recover(); p != nil {
+			if b.IsStopping() {
+				// println("Process$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$")
+				return
+			}
+			// 返回是否作为新的失败请求被添加至队列尾部
+			if b.DoHistory(req, false) {
+				// 统计失败数
+				cache.PageFailCount()
+			}
+			// 提示错误
+			stack := make([]byte, 4<<10) //4KB
+			length := runtime.Stack(stack, true)
+			start := bytes.Index(stack, []byte("/src/runtime/panic.go"))
+			stack = stack[start:length]
+			start = bytes.Index(stack, []byte("\n")) + 1
+			stack = stack[start:]
+			if end := bytes.Index(stack, []byte("\ngoroutine ")); end != -1 {
+				stack = stack[:end]
+			}
+			stack = bytes.Replace(stack, []byte("\n"), []byte("\r\n"), -1)
+			//logs.Log.Error(" *     Panic  [process][%s]: %s\r\n[TRACE]\r\n%s", downUrl, p, stack)
+		}
+	}()
+
+	// TODO execute http、kafka、protocolbuffer... communication
+	var ctx = m.Carrier.Handle(b, req)
+	//var ctx = self.Downloader.Download(sp, req) // download page
+
+	if err := ctx.GetError(); err != nil {
+		// 返回是否作为新的失败请求被添加至队列尾部
+		if b.DoHistory(req, false) {
+			// 统计失败数
+			cache.PageFailCount()
+		}
+		// 提示错误
+		//logs.Log.Error(" *     Fail  [download][%v]: %v\n", downUrl, err)
+		return nil
+	}
+
+	// 过程处理，提炼数据
+	dataResp := ctx.SyncParse(req.GetRuleName())
+
+	// 该条请求文件结果存入pipeline
+	for _, f := range ctx.PullFiles() {
+		if m.Pipeline.CollectFile(f) != nil {
+			break
+		}
+	}
+	// 该条请求文本结果存入pipeline
+	for _, item := range ctx.PullItems() {
+		if m.Pipeline.CollectData(item) != nil {
+			break
+		}
+	}
+
+	// 处理成功请求记录
+	b.DoHistory(req, true)
+
+	// 统计成功页数
+	cache.PageSuccCount()
+
+	// 提示抓取成功
+	//logs.Log.Informational(" *     Success: %v\n", downUrl)
+
+	// 释放ctx准备复用
+	databox.PutContext(ctx)
+	return dataResp
 }
 
 // 从调度读取一个请求

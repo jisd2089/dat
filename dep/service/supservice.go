@@ -18,22 +18,6 @@ func NewSupService() *SupService {
 	return &SupService{}
 }
 
-func (d *SupService) SendSupToDem(ctx *fasthttp.RequestCtx) {
-
-	fmt.Println("hello data")
-
-	df := assetnode.AssetNodeEntity.GetDataBoxByName("demtest")
-
-	if df == nil {
-		fmt.Println("databox is nil!")
-	}
-
-	context := databox.GetContext(df, &request.DataRequest{})
-	dresp := context.SyncParse("ruleTest3")
-
-	ctx.Response.SetStatusCode(dresp.StatusCode)
-}
-
 /**
 * 以一对一批量碰撞为例
 * 2. 供方前置机接收需方exid单条请求，单批次结束批量文件推送给供方
@@ -47,6 +31,8 @@ func (d *SupService) RecDemReqAndPushToSup(ctx *fasthttp.RequestCtx) {
 	}
 	// 2.2 执行碰撞rule，同步返回碰撞结果
 	// 2.3 碰撞结束，执行推送rule，推送文件至供方
+	dataResp := assetnode.AssetNodeEntity.SyncRun()
+	fmt.Println(dataResp)
 }
 
 /**
