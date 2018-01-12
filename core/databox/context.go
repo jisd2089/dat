@@ -20,6 +20,7 @@ import (
 	"github.com/henrylee2cn/pholcus/logs"
 	//"golang.org/x/net/html/charset"
 	"dat/core/interaction/response"
+	"dat/core/interaction"
 )
 
 type Context struct {
@@ -30,6 +31,7 @@ type Context struct {
 	dom          *goquery.Document      // 下载内容Body为html时，可转换为Dom的对象
 	items        []data.DataCell        // 存放以文本形式输出的结果数据
 	files        []data.FileCell        // 存放欲直接输出的文件("Name": string; "Body": io.ReadCloser)
+	Reflector    interaction.Reflector  // 同步 DataRequest执行器　
 	err          error                  // 错误标记
 	sync.Mutex
 }
@@ -38,8 +40,9 @@ var (
 	contextPool = &sync.Pool{
 		New: func() interface{} {
 			return &Context{
-				items: []data.DataCell{},
-				files: []data.FileCell{},
+				Reflector: interaction.ReflectHandler,
+				items:     []data.DataCell{},
+				files:     []data.FileCell{},
 			}
 		},
 	}
@@ -112,6 +115,11 @@ func (self *Context) AddQueue(req *request.DataRequest) *Context {
 
 	self.dataBox.RequestPush(req)
 	return self
+}
+
+// 同步执行DataRequest
+func (c *Context) ExeDataReq(req *request.DataRequest) *response.DataResponse {
+	return c.Reflector.Handle(req)
 }
 
 // 用于动态规则添加请求。

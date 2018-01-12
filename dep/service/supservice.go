@@ -55,6 +55,9 @@ func (d *SupService) RecDemReqAndPushToSup(ctx *fasthttp.RequestCtx) {
 		fmt.Println("dataResp:", dataResp)
 
 		//defer close(ab.BlockChan)
+	case "end":
+		b:= assetnode.AssetNodeEntity.GetActiveDataBoxByName("suprec")
+		assetnode.AssetNodeEntity.StopActiveBox(b)
 	}
 	// 2.1 匹配相应的DataBox
 	// 2.2 执行碰撞rule，同步返回碰撞结果
