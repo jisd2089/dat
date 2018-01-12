@@ -18,17 +18,20 @@ import (
 
 	"github.com/henrylee2cn/pholcus/logs"
 	"dat/core/interaction/response"
+	"fmt"
 )
 
 // 数据信使配送引擎
 type (
 	DataMan interface {
-		Init(box *databox.DataBox) DataMan // 初始化配送引擎
-		Run()                              // 运行配送任务
-		SyncRun() *response.DataResponse   // 同步运行配送任务
-		Stop()                             // 主动终止
-		CanStop() bool                     // 能否终止
-		GetId() int                        // 获取引擎ID
+		MiniInit(box *databox.DataBox) DataMan             // 最小化初始化配送信使引擎
+		Init(box *databox.DataBox) DataMan                 // 初始化配送信使引擎
+		Run()                                              // 运行配送任务
+		SyncRun()                                          // 同步运行配送任务
+		RunRequest(obj interface{}) *response.DataResponse // 执行DataRequest
+		Stop()                                             // 主动终止
+		CanStop() bool                                     // 能否终止
+		GetId() int                                        // 获取引擎ID
 	}
 	dataMan struct {
 		*databox.DataBox    //执行的采集规则
@@ -58,6 +61,11 @@ func (m *dataMan) Init(f *databox.DataBox) DataMan {
 	return m
 }
 
+func (m *dataMan) MiniInit(b *databox.DataBox) DataMan {
+	m.DataBox = b
+	return m
+}
+
 // 任务执行入口
 func (m *dataMan) Run() {
 	// 预先启动数据拆包/核验管道
@@ -80,19 +88,28 @@ func (m *dataMan) Run() {
 }
 
 // 任务同步执行入口
-func (m *dataMan) SyncRun() *response.DataResponse {
+func (m *dataMan) SyncRun() {
 	// 预先启动数据拆包/核验管道
 	m.Pipeline.Start()
+
+	m.DataBox.BlockChan = make(chan bool)
+	m.DataBox.StartSuccChan = make(chan bool)
 
 	// 启动任务
 	m.DataBox.Start()
 
-	dataResp := m.syncRun()
+	// 启动成功后加入活跃队列
+	m.DataBox.AddActiveList()
+
+	m.DataBox.StartSuccChan <- true
+
+	<-m.DataBox.BlockChan // 等待处理协程退出
+
+	//dataResp := m.syncRun()
 
 	// 停止数据拆包/核验管道
 	m.Pipeline.Stop()
-
-	return dataResp
+	fmt.Println("SyncRun stop ...")
 }
 
 func (m *dataMan) run() {
@@ -126,7 +143,7 @@ func (m *dataMan) run() {
 	m.DataBox.Defer()
 }
 
-func (m *dataMan) syncRun() *response.DataResponse {
+func (m *dataMan) RunRequest(obj interface{}) *response.DataResponse {
 	// 队列中取出一条请求并处理
 	req := m.GetOne()
 	if req == nil {
@@ -143,6 +160,7 @@ func (m *dataMan) syncRun() *response.DataResponse {
 		m.FreeOne()
 	}()
 	logs.Log.Debug(" *     Start: %v", req.GetUrl())
+	req.Bobject = obj
 	dataResp := m.SyncProcess(req)
 
 	// 等待处理中的任务完成

@@ -12,30 +12,35 @@ import (
 
 type (
 	DataBoxQueue interface {
-		Reset()                    // 重置清空队列
-		Add(box *DataBox)          // 添加一个
-		AddChan(box *DataBox)      // 添加一个入Channel
-		AddAll([]*DataBox)         // 添加所有
-		AddAllChan([]*DataBox)     // 添加所有入Channel
-		AddKeyins(string)          // 为队列成员遍历添加Keyin属性，但前提必须是队列成员未被添加过keyin
-		GetByIndex(int) *DataBox   // 通过索引查找
-		GetByName(string) *DataBox // 通过名称查找
-		GetAll() []*DataBox        // 获取所有
-		GetOne() *DataBox          // 从Channel取出一个DataBox
-		Len() int                  // 返回队列长度
+		Reset()                      // 重置清空队列
+		Add(box *DataBox)            // 添加一个
+		AddChan(box *DataBox)        // 添加一个入Channel
+		AddActiveChan(box *DataBox)  // 添加一个入ActiveChannel
+		AddAll([]*DataBox)           // 添加所有
+		AddAllChan([]*DataBox)       // 添加所有入Channel
+		AddAllActiveChan([]*DataBox) // 添加所有入ActiveChannel
+		AddKeyins(string)            // 为队列成员遍历添加Keyin属性，但前提必须是队列成员未被添加过keyin
+		GetByIndex(int) *DataBox     // 通过索引查找
+		GetByName(string) *DataBox   // 通过名称查找
+		GetAll() []*DataBox          // 获取所有
+		GetOne() *DataBox            // 从Channel取出一个DataBox
+		GetOneActive() *DataBox      // 从Channel取出一个ActiveDataBox
+		Len() int                    // 返回队列长度
 	}
 	dbq struct {
-		idInc       *util.AutoInc
-		dataBoxChan chan *DataBox
-		list        []*DataBox
+		idInc             *util.AutoInc
+		dataBoxChan       chan *DataBox
+		activeDataBoxChan chan *DataBox
+		list              []*DataBox
 	}
 )
 
 func NewDataBoxQueue() DataBoxQueue {
 	return &dbq{
-		idInc:       util.NewAutoInc(10000, 1),
-		dataBoxChan: make(chan *DataBox),
-		list:        []*DataBox{},
+		idInc:             util.NewAutoInc(10000, 1),
+		dataBoxChan:       make(chan *DataBox),
+		activeDataBoxChan: make(chan *DataBox),
+		list:              []*DataBox{},
 	}
 }
 
@@ -54,6 +59,11 @@ func (q *dbq) AddChan(df *DataBox) {
 	q.dataBoxChan <- df
 }
 
+func (q *dbq) AddActiveChan(df *DataBox) {
+	df.SetId(q.idInc.Id())
+	q.activeDataBoxChan <- df
+}
+
 func (q *dbq) AddAll(list []*DataBox) {
 	for _, v := range list {
 		q.Add(v)
@@ -65,9 +75,18 @@ func (q *dbq) AddAllChan(list []*DataBox) {
 		q.AddChan(v)
 	}
 }
+func (q *dbq) AddAllActiveChan(list []*DataBox) {
+	for _, v := range list {
+		q.AddActiveChan(v)
+	}
+}
 
 func (q *dbq) GetOne() *DataBox {
 	return <-q.dataBoxChan
+}
+
+func (q *dbq) GetOneActive() *DataBox {
+	return <-q.activeDataBoxChan
 }
 
 // 添加keyin，遍历DataBox队列得到新的队列（已被显式赋值过的DataBox将不再重新分配Keyin）

@@ -26,26 +26,30 @@ import (
 // 数据资产方
 type (
 	AssetNode interface {
-		Init() AssetNode                                      // 初始化
-		Empower() AssetNode                                   // 资产方赋权
-		GetConfig(k ...string) interface{}                    // 获取全局参数
-		SetConfig(k string, v interface{}) AssetNode          // 设置全局参数
-		DataBoxPrepare(original []*databox.DataBox) AssetNode // 须在设置全局运行参数后Run()前调用（client模式下不调用该方法）
-		PushDataBox(original []*databox.DataBox) AssetNode    // 将DataBox放入channel
-		Run()                                                 // 阻塞式运行直至任务完成（须在所有应当配置项配置完成后调用）
-		SyncRun() *response.DataResponse                      // 同步运行
-		Stop()                                                // Offline 模式下中途终止任务（对外为阻塞式运行直至当前任务终止）
-		IsRunning() bool                                      // 检查任务是否正在运行
-		IsPause() bool                                        // 检查任务是否处于暂停状态
-		IsStopped() bool                                      // 检查任务是否已经终止
-		PauseRecover()                                        // Offline 模式下暂停\恢复任务
-		Status() int                                          // 返回当前状态
-		GetDataBoxLib() []*databox.DataBox                    // 获取全部databox种类
-		GetDataBoxByName(string) *databox.DataBox             // 通过名字获取某DataBox
-		GetDataBoxQueue() dataman.DataBoxQueue                // 获取DataBox队列接口实例
-		GetOutputLib() []string                               // 获取全部输出方式
-		GetTaskBase() *distribute.TaskBase                    // 返回任务库
-		distribute.Distributer                                // 实现分布式接口
+		Init() AssetNode                                                         // 初始化
+		Empower() AssetNode                                                      // 资产方赋权
+		GetConfig(k ...string) interface{}                                       // 获取全局参数
+		SetConfig(k string, v interface{}) AssetNode                             // 设置全局参数
+		DataBoxPrepare(original []*databox.DataBox) AssetNode                    // 须在设置全局运行参数后Run()前调用（client模式下不调用该方法）
+		PushDataBox(original []*databox.DataBox) AssetNode                       // 将DataBox放入channel
+		PushActiveDataBox(original *databox.DataBox) *databox.DataBox            // 将DataBox放入active channel
+		Run()                                                                    // 阻塞式运行直至任务完成（须在所有应当配置项配置完成后调用）
+		SyncRun()                                                                // 同步运行ActiveBox
+		RunActiveBox(b *databox.DataBox, obj interface{}) *response.DataResponse // 执行ActiveBox请求，同步返回
+		StopActiveBox(b *databox.DataBox)                                        // 停止Active DataBox
+		Stop()                                                                   // Offline 模式下中途终止任务（对外为阻塞式运行直至当前任务终止）
+		IsRunning() bool                                                         // 检查任务是否正在运行
+		IsPause() bool                                                           // 检查任务是否处于暂停状态
+		IsStopped() bool                                                         // 检查任务是否已经终止
+		PauseRecover()                                                           // Offline 模式下暂停\恢复任务
+		Status() int                                                             // 返回当前状态
+		GetDataBoxLib() []*databox.DataBox                                       // 获取全部databox种类
+		GetDataBoxByName(string) *databox.DataBox                                // 通过名字获取某DataBox
+		GetActiveDataBoxByName(string) *databox.DataBox                          // 通过名字获取某活跃DataBox
+		GetDataBoxQueue() dataman.DataBoxQueue                                   // 获取DataBox队列接口实例
+		GetOutputLib() []string                                                  // 获取全部输出方式
+		GetTaskBase() *distribute.TaskBase                                       // 返回任务库
+		distribute.Distributer                                                   // 实现分布式接口
 	}
 	NodeEntity struct {
 		id           int           //资产方系统ID
@@ -53,6 +57,7 @@ type (
 		roleType     string        //资产方角色类型
 		*cache.AppConf             // 全局配置
 		*databox.DataBoxSpecies    //数据产品流种类
+		*databox.DataBoxActivites  // DataBox活跃列表
 		*distribute.TaskBase       //服务器与客户端间传递任务的存储库
 		dataman.DataBoxQueue       //当前任务的数产品流队列
 		dataman.DataManPool        //配送回收池
@@ -81,13 +86,14 @@ func New() AssetNode {
 func getNewNodeEntity() *NodeEntity {
 	once.Do(func() {
 		newNodeEntity = &NodeEntity{
-			AppConf:        cache.Task,
-			DataBoxSpecies: databox.Species,
-			status:         status.STOPPED,
-			Teleport:       teleport.New(),
-			TaskBase:       distribute.NewTaskBase(),
-			DataBoxQueue:   dataman.NewDataBoxQueue(),
-			DataManPool:    dataman.NewDataManPool(),
+			AppConf:          cache.Task,
+			DataBoxSpecies:   databox.Species,
+			DataBoxActivites: databox.Activites,
+			status:           status.STOPPED,
+			Teleport:         teleport.New(),
+			TaskBase:         distribute.NewTaskBase(),
+			DataBoxQueue:     dataman.NewDataBoxQueue(),
+			DataManPool:      dataman.NewDataManPool(),
 		}
 	})
 	return newNodeEntity
@@ -225,6 +231,21 @@ func (self *NodeEntity) PushDataBox(original []*databox.DataBox) AssetNode {
 	return self
 }
 
+func (self *NodeEntity) PushActiveDataBox(original *databox.DataBox) *databox.DataBox {
+	// 遍历任务
+	dfcopy := original.Copy()
+	dfcopy.SetPausetime(self.AppConf.Pausetime)
+	if dfcopy.GetLimit() == databox.LIMIT {
+		dfcopy.SetLimit(self.AppConf.Limit)
+	} else {
+		dfcopy.SetLimit(-1 * self.AppConf.Limit)
+	}
+	self.DataBoxQueue.AddActiveChan(dfcopy)
+	// 遍历自定义配置
+	//self.DataBoxQueue.AddKeyins(self.AppConf.Keyins)
+	return dfcopy
+}
+
 // 获取全部输出方式
 func (self *NodeEntity) GetOutputLib() []string {
 	return collector.DataOutputLib
@@ -238,6 +259,11 @@ func (self *NodeEntity) GetDataBoxLib() []*databox.DataBox {
 // 通过名字获取某databox
 func (self *NodeEntity) GetDataBoxByName(name string) *databox.DataBox {
 	return self.DataBoxSpecies.GetByName(name)
+}
+
+// 通过名字获取某活跃databox
+func (self *NodeEntity) GetActiveDataBoxByName(name string) *databox.DataBox {
+	return self.DataBoxActivites.GetByName(name)
 }
 
 // 返回当前运行模式
@@ -289,18 +315,18 @@ func (ne *NodeEntity) Run() {
 }
 
 // 系统启动, 同步返回
-func (ne *NodeEntity) SyncRun() *response.DataResponse {
+func (ne *NodeEntity) SyncRun() {
 	//ne.finish = make(chan bool)
-	ne.finishOnce = sync.Once{}
-	// 重置计数
-	ne.sum[0], ne.sum[1] = 0, 0
-	// 重置计时
-	ne.takeTime = 0
-	// 设置状态
-	ne.setStatus(status.RUN)
-	defer ne.setStatus(status.STOPPED)
+	//ne.finishOnce = sync.Once{}
+	//// 重置计数
+	//ne.sum[0], ne.sum[1] = 0, 0
+	//// 重置计时
+	//ne.takeTime = 0
+	//// 设置状态
+	//ne.setStatus(status.RUN)
+	//defer ne.setStatus(status.STOPPED)
 	// 任务执行
-	return ne.syncExec()
+	ne.syncExec()
 
 	//<-ne.finish
 }
@@ -327,11 +353,11 @@ func (ne *NodeEntity) exec() {
 	dataManCap := ne.DataManPool.Reset(1)
 
 	//logs.Log.Informational(" *     执行任务总数(任务数[*自定义配置数])为 %v 个\n", count)
-	logs.Log.Informational(" *     采集引擎池容量为 %v\n", dataManCap)
-	logs.Log.Informational(" *     并发协程最多 %v 个\n", ne.AppConf.ThreadNum)
-	logs.Log.Informational(" *     默认随机停顿 %v~%v 毫秒\n", ne.AppConf.Pausetime/2, ne.AppConf.Pausetime*2)
-	logs.Log.App(" *                                                                                                 —— 开始抓取，请耐心等候 ——")
-	logs.Log.Informational(` *********************************************************************************************************************************** `)
+	logs.Log.Informational(" *     DataManPool池容量为 %v\n", dataManCap)
+	//logs.Log.Informational(" *     并发协程最多 %v 个\n", ne.AppConf.ThreadNum)
+	//logs.Log.Informational(" *     默认随机停顿 %v~%v 毫秒\n", ne.AppConf.Pausetime/2, ne.AppConf.Pausetime*2)
+	//logs.Log.App(" *                                                                                                 —— 开始抓取，请耐心等候 ——")
+	//logs.Log.Informational(` *********************************************************************************************************************************** `)
 
 	// 开始计时
 	cache.StartTime = time.Now()
@@ -349,30 +375,30 @@ func (ne *NodeEntity) exec() {
 }
 
 // 开始执行任务，同步开始
-func (ne *NodeEntity) syncExec() *response.DataResponse {
-	count := ne.DataBoxQueue.Len()
+func (ne *NodeEntity) syncExec() {
+	//count := ne.DataBoxQueue.Len()
 
-	cache.ResetPageCount()
-	// 刷新输出方式的状态
-	pipeline.RefreshOutput()
-	// 初始化资源队列
-	scheduler.Init()
+	//cache.ResetPageCount()
+	//// 刷新输出方式的状态
+	//pipeline.RefreshOutput()
+	//// 初始化资源队列
+	//scheduler.Init()
 
 	// 设置数据信使队列
-	dataManCap := ne.DataManPool.Reset(count)
+	//dataManCap := ne.DataManPool.Reset(1)
 
 	//logs.Log.Informational(" *     执行任务总数(任务数[*自定义配置数])为 %v 个\n", count)
-	logs.Log.Informational(" *     DataManPool容量为 %v\n", dataManCap)
+	//logs.Log.Informational(" *     DataManPool容量为 %v\n", dataManCap)
 	//logs.Log.Informational(" *     并发协程最多 %v 个\n", ne.AppConf.ThreadNum)
 	//logs.Log.Informational(" *     默认随机停顿 %v~%v 毫秒\n", ne.AppConf.Pausetime/2, ne.AppConf.Pausetime*2)
 	//logs.Log.App(" *                                                                                                 —— 开始抓取，请耐心等候 ——")
 	//logs.Log.Informational(` *********************************************************************************************************************************** `)
 
 	// 开始计时
-	cache.StartTime = time.Now()
+	//cache.StartTime = time.Now()
 
 	// 根据模式选择合理的并发
-	return ne.goSyncRun(count)
+	go ne.goSyncRun()
 }
 
 // 任务执行
@@ -547,21 +573,20 @@ func (ne *NodeEntity) runMonitorTask(i int) {
 }
 
 // 任务同步执行
-func (ne *NodeEntity) goSyncRun(count int) *response.DataResponse {
+func (ne *NodeEntity) goSyncRun() {
 	// 执行任务
-	var dataResp *response.DataResponse
-	var i int
-	for i = 0; i < count && ne.Status() != status.STOP; i++ {
-	pause:
-		if ne.IsPause() {
-			time.Sleep(time.Second)
-			goto pause
-		}
+	//pause:
+	//	if ne.IsPause() {
+	//		time.Sleep(time.Second)
+	//		goto pause
+	//	}
+	for {
+		b := ne.DataBoxQueue.GetOneActive()
 		// 从数据信使队列取出空闲信使，并发执行
 		m := ne.DataManPool.Use()
 		if m != nil {
 			// 执行并返回结果消息
-			dataResp = m.Init(ne.DataBoxQueue.GetByIndex(i)).SyncRun()
+			m.Init(b).SyncRun()
 
 			// 任务结束后回收该信使
 			ne.RWMutex.RLock()
@@ -571,66 +596,34 @@ func (ne *NodeEntity) goSyncRun(count int) *response.DataResponse {
 			ne.RWMutex.RUnlock()
 		}
 	}
-	// 监控结束任务
-	for ii := 0; ii < i; ii++ {
-		s := <-cache.ReportChan
-		if (s.DataNum == 0) && (s.FileNum == 0) {
-			logs.Log.App(" *     [任务小计：%s | KEYIN：%s]   无采集结果，用时 %v！\n", s.DataBoxName, s.Keyin, s.Time)
-			continue
+}
+
+// 执行ActiveBox请求，同步返回
+func (ne *NodeEntity) RunActiveBox(b *databox.DataBox, obj interface{}) *response.DataResponse {
+	var dataResp *response.DataResponse
+
+	m := ne.DataManPool.Use()
+	if m != nil {
+		fmt.Println("DataManPool.Use")
+		// 执行并返回结果消息
+		dataResp = m.MiniInit(b).RunRequest(obj)
+
+		// 任务结束后回收该信使
+		ne.RWMutex.RLock()
+		if ne.status != status.STOP {
+			ne.DataManPool.Free(m)
 		}
-		logs.Log.Informational(" * ")
-		switch {
-		case s.DataNum > 0 && s.FileNum == 0:
-			logs.Log.App(" *     [任务小计：%s | KEYIN：%s]   共采集数据 %v 条，用时 %v！\n",
-				s.DataBoxName, s.Keyin, s.DataNum, s.Time)
-		case s.DataNum == 0 && s.FileNum > 0:
-			logs.Log.App(" *     [任务小计：%s | KEYIN：%s]   共下载文件 %v 个，用时 %v！\n",
-				s.DataBoxName, s.Keyin, s.FileNum, s.Time)
-		default:
-			logs.Log.App(" *     [任务小计：%s | KEYIN：%s]   共采集数据 %v 条 + 下载文件 %v 个，用时 %v！\n",
-				s.DataBoxName, s.Keyin, s.DataNum, s.FileNum, s.Time)
-		}
-
-		ne.sum[0] += s.DataNum
-		ne.sum[1] += s.FileNum
+		ne.RWMutex.RUnlock()
 	}
-
-	// 总耗时
-	ne.takeTime = time.Since(cache.StartTime)
-	var prefix = func() string {
-		if ne.Status() == status.STOP {
-			return "任务中途取消："
-		}
-		return "本次"
-	}()
-	// 打印总结报告
-	logs.Log.Informational(" * ")
-	logs.Log.Informational(` *********************************************************************************************************************************** `)
-	logs.Log.Informational(" * ")
-	switch {
-	case ne.sum[0] > 0 && ne.sum[1] == 0:
-		logs.Log.App(" *                            —— %s合计采集【数据 %v 条】， 实爬【成功 %v URL + 失败 %v URL = 合计 %v URL】，耗时【%v】 ——",
-			prefix, ne.sum[0], cache.GetPageCount(1), cache.GetPageCount(-1), cache.GetPageCount(0), ne.takeTime)
-	case ne.sum[0] == 0 && ne.sum[1] > 0:
-		logs.Log.App(" *                            —— %s合计采集【文件 %v 个】， 实爬【成功 %v URL + 失败 %v URL = 合计 %v URL】，耗时【%v】 ——",
-			prefix, ne.sum[1], cache.GetPageCount(1), cache.GetPageCount(-1), cache.GetPageCount(0), ne.takeTime)
-	case ne.sum[0] == 0 && ne.sum[1] == 0:
-		logs.Log.App(" *                            —— %s无采集结果，实爬【成功 %v URL + 失败 %v URL = 合计 %v URL】，耗时【%v】 ——",
-			prefix, cache.GetPageCount(1), cache.GetPageCount(-1), cache.GetPageCount(0), ne.takeTime)
-	default:
-		logs.Log.App(" *                            —— %s合计采集【数据 %v 条 + 文件 %v 个】，实爬【成功 %v URL + 失败 %v URL = 合计 %v URL】，耗时【%v】 ——",
-			prefix, ne.sum[0], ne.sum[1], cache.GetPageCount(1), cache.GetPageCount(-1), cache.GetPageCount(0), ne.takeTime)
-	}
-	logs.Log.Informational(" * ")
-	logs.Log.Informational(` *********************************************************************************************************************************** `)
-
-	// 单机模式并发运行，需要标记任务结束
-	if ne.AppConf.Mode == status.OFFLINE {
-		//ne.LogRest()
-		ne.finishOnce.Do(func() { close(ne.finish) })
-	}
-
 	return dataResp
+}
+
+func (ne *NodeEntity) StopActiveBox(b *databox.DataBox) {
+	ne.RWMutex.RLock()
+	defer ne.RWMutex.RUnlock()
+
+	close(b.BlockChan)
+	b.RemoveActiveDataBox()
 }
 
 // Offline 模式下暂停\恢复任务

@@ -38,6 +38,8 @@ type (
 		SubNamespace    func(self *DataBox, dataCell map[string]interface{}) string // 次级命名，用于输出文件、路径的命名，可依赖具体数据内容
 		DetailCount     int                                                         // 明细条数
 		TsfSuccCount    int                                                         // 流通成功明细条数
+		BlockChan       chan bool                                                   // 用于ActiveDataBox阻塞，持续活跃
+		StartSuccChan   chan bool                                                   // 启动成功通知
 		RuleTree        *RuleTree                                                   // 定义具体的配送规则树
 
 		//interaction.Carrier //全局公用的信息交互载体，使DataBox具有同步处理DataRequest请求能力
@@ -74,6 +76,18 @@ type (
 func (self DataBox) Register() *DataBox {
 	self.status = status.STOPPED
 	return Species.Add(&self)
+}
+
+// 添加自身到活跃DataBox列表
+func (self DataBox) AddActiveList() *DataBox {
+	self.status = status.RUN
+	return Activites.Add(&self)
+}
+
+// 从活跃DataBox列表移除
+func (self DataBox) RemoveActiveDataBox() *DataBoxActivites {
+	self.status = status.STOP
+	return Activites.Remove(&self)
 }
 
 // 数据流产品开始穿越
