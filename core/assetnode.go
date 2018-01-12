@@ -31,6 +31,7 @@ type (
 		GetConfig(k ...string) interface{}                    // 获取全局参数
 		SetConfig(k string, v interface{}) AssetNode          // 设置全局参数
 		DataBoxPrepare(original []*databox.DataBox) AssetNode // 须在设置全局运行参数后Run()前调用（client模式下不调用该方法）
+		PushDataBox(original []*databox.DataBox) AssetNode    // 将DataBox放入channel
 		Run()                                                 // 阻塞式运行直至任务完成（须在所有应当配置项配置完成后调用）
 		SyncRun() *response.DataResponse                      // 同步运行
 		Stop()                                                // Offline 模式下中途终止任务（对外为阻塞式运行直至当前任务终止）
@@ -207,6 +208,23 @@ func (self *NodeEntity) DataBoxPrepare(original []*databox.DataBox) AssetNode {
 	return self
 }
 
+func (self *NodeEntity) PushDataBox(original []*databox.DataBox) AssetNode {
+	// 遍历任务
+	for _, df := range original {
+		dfcopy := df.Copy()
+		dfcopy.SetPausetime(self.AppConf.Pausetime)
+		if dfcopy.GetLimit() == databox.LIMIT {
+			dfcopy.SetLimit(self.AppConf.Limit)
+		} else {
+			dfcopy.SetLimit(-1 * self.AppConf.Limit)
+		}
+		self.DataBoxQueue.AddChan(dfcopy)
+	}
+	// 遍历自定义配置
+	//self.DataBoxQueue.AddKeyins(self.AppConf.Keyins)
+	return self
+}
+
 // 获取全部输出方式
 func (self *NodeEntity) GetOutputLib() []string {
 	return collector.DataOutputLib
@@ -267,7 +285,7 @@ func (ne *NodeEntity) Run() {
 	//	return
 	//}
 
-	<-ne.finish
+	//<-ne.finish //TODO 节点持续运行不退出
 }
 
 // 系统启动, 同步返回
@@ -296,7 +314,7 @@ func (a *NodeEntity) Status() int {
 
 // 开始执行任务
 func (ne *NodeEntity) exec() {
-	count := ne.DataBoxQueue.Len()
+	//count := ne.DataBoxQueue.Len()
 
 	cache.ResetPageCount()
 	// 刷新输出方式的状态
@@ -305,9 +323,10 @@ func (ne *NodeEntity) exec() {
 	scheduler.Init()
 
 	// 设置数据信使队列
-	dataManCap := ne.DataManPool.Reset(count)
+	//dataManCap := ne.DataManPool.Reset(count)
+	dataManCap := ne.DataManPool.Reset(1)
 
-	logs.Log.Informational(" *     执行任务总数(任务数[*自定义配置数])为 %v 个\n", count)
+	//logs.Log.Informational(" *     执行任务总数(任务数[*自定义配置数])为 %v 个\n", count)
 	logs.Log.Informational(" *     采集引擎池容量为 %v\n", dataManCap)
 	logs.Log.Informational(" *     并发协程最多 %v 个\n", ne.AppConf.ThreadNum)
 	logs.Log.Informational(" *     默认随机停顿 %v~%v 毫秒\n", ne.AppConf.Pausetime/2, ne.AppConf.Pausetime*2)
@@ -318,7 +337,8 @@ func (ne *NodeEntity) exec() {
 	cache.StartTime = time.Now()
 
 	// 根据模式选择合理的并发
-	go ne.goRun(count)
+	//go ne.goRun(count)
+	go ne.runDataBox()
 	//if ne.AppConf.Mode == status.OFFLINE {
 	//	// 可控制执行状态
 	//	go ne.goRun(count)
@@ -357,19 +377,6 @@ func (ne *NodeEntity) syncExec() *response.DataResponse {
 
 // 任务执行
 func (ne *NodeEntity) goRun(count int) {
-	//m := a.DataManPool.Use()
-	//if m != nil {
-	//	go func(i int, c dataman.DataMan) {
-	//		// 执行并返回结果消息
-	//		m.Init(a.DataBoxQueue.GetByIndex(i)).Run()
-	//		// 任务结束后回收该databox
-	//		a.RWMutex.RLock()
-	//		if a.status != status.STOP {
-	//			a.DataManPool.Free(c)
-	//		}
-	//		a.RWMutex.RUnlock()
-	//	}(i, m)
-	//}
 	// 执行任务
 	var i int
 	for i = 0; i < count && ne.Status() != status.STOP; i++ {
@@ -393,6 +400,92 @@ func (ne *NodeEntity) goRun(count int) {
 			}(i, m)
 		}
 	}
+	// 监控结束任务
+	for ii := 0; ii < i; ii++ {
+		s := <-cache.ReportChan
+		if (s.DataNum == 0) && (s.FileNum == 0) {
+			logs.Log.App(" *     [任务小计：%s | KEYIN：%s]   无采集结果，用时 %v！\n", s.DataBoxName, s.Keyin, s.Time)
+			continue
+		}
+		logs.Log.Informational(" * ")
+		switch {
+		case s.DataNum > 0 && s.FileNum == 0:
+			logs.Log.App(" *     [任务小计：%s | KEYIN：%s]   共采集数据 %v 条，用时 %v！\n",
+				s.DataBoxName, s.Keyin, s.DataNum, s.Time)
+		case s.DataNum == 0 && s.FileNum > 0:
+			logs.Log.App(" *     [任务小计：%s | KEYIN：%s]   共下载文件 %v 个，用时 %v！\n",
+				s.DataBoxName, s.Keyin, s.FileNum, s.Time)
+		default:
+			logs.Log.App(" *     [任务小计：%s | KEYIN：%s]   共采集数据 %v 条 + 下载文件 %v 个，用时 %v！\n",
+				s.DataBoxName, s.Keyin, s.DataNum, s.FileNum, s.Time)
+		}
+
+		ne.sum[0] += s.DataNum
+		ne.sum[1] += s.FileNum
+	}
+
+	// 总耗时
+	ne.takeTime = time.Since(cache.StartTime)
+	var prefix = func() string {
+		if ne.Status() == status.STOP {
+			return "任务中途取消："
+		}
+		return "本次"
+	}()
+	// 打印总结报告
+	logs.Log.Informational(" * ")
+	logs.Log.Informational(` *********************************************************************************************************************************** `)
+	logs.Log.Informational(" * ")
+	switch {
+	case ne.sum[0] > 0 && ne.sum[1] == 0:
+		logs.Log.App(" *                            —— %s合计采集【数据 %v 条】， 实爬【成功 %v URL + 失败 %v URL = 合计 %v URL】，耗时【%v】 ——",
+			prefix, ne.sum[0], cache.GetPageCount(1), cache.GetPageCount(-1), cache.GetPageCount(0), ne.takeTime)
+	case ne.sum[0] == 0 && ne.sum[1] > 0:
+		logs.Log.App(" *                            —— %s合计采集【文件 %v 个】， 实爬【成功 %v URL + 失败 %v URL = 合计 %v URL】，耗时【%v】 ——",
+			prefix, ne.sum[1], cache.GetPageCount(1), cache.GetPageCount(-1), cache.GetPageCount(0), ne.takeTime)
+	case ne.sum[0] == 0 && ne.sum[1] == 0:
+		logs.Log.App(" *                            —— %s无采集结果，实爬【成功 %v URL + 失败 %v URL = 合计 %v URL】，耗时【%v】 ——",
+			prefix, cache.GetPageCount(1), cache.GetPageCount(-1), cache.GetPageCount(0), ne.takeTime)
+	default:
+		logs.Log.App(" *                            —— %s合计采集【数据 %v 条 + 文件 %v 个】，实爬【成功 %v URL + 失败 %v URL = 合计 %v URL】，耗时【%v】 ——",
+			prefix, ne.sum[0], ne.sum[1], cache.GetPageCount(1), cache.GetPageCount(-1), cache.GetPageCount(0), ne.takeTime)
+	}
+	logs.Log.Informational(" * ")
+	logs.Log.Informational(` *********************************************************************************************************************************** `)
+
+	// 单机模式并发运行，需要标记任务结束
+	if ne.AppConf.Mode == status.OFFLINE {
+		//ne.LogRest()
+		ne.finishOnce.Do(func() { close(ne.finish) })
+	}
+}
+
+// 任务执行
+func (ne *NodeEntity) runDataBox() {
+	// 执行任务
+	//pause:
+	//	if ne.IsPause() {
+	//		time.Sleep(time.Second)
+	//		goto pause
+	//	}
+	for {
+		b := ne.DataBoxQueue.GetOne()
+		// 从数据信使队列取出空闲信使，并发执行
+		m := ne.DataManPool.Use()
+		if m != nil {
+			// 执行并返回结果消息
+			m.Init(b).Run()
+			// 任务结束后回收该信使
+			ne.RWMutex.RLock()
+			if ne.status != status.STOP {
+				ne.DataManPool.Free(m)
+			}
+			ne.RWMutex.RUnlock()
+		}
+	}
+}
+
+func (ne *NodeEntity) runMonitorTask(i int) {
 	// 监控结束任务
 	for ii := 0; ii < i; ii++ {
 		s := <-cache.ReportChan

@@ -31,6 +31,8 @@ func Flag() {
 
 // 执行入口
 func Run() {
+	assetnode.AssetNodeEntity.Run()
+
 	httpServer := &HttpServer{}
 	httpServer.Run()
 }

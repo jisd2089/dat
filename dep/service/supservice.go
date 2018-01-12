@@ -4,8 +4,8 @@ import (
 	"github.com/valyala/fasthttp"
 	"fmt"
 	"dat/core"
-	"dat/core/databox"
-	"dat/core/interaction/request"
+	//"dat/core/databox"
+	//"dat/core/interaction/request"
 )
 
 /**
@@ -33,6 +33,12 @@ func (d *SupService) RecDemReqAndPushToSup(ctx *fasthttp.RequestCtx) {
 	// 2.3 碰撞结束，执行推送rule，推送文件至供方
 	dataResp := assetnode.AssetNodeEntity.SyncRun()
 	fmt.Println(dataResp)
+
+	// 1.1) 接收到start请求后，实例化一个DataBox单例
+	// 1.2) 初始化， 启动DataBox，
+	// 2) 接收normal请求，DataBox处理
+	// 3.1) 接收end请求，DataBox处理
+	// 3.2) 关闭DataBox
 }
 
 /**

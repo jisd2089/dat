@@ -12,43 +12,66 @@ import (
 
 type (
 	DataBoxQueue interface {
-		Reset()                     //重置清空队列
-		Add(box *DataBox)         // 添加一个
+		Reset()                    // 重置清空队列
+		Add(box *DataBox)          // 添加一个
+		AddChan(box *DataBox)      // 添加一个入Channel
 		AddAll([]*DataBox)         // 添加所有
-		AddKeyins(string)           //为队列成员遍历添加Keyin属性，但前提必须是队列成员未被添加过keyin
-		GetByIndex(int) *DataBox   //通过索引查找
-		GetByName(string) *DataBox //通过名称查找
-		GetAll() []*DataBox        //获取所有
-		Len() int                   // 返回队列长度
+		AddAllChan([]*DataBox)     // 添加所有入Channel
+		AddKeyins(string)          // 为队列成员遍历添加Keyin属性，但前提必须是队列成员未被添加过keyin
+		GetByIndex(int) *DataBox   // 通过索引查找
+		GetByName(string) *DataBox // 通过名称查找
+		GetAll() []*DataBox        // 获取所有
+		GetOne() *DataBox          // 从Channel取出一个DataBox
+		Len() int                  // 返回队列长度
 	}
-	dfq struct {
-		list []*DataBox
+	dbq struct {
+		idInc       *util.AutoInc
+		dataBoxChan chan *DataBox
+		list        []*DataBox
 	}
 )
 
 func NewDataBoxQueue() DataBoxQueue {
-	return &dfq{
-		list: []*DataBox{},
+	return &dbq{
+		idInc:       util.NewAutoInc(10000, 1),
+		dataBoxChan: make(chan *DataBox),
+		list:        []*DataBox{},
 	}
 }
 
-func (dfq *dfq) Reset() {
-	dfq.list = []*DataBox{}
+func (q *dbq) Reset() {
+	q.dataBoxChan = make(chan *DataBox)
+	q.list = []*DataBox{}
 }
 
-func (dfq *dfq) Add(df *DataBox) {
-	df.SetId(dfq.Len())
-	dfq.list = append(dfq.list, df)
+func (q *dbq) Add(df *DataBox) {
+	df.SetId(q.Len())
+	q.list = append(q.list, df)
 }
 
-func (dfq *dfq) AddAll(list []*DataBox) {
+func (q *dbq) AddChan(df *DataBox) {
+	df.SetId(q.idInc.Id())
+	q.dataBoxChan <- df
+}
+
+func (q *dbq) AddAll(list []*DataBox) {
 	for _, v := range list {
-		dfq.Add(v)
+		q.Add(v)
 	}
+}
+
+func (q *dbq) AddAllChan(list []*DataBox) {
+	for _, v := range list {
+		q.AddChan(v)
+	}
+}
+
+func (q *dbq) GetOne() *DataBox {
+	return <-q.dataBoxChan
 }
 
 // 添加keyin，遍历DataBox队列得到新的队列（已被显式赋值过的DataBox将不再重新分配Keyin）
-func (dfq *dfq) AddKeyins(keyins string) {
+func (q *dbq) AddKeyins(keyins string) {
 	keyinSlice := util.KeyinsParse(keyins)
 	if len(keyinSlice) == 0 {
 		return
@@ -56,7 +79,7 @@ func (dfq *dfq) AddKeyins(keyins string) {
 
 	unit1 := []*DataBox{} // 不可被添加自定义配置的DataBox
 	unit2 := []*DataBox{} // 可被添加自定义配置的DataBox
-	for _, v := range dfq.GetAll() {
+	for _, v := range q.GetAll() {
 		if v.GetKeyin() == KEYIN {
 			unit2 = append(unit2, v)
 			continue
@@ -69,28 +92,28 @@ func (dfq *dfq) AddKeyins(keyins string) {
 		return
 	}
 
-	dfq.Reset()
+	q.Reset()
 
 	for _, keyin := range keyinSlice {
 		for _, v := range unit2 {
 			v.Keyin = keyin
 			nv := *v
-			dfq.Add((&nv).Copy())
+			q.Add((&nv).Copy())
 		}
 	}
-	if dfq.Len() == 0 {
-		dfq.AddAll(append(unit1, unit2...))
+	if q.Len() == 0 {
+		q.AddAll(append(unit1, unit2...))
 	}
 
-	dfq.AddAll(unit1)
+	q.AddAll(unit1)
 }
 
-func (dfq *dfq) GetByIndex(idx int) *DataBox {
-	return dfq.list[idx]
+func (q *dbq) GetByIndex(idx int) *DataBox {
+	return q.list[idx]
 }
 
-func (dfq *dfq) GetByName(n string) *DataBox {
-	for _, sp := range dfq.list {
+func (q *dbq) GetByName(n string) *DataBox {
+	for _, sp := range q.list {
 		if sp.GetName() == n {
 			return sp
 		}
@@ -98,10 +121,10 @@ func (dfq *dfq) GetByName(n string) *DataBox {
 	return nil
 }
 
-func (dfq *dfq) GetAll() []*DataBox {
-	return dfq.list
+func (q *dbq) GetAll() []*DataBox {
+	return q.list
 }
 
-func (dfq *dfq) Len() int {
-	return len(dfq.list)
+func (q *dbq) Len() int {
+	return len(q.list)
 }

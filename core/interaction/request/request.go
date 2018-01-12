@@ -15,25 +15,25 @@ import (
 
 // DataRequest represents object waiting for being crawled.
 type DataRequest struct {
-	DataBox       string          //规则名，自动设置，禁止人为填写
-	TransferType  string          //传输类型
-	Url           string          //目标URL，必须设置
-	Rule          string          //用于解析响应的规则节点名，必须设置
-	Method        string          //GET POST POST-M HEAD
-	Header        http.Header     //请求头信息
-	EnableCookie  bool            //是否使用cookies，在DataBox的EnableCookie设置
+	DataBox       string          // 规则名，自动设置，禁止人为填写
+	TransferType  string          // 传输类型
+	Url           string          // 目标URL，必须设置
+	Rule          string          // 用于解析响应的规则节点名，必须设置
+	Method        string          // GET POST POST-M HEAD
+	Header        http.Header     // 请求头信息
+	EnableCookie  bool            // 是否使用cookies，在DataBox的EnableCookie设置
 	Parameters    []byte          // 传参
 	Bobject       interface{}     // 业务参数
-	PostData      string          //POST values
-	DialTimeout   time.Duration   //创建连接超时 dial tcp: i/o timeout
-	ConnTimeout   time.Duration   //连接状态超时 WSARecv tcp: i/o timeout
-	TryTimes      int             //尝试下载的最大次数
-	RetryPause    time.Duration   //下载失败后，下次尝试下载的等待时间
-	RedirectTimes int             //重定向的最大次数，为0时不限，小于0时禁止重定向
-	Temp          Temp            //临时数据
-	TempIsJson    map[string]bool //将Temp中以JSON存储的字段标记为true，自动设置，禁止人为填写
-	Priority      int             //指定调度优先级，默认为0（最小优先级为0）
-	Reloadable    bool            //是否允许重复该链接下载
+	PostData      string          // POST values
+	DialTimeout   time.Duration   // 创建连接超时 dial tcp: i/o timeout
+	ConnTimeout   time.Duration   // 连接状态超时 WSARecv tcp: i/o timeout
+	TryTimes      int             // 尝试下载的最大次数
+	RetryPause    time.Duration   // 下载失败后，下次尝试下载的等待时间
+	RedirectTimes int             // 重定向的最大次数，为0时不限，小于0时禁止重定向
+	Temp          Temp            // 临时数据
+	TempIsJson    map[string]bool // 将Temp中以JSON存储的字段标记为true，自动设置，禁止人为填写
+	Priority      int             // 指定调度优先级，默认为0（最小优先级为0）
+	Reloadable    bool            // 是否允许重复该链接下载
 	//Surfer下载器内核ID
 	//0为Surf高并发下载器，各种控制功能齐全
 	//1为PhantomJS下载器，特点破防力强，速度慢，低并发

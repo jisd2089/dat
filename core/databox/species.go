@@ -20,19 +20,19 @@ var Species = &DataBoxSpecies{
 }
 
 // 向数据流产品种类清单添加新种类
-func (self *DataBoxSpecies) Add(sp *DataBox) *DataBox {
-	name := sp.Name
+func (self *DataBoxSpecies) Add(b *DataBox) *DataBox {
+	name := b.Name
 	for i := 2; true; i++ {
 		if _, ok := self.hash[name]; !ok {
-			sp.Name = name
-			self.hash[sp.Name] = sp
+			b.Name = name
+			self.hash[b.Name] = b
 			break
 		}
-		name = fmt.Sprintf("%s(%d)", sp.Name, i)
+		name = fmt.Sprintf("%s(%d)", b.Name, i)
 	}
-	sp.Name = name
-	self.list = append(self.list, sp)
-	return sp
+	b.Name = name
+	self.list = append(self.list, b)
+	return b
 }
 
 // 获取全部数据流产品种类

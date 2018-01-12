@@ -61,13 +61,13 @@ func (d *DemService) SendDemReqToSup(ctx *fasthttp.RequestCtx) {
 	setSpiderQueue(b)
 
 	// 1.3 执行，单条http执行碰撞请求
-	go assetnode.AssetNodeEntity.Run()
+	//go assetnode.AssetNodeEntity.Run()
 }
 
 func setSpiderQueue(box *databox.DataBox) {
 	dataBoxs := []*databox.DataBox{}
-	dataBoxs = append(dataBoxs, box.Copy()) // 需对比使用拷贝和不适用拷贝的性能差异
-	assetnode.AssetNodeEntity.DataBoxPrepare(dataBoxs)
+	dataBoxs = append(dataBoxs, box)
+	assetnode.AssetNodeEntity.PushDataBox(dataBoxs)
 }
 
 /**
