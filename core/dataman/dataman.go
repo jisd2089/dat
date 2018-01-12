@@ -19,6 +19,7 @@ import (
 	"github.com/henrylee2cn/pholcus/logs"
 	"dat/core/interaction/response"
 	"fmt"
+	"dat/runtime/status"
 )
 
 // 数据信使配送引擎
@@ -37,14 +38,16 @@ type (
 		*databox.DataBox    //执行的采集规则
 		interaction.Carrier //全局公用的信息交互载体
 		pipeline.Pipeline   // 拆包与核验管道
-		id    int           // 信使ID
-		pause [2]int64      //[请求间隔的最短时长,请求间隔的增幅时长]
+		id     int          // 信使ID
+		pause  [2]int64     //[请求间隔的最短时长,请求间隔的增幅时长]
+		status int          // 信使状态
 	}
 )
 
 func New(id int) DataMan {
 	return &dataMan{
 		id:      id,
+		status:  status.RUN,
 		Carrier: interaction.CrossHandler,
 	}
 }
@@ -93,7 +96,6 @@ func (m *dataMan) SyncRun() {
 	m.Pipeline.Start()
 
 	m.DataBox.BlockChan = make(chan bool)
-	m.DataBox.StartSuccChan = make(chan bool)
 
 	// 启动任务
 	m.DataBox.Start()
@@ -101,7 +103,7 @@ func (m *dataMan) SyncRun() {
 	// 启动成功后加入活跃队列
 	m.DataBox.AddActiveList()
 
-	m.DataBox.StartSuccChan <- true
+	m.DataBox.WG.Done()
 
 	<-m.DataBox.BlockChan // 等待处理协程退出
 
@@ -164,9 +166,16 @@ func (m *dataMan) RunRequest(obj interface{}) *response.DataResponse {
 	dataResp := m.SyncProcess(req)
 
 	// 等待处理中的任务完成
-	m.DataBox.Defer()
+	//m.DataBox.Defer()
 
 	return dataResp
+}
+
+func (m *dataMan) CanStop() bool {
+	if m.status == status.STOP {
+		return true
+	}
+	return false
 }
 
 // 主动终止
@@ -300,7 +309,7 @@ func (m *dataMan) SyncProcess(req *request.DataRequest) *response.DataResponse {
 	}
 
 	// 过程处理，提炼数据
-	dataResp := ctx.SyncParse(req.GetRuleName())
+	ctx.Parse(req.GetRuleName())
 
 	// 该条请求文件结果存入pipeline
 	for _, f := range ctx.PullFiles() {
@@ -324,9 +333,12 @@ func (m *dataMan) SyncProcess(req *request.DataRequest) *response.DataResponse {
 	// 提示抓取成功
 	//logs.Log.Informational(" *     Success: %v\n", downUrl)
 
+	// 执行完本次请求，放入一条请求至请求队列供下一次调用使用
+	ctx.AddQueue(req)
+
 	// 释放ctx准备复用
-	databox.PutContext(ctx)
-	return dataResp
+	defer databox.PutContext(ctx)
+	return ctx.DataResponse
 }
 
 // 从调度读取一个请求

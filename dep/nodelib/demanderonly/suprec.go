@@ -25,21 +25,21 @@ var SUPREC = &DataBox{
 	RuleTree: &RuleTree{
 		Root: func(ctx *Context) {
 			fmt.Println("suprec Root start...")
-			//ctx.AddQueue(&request.DataRequest{
-			//	Rule:         "process",
-			//	TransferType: request.NONETYPE,
-			//	Priority:     1,
-			//	//Bobject:      paramBatch,
-			//	Reloadable:   true,
-			//})
+			ctx.AddQueue(&request.DataRequest{
+				Rule:         "process",
+				TransferType: request.NONETYPE,
+				Priority:     1,
+				//Bobject:      paramBatch,
+				Reloadable:   true,
+			})
 		},
 
 		Trunk: map[string]*Rule{
 			"process": {
-				SyncFunc: func(ctx *Context) *response.DataResponse {
+				ParseFunc: func(ctx *Context) {
 					fmt.Println("process start ...")
 					fmt.Println("obj: ", ctx.DataRequest.Bobject.(string))
-					return &response.DataResponse{StatusCode: 200, ReturnCode: "000000", ReturnMsg: "成功"}
+					ctx.DataResponse = &response.DataResponse{StatusCode: 200, ReturnCode: "000000", ReturnMsg: "成功"}
 				},
 			},
 			"ruleTest2": {

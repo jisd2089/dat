@@ -350,7 +350,7 @@ func (ne *NodeEntity) exec() {
 
 	// 设置数据信使队列
 	//dataManCap := ne.DataManPool.Reset(count)
-	dataManCap := ne.DataManPool.Reset(1)
+	dataManCap := ne.DataManPool.Reset(100)
 
 	//logs.Log.Informational(" *     执行任务总数(任务数[*自定义配置数])为 %v 个\n", count)
 	logs.Log.Informational(" *     DataManPool池容量为 %v\n", dataManCap)
@@ -364,7 +364,9 @@ func (ne *NodeEntity) exec() {
 
 	// 根据模式选择合理的并发
 	//go ne.goRun(count)
+	//TODO 根据节点支持业务类型启动 两类DataBox
 	go ne.runDataBox()
+	go ne.goSyncRun()
 	//if ne.AppConf.Mode == status.OFFLINE {
 	//	// 可控制执行状态
 	//	go ne.goRun(count)
@@ -604,7 +606,6 @@ func (ne *NodeEntity) RunActiveBox(b *databox.DataBox, obj interface{}) *respons
 
 	m := ne.DataManPool.Use()
 	if m != nil {
-		fmt.Println("DataManPool.Use")
 		// 执行并返回结果消息
 		dataResp = m.MiniInit(b).RunRequest(obj)
 

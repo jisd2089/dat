@@ -39,7 +39,7 @@ type (
 		DetailCount     int                                                         // 明细条数
 		TsfSuccCount    int                                                         // 流通成功明细条数
 		BlockChan       chan bool                                                   // 用于ActiveDataBox阻塞，持续活跃
-		StartSuccChan   chan bool                                                   // 启动成功通知
+		WG              *sync.WaitGroup                                             // 启动成功通知
 		RuleTree        *RuleTree                                                   // 定义具体的配送规则树
 
 		//interaction.Carrier //全局公用的信息交互载体，使DataBox具有同步处理DataRequest请求能力
@@ -343,6 +343,7 @@ func (self *DataBox) Copy() *DataBox {
 
 	ghost.timer = self.timer
 	ghost.status = self.status
+	ghost.WG = self.WG
 
 	return ghost
 }

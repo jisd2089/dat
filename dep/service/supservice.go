@@ -4,6 +4,7 @@ import (
 	"github.com/valyala/fasthttp"
 	"fmt"
 	"dat/core"
+	"sync"
 )
 
 /**
@@ -22,11 +23,40 @@ func NewSupService() *SupService {
 */
 func (d *SupService) RecDemReqAndPushToSup(ctx *fasthttp.RequestCtx) {
 
-	// 2.1 匹配相应的DataBox
-	b := assetnode.AssetNodeEntity.GetDataBoxByName("suprec")
-	if b == nil {
-		fmt.Println("databox is nil!")
+
+
+	reqType := string(ctx.FormValue("ReqType"))
+	reqParam := string(ctx.FormValue("reqParam"))
+	fmt.Println("reqType: ", reqType)
+
+	switch reqType {
+	case "start":
+		b := assetnode.AssetNodeEntity.GetDataBoxByName("suprec")
+		if b == nil {
+			fmt.Println("databox is nil!")
+		}
+		var wg sync.WaitGroup
+		wg.Add(1)
+		b.WG = &wg
+
+		assetnode.AssetNodeEntity.PushActiveDataBox(b)
+		wg.Wait()
+		fmt.Println("waitgroup end")
+		//defer close(cb.BlockChan)
+
+		ab := assetnode.AssetNodeEntity.GetActiveDataBoxByName("suprec")
+		fmt.Println("active databox name", ab.Name)
+		dataResp := assetnode.AssetNodeEntity.RunActiveBox(ab, "1111")
+		fmt.Println("dataResp:", dataResp)
+	case "normal":
+		ab := assetnode.AssetNodeEntity.GetActiveDataBoxByName("suprec")
+		fmt.Println("active databox name", ab.Name)
+		dataResp := assetnode.AssetNodeEntity.RunActiveBox(ab, reqParam)
+		fmt.Println("dataResp:", dataResp)
+
+		//defer close(ab.BlockChan)
 	}
+	// 2.1 匹配相应的DataBox
 	// 2.2 执行碰撞rule，同步返回碰撞结果
 	// 2.3 碰撞结束，执行推送rule，推送文件至供方
 	//dataResp := assetnode.AssetNodeEntity.SyncRun()
@@ -34,24 +64,24 @@ func (d *SupService) RecDemReqAndPushToSup(ctx *fasthttp.RequestCtx) {
 
 
 	// 1.1) 接收到start请求后，实例化一个DataBox单例
-	assetnode.AssetNodeEntity.SyncRun()
-	cb := assetnode.AssetNodeEntity.PushActiveDataBox(b)
-	defer close(cb.BlockChan)
-	for {
-		succflag := <- cb.StartSuccChan
-		fmt.Println(succflag)
-		if succflag {
 
-			close(cb.StartSuccChan)
-			ab := assetnode.AssetNodeEntity.GetActiveDataBoxByName("suprec")
-			fmt.Println("active databox name", ab.Name)
-			//assetnode.AssetNodeEntity.RunActiveBox(ab, "1111")
 
-			//fmt.Println("active databox name", cb.Name)
-			//assetnode.AssetNodeEntity.RunActiveBox(cb, "1111")
-			break
-		}
-	}
+
+	//for {
+	//	succflag := <- cb.StartSuccChan
+	//	fmt.Println(succflag)
+	//	if succflag {
+	//
+	//		close(cb.StartSuccChan)
+	//		//ab := assetnode.AssetNodeEntity.GetActiveDataBoxByName("suprec")
+	//		//fmt.Println("active databox name", ab.Name)
+	//		//assetnode.AssetNodeEntity.RunActiveBox(ab, "1111")
+	//
+	//		//fmt.Println("active databox name", cb.Name)
+	//		//assetnode.AssetNodeEntity.RunActiveBox(cb, "1111")
+	//		break
+	//	}
+	//}
 
 
 	//ab := assetnode.AssetNodeEntity.GetActiveDataBoxByName("suprec")
