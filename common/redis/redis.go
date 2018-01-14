@@ -7,6 +7,8 @@ package redis
 import (
 	"gopkg.in/redis.v5"
 	"time"
+	"strings"
+	"dat/common/pool"
 )
 
 type (
@@ -39,19 +41,54 @@ type (
 	}
 )
 
-func NewRedisClient(opts *redis.Options) RedisClient {
+func NewRedisClient() RedisClient {
+	opts := connect().(*redis.Options)
 	return &redisClient{
 		isSingle: true,
 		client:   redis.NewClient(opts),
 	}
 }
 
-func NewRedisClusterClient(opts *redis.ClusterOptions) RedisClient {
+func NewRedisClusterClient() RedisClient {
+	opts := connect().(*redis.ClusterOptions)
 	return &redisClient{
 		isSingle:      false,
 		clusterClient: redis.NewClusterClient(opts),
 	}
 }
+
+func connect() interface{} {
+
+	addrs := ""
+	if addrs == ""{
+
+	}
+	poolSize := 16
+	if poolSize == 0 {
+		poolSize = 16
+	}
+	addr := strings.Split(addrs, ",")
+	switch len(addr) {
+	case 1:
+		db := 1
+		opts := &redis.Options{
+			Addr: addr[0],
+			DB: db,
+			PoolSize: poolSize,
+			DialTimeout:  time.Second * time.Duration(10),
+			WriteTimeout: time.Second * time.Duration(10),
+			ReadTimeout:  time.Second * time.Duration(10),
+		}
+		return opts
+
+	default:
+		return &redis.ClusterOptions{
+			Addrs: addr,
+			PoolSize: poolSize,
+		}
+	}
+}
+
 
 // Get 实现RedisClient接口的Get方法
 func (rc *redisClient) Get(key string) ([]byte, error) {
