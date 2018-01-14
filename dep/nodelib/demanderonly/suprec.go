@@ -39,7 +39,8 @@ var SUPREC = &DataBox{
 				ParseFunc: func(ctx *Context) {
 					fmt.Println("process start ...")
 					fmt.Println("obj: ", ctx.DataRequest.Bobject.(string))
-					ctx.DataResponse = &response.DataResponse{StatusCode: 200, ReturnCode: "000000", ReturnMsg: "成功"}
+					ctx.ExecDataReq(&request.DataRequest{})
+					//ctx.DataResponse = &response.DataResponse{StatusCode: 200, ReturnCode: "000000", ReturnMsg: "成功"}
 				},
 			},
 			"ruleTest2": {

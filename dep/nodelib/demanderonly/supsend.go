@@ -8,8 +8,8 @@ import (
 	"dat/core/interaction/request"
 	. "dat/core/databox"
 	"fmt"
-	"strconv"
 	"dat/core/interaction/response"
+	"dat/common/sftp"
 )
 
 func init() {
@@ -25,31 +25,39 @@ var SUPSEND = &DataBox{
 	EnableCookie: false,
 	RuleTree: &RuleTree{
 		Root: func(ctx *Context) {
-			fmt.Println(ctx)
+			fmt.Println("supsend Root start...")
+
+			// 1. 从sftp服务器（供方dmp服务器）拉取文件到节点服务器本地
+			fileCatalog := &sftp.FileCatalog{}
 			ctx.AddQueue(&request.DataRequest{
-				Url:          "http://www.inderscience.com/info/inarticletoc.php?jcode=ijguc&year=2016&vol=7&issue=1",
-				Rule:         "ruleTest",
-				TransferType: request.HTTP,
+				FileCatalog:  fileCatalog,
+				Rule:         "pushfile",
+				TransferType: request.SFTP,
 			})
 		},
 
 		Trunk: map[string]*Rule{
-			"ruleTest": {
+			"pushfile": {
 				ParseFunc: func(ctx *Context) {
-					fmt.Println("(((((((((((((((((")
-					for i := 1; i < 10; i++ {
-						ctx.AddQueue(&request.DataRequest{
-							Url:          "http://www.inderscience.com/info/inarticletoc.php?jcode=ijguc&year=2016&vol=7&issue=" + strconv.Itoa(i),
-							Rule:         "ruleTest2",
-							TransferType: request.HTTP,
-						})
-					}
+					fmt.Println("pushfile start ...")
+					// 2. 从本地节点服务器通过sftp方式推送至dem节点服务器
+					fileCatalog := &sftp.FileCatalog{}
+					ctx.AddQueue(&request.DataRequest{
+						FileCatalog:  fileCatalog,
+						Rule:         "notifydem",
+						TransferType: request.SFTP,
+					})
 				},
 			},
-			"ruleTest2": {
+			"notifydem": {
 				ParseFunc: func(ctx *Context) {
-					fmt.Println(")))))))))))))))))))")
-					//fmt.Println(string(ctx.DataResponse.GetBody()))
+					fmt.Println("notifydem start ...")
+					// 3. 通知dem节点服务器，继续往下执行
+					ctx.AddQueue(&request.DataRequest{
+						Url:          "",
+						Rule:         "notifydem",
+						TransferType: request.HTTP,
+					})
 				},
 			},
 			"ruleTest3": {
@@ -73,5 +81,3 @@ var SUPSEND = &DataBox{
 		},
 	},
 }
-
-

@@ -94,7 +94,7 @@ func (dmp *dataManPool) Use() DataMan {
 func (dmp *dataManPool) Free(dataMan DataMan) {
 	dmp.RLock()
 	defer dmp.RUnlock()
-	if dmp.status == status.STOP || dataMan.CanStop() {
+	if dmp.status == status.STOP || !dataMan.CanStop() {
 		return
 	}
 	dmp.usable <- dataMan

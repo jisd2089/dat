@@ -8,8 +8,7 @@ import (
 	"dat/core/interaction/request"
 	. "dat/core/databox"
 	"fmt"
-	"strconv"
-	"dat/core/interaction/response"
+	"dat/common/sftp"
 )
 
 func init() {
@@ -25,53 +24,33 @@ var DEMREC = &DataBox{
 	EnableCookie: false,
 	RuleTree: &RuleTree{
 		Root: func(ctx *Context) {
-			fmt.Println(ctx)
+			fmt.Println("demrec Root start ...")
+			// 1. 校验md5
 			ctx.AddQueue(&request.DataRequest{
-				Url:          "http://www.inderscience.com/info/inarticletoc.php?jcode=ijguc&year=2016&vol=7&issue=1",
-				Rule:         "ruleTest",
-				TransferType: request.HTTP,
+				Rule:         "verify",
+				TransferType: request.NONETYPE,
 			})
 		},
 
 		Trunk: map[string]*Rule{
-			"ruleTest": {
+			"verify": {
 				ParseFunc: func(ctx *Context) {
-					fmt.Println("(((((((((((((((((")
-					for i := 1; i < 10; i++ {
-						ctx.AddQueue(&request.DataRequest{
-							Url:          "http://www.inderscience.com/info/inarticletoc.php?jcode=ijguc&year=2016&vol=7&issue=" + strconv.Itoa(i),
-							Rule:         "ruleTest2",
-							TransferType: request.HTTP,
-						})
-					}
+					fmt.Println("demrec verify start ...")
+					// 2. 将接收到的反馈文件推送至需方dmp
+					ctx.AddQueue(&request.DataRequest{
+						FileCatalog:  &sftp.FileCatalog{},
+						Rule:         "pushdem",
+						TransferType: request.SFTP,
+					})
 				},
 			},
-			"ruleTest2": {
+			"pushdem": {
 				ParseFunc: func(ctx *Context) {
-					fmt.Println(")))))))))))))))))))")
-					//fmt.Println(string(ctx.DataResponse.GetBody()))
-				},
-			},
-			"ruleTest3": {
-				SyncFunc: func(ctx *Context) *response.DataResponse {
-					fmt.Println(")))))))))))))))))))")
+					fmt.Println("demrec pushdem start ...")
+					// 3. 记录业务日志
 
-					//ctx.GetDataBox().SyncProcess(ctx.DataRequest)
-					//fmt.Println(string(ctx.DataResponse.GetBody()))
-					dResponse := &response.DataResponse{}
-					dResponse.StatusCode = 303
-					return dResponse
-				},
-			},
-			"ruleTest4": {
-				SyncFunc: func(ctx *Context) *response.DataResponse {
-					fmt.Println(")))))))))))))))))))")
-
-					return nil
 				},
 			},
 		},
 	},
 }
-
-

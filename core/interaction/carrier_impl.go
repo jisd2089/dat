@@ -19,8 +19,8 @@ type Cross struct {
 
 var CrossHandler = &Cross{
 	fastHttpTsf: transfer.NewFastTransfer(),
-	sftpTsf: transfer.NewSftpTransfer(),
-	noneTsf: transfer.NewNoneTransfer(),
+	sftpTsf:     transfer.NewSftpTransfer(),
+	noneTsf:     transfer.NewNoneTransfer(),
 }
 
 func (c *Cross) Handle(df *databox.DataBox, cReq *request.DataRequest) *databox.Context {

@@ -612,6 +612,7 @@ func (ne *NodeEntity) RunActiveBox(b *databox.DataBox, obj interface{}) *respons
 		// 任务结束后回收该信使
 		ne.RWMutex.RLock()
 		if ne.status != status.STOP {
+			m.Stop() // 停止信使
 			ne.DataManPool.Free(m)
 		}
 		ne.RWMutex.RUnlock()

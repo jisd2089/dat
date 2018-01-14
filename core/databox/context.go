@@ -118,8 +118,8 @@ func (self *Context) AddQueue(req *request.DataRequest) *Context {
 }
 
 // 同步执行DataRequest
-func (c *Context) ExeDataReq(req *request.DataRequest) *response.DataResponse {
-	return c.Reflector.Handle(req)
+func (c *Context) ExecDataReq(req *request.DataRequest) {
+	c.DataResponse = c.Reflector.Handle(req)
 }
 
 // 用于动态规则添加请求。

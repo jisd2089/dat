@@ -181,6 +181,8 @@ func (m *dataMan) CanStop() bool {
 // 主动终止
 func (m *dataMan) Stop() {
 	// 主动崩溃DataBox运行协程
+	m.status = status.STOP
+
 	m.DataBox.Stop()
 	m.Pipeline.Stop()
 }

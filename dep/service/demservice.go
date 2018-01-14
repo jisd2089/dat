@@ -83,6 +83,7 @@ func (d *DemService) RecSupRespAndPushToDem(ctx *fasthttp.RequestCtx) {
 		fmt.Println("databox is nil!")
 	}
 	// 1.2 setDataBoxQueue
+	setDataBoxQueue(b)
 	// 1.3 执行DataBox，sftp推送文件，核验
 }
 
