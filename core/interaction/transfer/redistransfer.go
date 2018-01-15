@@ -6,6 +6,7 @@ package transfer
 */
 import (
 	. "dat/core/interaction/response"
+	"fmt"
 )
 
 type RedisTransfer struct {}
@@ -16,8 +17,7 @@ func NewRedisTransfer() Transfer {
 
 // 封装fasthttp服务
 func (ft *RedisTransfer) ExecuteMethod(req Request) Response {
-	dataResponse := &DataResponse{}
+	fmt.Println("RedisTransfer")
 
-
-	return dataResponse
+	return  &DataResponse{StatusCode: 200, ReturnCode: "000000"}
 }

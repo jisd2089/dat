@@ -30,11 +30,11 @@ func Flag() {
 }
 
 // 执行入口
-func Run() {
+func Run(port int) {
 	assetnode.AssetNodeEntity.Run()
 
 	httpServer := &HttpServer{}
-	httpServer.Run()
+	httpServer.Run(port)
 }
 
 func appInit() {

@@ -20,7 +20,7 @@ import (
 	"github.com/henrylee2cn/pholcus/logs"
 	//"golang.org/x/net/html/charset"
 	"dat/core/interaction/response"
-	"dat/core/interaction"
+	"dat/core/realback"
 )
 
 type Context struct {
@@ -31,7 +31,7 @@ type Context struct {
 	dom          *goquery.Document      // 下载内容Body为html时，可转换为Dom的对象
 	items        []data.DataCell        // 存放以文本形式输出的结果数据
 	files        []data.FileCell        // 存放欲直接输出的文件("Name": string; "Body": io.ReadCloser)
-	Reflector    interaction.Reflector  // 同步 DataRequest执行器　
+	Reflector    realback.Reflector     // 同步 DataRequest执行器　
 	err          error                  // 错误标记
 	sync.Mutex
 }
@@ -40,7 +40,7 @@ var (
 	contextPool = &sync.Pool{
 		New: func() interface{} {
 			return &Context{
-				Reflector: interaction.ReflectHandler,
+				Reflector: realback.ReflectHandler,
 				items:     []data.DataCell{},
 				files:     []data.FileCell{},
 			}
@@ -120,6 +120,9 @@ func (self *Context) AddQueue(req *request.DataRequest) *Context {
 // 同步执行DataRequest
 func (c *Context) ExecDataReq(req *request.DataRequest) {
 	c.DataResponse = c.Reflector.Handle(req)
+
+	//// 执行完本次请求，放入一条请求至请求队列供下一次调用使用
+	//c.AddQueue(req)
 }
 
 // 用于动态规则添加请求。

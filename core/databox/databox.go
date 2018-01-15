@@ -41,6 +41,8 @@ type (
 		BlockChan       chan bool                                                   // 用于ActiveDataBox阻塞，持续活跃
 		WG              *sync.WaitGroup                                             // 启动成功通知
 		RuleTree        *RuleTree                                                   // 定义具体的配送规则树
+		OrigDataManId   int                                                         // 原始dataman id
+		PairDataBoxId   int                                                         // 对接的databox id
 
 		//interaction.Carrier //全局公用的信息交互载体，使DataBox具有同步处理DataRequest请求能力
 
@@ -344,6 +346,7 @@ func (self *DataBox) Copy() *DataBox {
 	ghost.timer = self.timer
 	ghost.status = self.status
 	ghost.WG = self.WG
+	ghost.PairDataBoxId = self.PairDataBoxId
 
 	return ghost
 }
@@ -369,7 +372,15 @@ func (self *DataBox) RequestPush(req *request.DataRequest) {
 }
 
 func (self *DataBox) RequestPull() *request.DataRequest {
-	return self.reqMatrix.Pull()
+	r := self.reqMatrix.Pull()
+	if r != nil {
+		r.DataBoxId = self.GetId()
+	}
+	return r
+}
+
+func (self *DataBox) IsRequestEmpty() bool {
+	return self.reqMatrix.IsEmpty()
 }
 
 func (self *DataBox) AddressPush(addr *request.NodeAddress) {

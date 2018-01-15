@@ -8,7 +8,8 @@ import (
 	"gopkg.in/redis.v5"
 	"time"
 	"strings"
-	"dat/common/pool"
+	"sync"
+	"fmt"
 )
 
 type (
@@ -41,54 +42,116 @@ type (
 	}
 )
 
-func NewRedisClient() RedisClient {
-	opts := connect().(*redis.Options)
+const (
+	settings_xpath_addr     = "redis.Addr"
+	settings_xpath_db       = "redis.DB"
+	settings_xpath_poolsize = "redis.PoolSize"
+	setting_password        = "2d6hwi22oM3KUyhd"
+	//settings_xpath_readonly = "redis.ReadOnly"
+)
+
+var (
+	redisCli        RedisClient
+	once            sync.Once
+	mutex           sync.Mutex
+)
+
+func NewRedisClient(opts *redis.Options) RedisClient {
 	return &redisClient{
 		isSingle: true,
 		client:   redis.NewClient(opts),
 	}
 }
 
-func NewRedisClusterClient() RedisClient {
-	opts := connect().(*redis.ClusterOptions)
+func NewRedisClusterClient(opts *redis.ClusterOptions) RedisClient {
 	return &redisClient{
 		isSingle:      false,
 		clusterClient: redis.NewClusterClient(opts),
 	}
 }
 
-func connect() interface{} {
+func GetRedisClient() RedisClient {
+	once.Do(func() {
+		mutex.Lock()
+		defer mutex.Unlock()
+		opts, err := connect(false)
+		if err != nil {
+
+		}
+		redisClient := NewRedisClient(opts.(*redis.Options))
+		if err = redisClient.ConfigSet(setting_password); err != nil {
+			opts, _ = connect(true)
+			redisClient = NewRedisClient(opts.(*redis.Options))
+		}
+		if err = redisClient.Auth(setting_password); err != nil {
+			redisCli = nil
+		} else {
+			redisCli = redisClient
+		}
+	})
+	return redisCli
+}
+
+func GetRedisClusterClient() RedisClient {
+	once.Do(func() {
+		mutex.Lock()
+		defer mutex.Unlock()
+		opts, err := connect(false)
+		if err != nil {
+
+		}
+		redisClient := NewRedisClusterClient(opts.(*redis.ClusterOptions))
+		if err = redisClient.ConfigSet(setting_password); err != nil {
+			opts, _ = connect(true)
+			redisClient = NewRedisClusterClient(opts.(*redis.ClusterOptions))
+		}
+		if err = redisClient.Auth(setting_password); err != nil {
+			redisCli = nil
+		} else {
+			redisCli = redisClient
+		}
+	})
+	return redisCli
+}
+
+func connect(needAuth bool) (interface{}, error) {
 
 	addrs := ""
-	if addrs == ""{
-
+	if addrs == "" {
+		return nil, fmt.Errorf("addrs is nil")
 	}
 	poolSize := 16
 	if poolSize == 0 {
 		poolSize = 16
+	}
+	password := ""
+	if needAuth {
+		password = "2d6hwi22oM3KUyhd"
 	}
 	addr := strings.Split(addrs, ",")
 	switch len(addr) {
 	case 1:
 		db := 1
 		opts := &redis.Options{
-			Addr: addr[0],
-			DB: db,
-			PoolSize: poolSize,
+			Addr:         addr[0],
+			DB:           db,
+			Password:     password,
+			PoolSize:     poolSize,
 			DialTimeout:  time.Second * time.Duration(10),
 			WriteTimeout: time.Second * time.Duration(10),
 			ReadTimeout:  time.Second * time.Duration(10),
 		}
-		return opts
+		return opts, nil
 
 	default:
-		return &redis.ClusterOptions{
-			Addrs: addr,
+		opts := &redis.ClusterOptions{
+			Addrs:    addr,
+			Password: password,
 			PoolSize: poolSize,
 		}
+		return opts, nil
 	}
 }
-
 
 // Get 实现RedisClient接口的Get方法
 func (rc *redisClient) Get(key string) ([]byte, error) {

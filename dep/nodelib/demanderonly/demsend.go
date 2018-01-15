@@ -5,18 +5,18 @@ package demanderonly
     Created: 2017-12-28 17:22:00
 */
 import (
-	//"os"
 	"path"
 	"dat/core/interaction/request"
 	. "dat/core/databox"
 	"fmt"
-	"dat/core/interaction/response"
+	"encoding/json"
 	"bufio"
 	"strings"
 	"io"
 	"dat/dep/management/util"
 	"dat/dep/management/entity"
 	"os"
+	"strconv"
 )
 
 func init() {
@@ -26,34 +26,29 @@ func init() {
 var DEMSEND = &DataBox{
 	Name:        "demsend",
 	Description: "demsend",
-	// Pausetime:    300,
-	// Keyin:        KEYIN,
-	// Limit:        LIMIT,
-	EnableCookie: false,
 	RuleTree: &RuleTree{
 		Root: func(ctx *Context) {
 
+			memId := "000001"
 			dataFile := path.Base(ctx.GetDataBox().GetDataFilePath())
 			dataFileName := &util.DataFileName{}
 			if err := dataFileName.ParseAndValidFileName(dataFile); err != nil {
+				return
 			}
 
 			paramBatch := entity.BatchReqestVo{}
-			paramBatch.SerialNo = ""
-			paramBatch.ReqType = ""
+			paramBatch.SerialNo = util.NewSeqUtil().GenBusiSerialNo(memId)
 			paramBatch.OrderId = dataFileName.JobId
 			paramBatch.FileNo = dataFileName.FileNo
 			paramBatch.IdType = dataFileName.IdType
-			paramBatch.TimeStamp = ""
+			paramBatch.TimeStamp = util.GetTimestampString()
 			paramBatch.BatchNo = dataFileName.BatchNo
-			paramBatch.UserId = ""
-			paramBatch.Exid = ""
+			paramBatch.UserId = memId
+			paramBatch.MaxDelay = strconv.Itoa(10)
+			paramBatch.ReqType = ""
 			paramBatch.TaskId = ""
-			paramBatch.MaxDelay = ""
 			paramBatch.Header = ""
 			paramBatch.Exid = ""
-
-			fmt.Println(ctx)
 
 			fmt.Println(ctx.GetDataBox().GetDataFilePath())
 
@@ -97,14 +92,20 @@ var DEMSEND = &DataBox{
 							rows ++
 							paramBatch.Header = line
 							paramBatch.ReqType = entity.ReqType_Start
+							paramBatch.DataBoxId = ctx.DataRequest.DataBoxId
+							data, err := json.Marshal(paramBatch)
+							if err != nil {
+								break
+							}
 							for _, addr := range addressList {
 								ctx.AddQueue(&request.DataRequest{
-									Url:          addr.IP + addr.URL,
+									Url:          addr.GetUrl(),
 									Rule:         "process",
-									TransferType: request.NONETYPE,
+									TransferType: request.HTTP,
 									Priority:     1,
 									Bobject:      paramBatch,
 									Reloadable:   true,
+									Parameters:   data,
 								})
 							}
 							break
@@ -120,7 +121,7 @@ var DEMSEND = &DataBox{
 					continueFlag := true
 
 					for _, addr := range addressList {
-						uri := addr.IP + addr.URL
+						uri := addr.GetUrl()
 						if strings.EqualFold(uri, ctx.DataRequest.Url) && ctx.DataResponse.StatusCode == 200 {
 							addr.Connectable = true
 							fmt.Println("uri: %s, connectable: true", uri)
@@ -153,7 +154,6 @@ var DEMSEND = &DataBox{
 					rows := 0
 					paramBatch := ctx.DataRequest.Bobject.(entity.BatchReqestVo)
 					addressList := ctx.GetDataBox().GetNodeAddress()
-					url := addressList[0].IP + addressList[0].URL
 
 					f, err := os.Open(ctx.GetDataBox().GetDataFilePath())
 					defer f.Close()
@@ -180,10 +180,16 @@ var DEMSEND = &DataBox{
 							fmt.Println("rownum: ", rows, line)
 							paramBatch.Exid = line
 							paramBatch.ReqType = entity.ReqType_Normal
+							paramBatch.DataBoxId = ctx.DataRequest.DataBoxId
+							data, err := json.Marshal(paramBatch)
+							if err != nil {
+								break
+							}
 							ctx.AddQueue(&request.DataRequest{
-								Url:          url,
+								Url:          addressList[0].GetUrl(),
+								Parameters:   data,
 								Rule:         "collision",
-								TransferType: request.NONETYPE,
+								TransferType: request.HTTP,
 								Priority:     0,
 								Bobject:      paramBatch,
 								Reloadable:   true,
@@ -197,7 +203,6 @@ var DEMSEND = &DataBox{
 					fmt.Println("collision start.................")
 					fmt.Println("detail count ", ctx.GetDataBox().DetailCount)
 
-					//fmt.Println(ctx.DataRequest.Bobject.(entity.BatchReqestVo))
 					addressList := ctx.GetDataBox().GetNodeAddress()
 					currentUrl := ctx.DataRequest.GetUrl()
 
@@ -207,16 +212,23 @@ var DEMSEND = &DataBox{
 
 					if !strings.EqualFold(ctx.DataResponse.ReturnCode, "000000") {
 						for i, addr := range addressList {
-							uri := addr.IP + addr.URL
-							if strings.EqualFold(uri, currentUrl) {
-								nextUrl := addressList[i+1].IP + addressList[i+1].URL
+							if strings.EqualFold(addr.GetUrl(), currentUrl) {
+								if i+1 >= len(addressList) { // no hit
+									ctx.GetDataBox().TsfSuccCount ++
+									break
+								}
+								if !addressList[i+1].Connectable {
+									continue
+								}
+								nextUrl := addressList[i+1].GetUrl()
 								ctx.AddQueue(&request.DataRequest{
 									Url:          nextUrl,
 									Rule:         "collision",
-									TransferType: request.NONETYPE,
+									TransferType: request.HTTP,
 									Priority:     0,
 									Bobject:      ctx.DataRequest.Bobject,
 									Reloadable:   true,
+									Parameters:   ctx.DataRequest.Parameters,
 								})
 							}
 						}
@@ -225,33 +237,37 @@ var DEMSEND = &DataBox{
 						fmt.Println("TsfSuccCount ", ctx.GetDataBox().TsfSuccCount)
 					}
 
-					if ctx.GetDataBox().TsfSuccCount == ctx.GetDataBox().DetailCount -1 {
+					if ctx.GetDataBox().TsfSuccCount == ctx.GetDataBox().DetailCount-1 {
 						ctx.AddQueue(&request.DataRequest{
-							//Url:          nextUrl,
 							Rule:         "end",
 							TransferType: request.NONETYPE,
 							Priority:     0,
 							Bobject:      ctx.DataRequest.Bobject,
 						})
 					}
-
-					//ctx.GetDataBox().SyncProcess(ctx.DataRequest)
-					//fmt.Println(string(ctx.DataResponse.GetBody()))
 				},
 			},
 			"end": {
 				ParseFunc: func(ctx *Context) {
 					fmt.Println("end start ...")
+					paramBatch := ctx.DataRequest.Bobject.(entity.BatchReqestVo)
+					addressList := ctx.GetDataBox().GetNodeAddress()
 
-					//ctx.GetDataBox().SyncProcess(ctx.DataRequest)
-					//fmt.Println(string(ctx.DataResponse.GetBody()))
-				},
-			},
-			"collision1": {
-				SyncFunc: func(ctx *Context) *response.DataResponse {
-					fmt.Println(")))))))))))))))))))")
-
-					return nil
+					paramBatch.ReqType = entity.ReqType_End
+					paramBatch.DataBoxId = ctx.DataRequest.DataBoxId
+					data, err := json.Marshal(paramBatch)
+					if err != nil {
+						return
+					}
+					for _, addr := range addressList {
+						ctx.AddQueue(&request.DataRequest{
+							Url:          addr.GetUrl(),
+							TransferType: request.HTTP,
+							Priority:     1,
+							Reloadable:   true,
+							Parameters:   data,
+						})
+					}
 				},
 			},
 		},

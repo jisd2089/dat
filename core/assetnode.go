@@ -47,6 +47,7 @@ type (
 		GetDataBoxByName(string) *databox.DataBox                                // 通过名字获取某DataBox
 		GetActiveDataBoxByName(string) *databox.DataBox                          // 通过名字获取某活跃DataBox
 		GetDataBoxQueue() dataman.DataBoxQueue                                   // 获取DataBox队列接口实例
+		GetDataManPool() dataman.DataManPool                                     // 获取DataManPool
 		GetOutputLib() []string                                                  // 获取全部输出方式
 		GetTaskBase() *distribute.TaskBase                                       // 返回任务库
 		distribute.Distributer                                                   // 实现分布式接口
@@ -286,6 +287,10 @@ func (self *NodeEntity) GetDataBoxQueue() dataman.DataBoxQueue {
 	return self.DataBoxQueue
 }
 
+func (ne *NodeEntity) GetDataManPool() dataman.DataManPool {
+	return ne.DataManPool
+}
+
 // 系统启动
 func (ne *NodeEntity) Run() {
 
@@ -350,7 +355,7 @@ func (ne *NodeEntity) exec() {
 
 	// 设置数据信使队列
 	//dataManCap := ne.DataManPool.Reset(count)
-	dataManCap := ne.DataManPool.Reset(100)
+	dataManCap := ne.DataManPool.Reset(10000)
 
 	//logs.Log.Informational(" *     执行任务总数(任务数[*自定义配置数])为 %v 个\n", count)
 	logs.Log.Informational(" *     DataManPool池容量为 %v\n", dataManCap)
@@ -602,15 +607,34 @@ func (ne *NodeEntity) goSyncRun() {
 
 // 执行ActiveBox请求，同步返回
 func (ne *NodeEntity) RunActiveBox(b *databox.DataBox, obj interface{}) *response.DataResponse {
+	var context *databox.Context
 	var dataResp *response.DataResponse
 
 	m := ne.DataManPool.Use()
 	if m != nil {
 		// 执行并返回结果消息
-		dataResp = m.MiniInit(b).RunRequest(obj)
+		ne.RWMutex.RLock()
+		context = m.MiniInit(b).RunRequest(obj)
+
+		dataResp = context.DataResponse
+		defer databox.PutContext(context)
+
+		// 该条请求文件结果存入pipeline
+		om := ne.DataManPool.GetOneById(b.OrigDataManId)
+		for _, f := range context.PullFiles() {
+			if om.GetPipeline().CollectFile(f) != nil {
+				break
+			}
+		}
+		// 该条请求文本结果存入pipeline
+		for _, item := range context.PullItems() {
+			if om.GetPipeline().CollectData(item) != nil {
+				break
+			}
+		}
 
 		// 任务结束后回收该信使
-		ne.RWMutex.RLock()
+
 		if ne.status != status.STOP {
 			m.Stop() // 停止信使
 			ne.DataManPool.Free(m)
@@ -621,11 +645,17 @@ func (ne *NodeEntity) RunActiveBox(b *databox.DataBox, obj interface{}) *respons
 }
 
 func (ne *NodeEntity) StopActiveBox(b *databox.DataBox) {
-	ne.RWMutex.RLock()
-	defer ne.RWMutex.RUnlock()
+	for {
+		if b.IsRequestEmpty() {
 
-	close(b.BlockChan)
-	b.RemoveActiveDataBox()
+			ne.RWMutex.RLock()
+			defer ne.RWMutex.RUnlock()
+
+			close(b.BlockChan)
+			b.RemoveActiveDataBox()
+			break
+		}
+	}
 }
 
 // Offline 模式下暂停\恢复任务

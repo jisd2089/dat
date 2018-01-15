@@ -5,7 +5,11 @@ import (
 	"fmt"
 	"dat/core"
 	"sync"
-	"dat/core/databox"
+	//"dat/core/databox"
+	"dat/dep/management/entity"
+	"github.com/kubernetes/kubernetes/staging/src/k8s.io/apimachinery/pkg/util/json"
+	"dat/dep/management/constant"
+	"strconv"
 )
 
 /**
@@ -21,17 +25,32 @@ func NewSupService() *SupService {
 /**
 * 以一对一批量碰撞为例
 * 2. 供方前置机接收需方exid单条请求，单批次结束批量文件推送给供方
+*
+* 2.1 匹配相应的DataBox
+* 2.2 执行碰撞rule，同步返回碰撞结果
+* 2.3 碰撞结束，执行推送rule，推送文件至供方
+*
+* 1.1) 接收到start请求后，实例化一个DataBox单例
+* 1.2) 初始化， 启动DataBox，
+* 2) 接收normal请求，DataBox处理
+* 3.1) 接收end请求，DataBox处理
+* 3.2) 关闭DataBox
 */
 func (d *SupService) RecDemReqAndPushToSup(ctx *fasthttp.RequestCtx) {
 
+	requestData := ctx.Request.Body()
+	batchReqestVo := &entity.BatchReqestVo{}
+	if err := json.Unmarshal(requestData, batchReqestVo); err != nil {
+		return
+	}
+	pairDataBoxId := batchReqestVo.DataBoxId
+	activeDataBoxName := "suprec" + "_" + strconv.Itoa(pairDataBoxId)
 
+	fmt.Println("reqType: ", batchReqestVo.ReqType)
 
-	reqType := string(ctx.FormValue("ReqType"))
-	reqParam := string(ctx.FormValue("reqParam"))
-	fmt.Println("reqType: ", reqType)
-
-	switch reqType {
-	case "start":
+	switch batchReqestVo.ReqType {
+	case constant.ReqType_Start:
+		fmt.Println("start activeDataBoxName: ***************", activeDataBoxName)
 		b := assetnode.AssetNodeEntity.GetDataBoxByName("suprec")
 		if b == nil {
 			fmt.Println("databox is nil!")
@@ -39,36 +58,29 @@ func (d *SupService) RecDemReqAndPushToSup(ctx *fasthttp.RequestCtx) {
 		var wg sync.WaitGroup
 		wg.Add(1)
 		b.WG = &wg
+		b.PairDataBoxId = pairDataBoxId
 
 		assetnode.AssetNodeEntity.PushActiveDataBox(b)
 		wg.Wait()
 		fmt.Println("waitgroup end")
-		//defer close(cb.BlockChan)
 
-		ab := assetnode.AssetNodeEntity.GetActiveDataBoxByName("suprec")
+		ab := assetnode.AssetNodeEntity.GetActiveDataBoxByName(activeDataBoxName)
 		fmt.Println("active databox name", ab.Name)
-		dataResp := assetnode.AssetNodeEntity.RunActiveBox(ab, "1111")
+		dataResp := assetnode.AssetNodeEntity.RunActiveBox(ab, batchReqestVo)
 		fmt.Println("dataResp:", dataResp)
-	case "normal":
-		ab := assetnode.AssetNodeEntity.GetActiveDataBoxByName("suprec")
+	case constant.ReqType_Normal:
+		ab := assetnode.AssetNodeEntity.GetActiveDataBoxByName(activeDataBoxName)
+		fmt.Println("activeDataBoxName: ***************", activeDataBoxName)
 		fmt.Println("active databox name", ab.Name)
-		dataResp := assetnode.AssetNodeEntity.RunActiveBox(ab, reqParam)
+		dataResp := assetnode.AssetNodeEntity.RunActiveBox(ab, batchReqestVo)
 		fmt.Println("dataResp:", dataResp)
 
-		//defer close(ab.BlockChan)
-	case "end":
-		b:= assetnode.AssetNodeEntity.GetActiveDataBoxByName("suprec")
+	case constant.ReqType_End:
+		fmt.Println("end activeDataBoxName: ***************", activeDataBoxName)
+		b:= assetnode.AssetNodeEntity.GetActiveDataBoxByName(activeDataBoxName)
 		assetnode.AssetNodeEntity.StopActiveBox(b)
 	}
-	// 2.1 匹配相应的DataBox
-	// 2.2 执行碰撞rule，同步返回碰撞结果
-	// 2.3 碰撞结束，执行推送rule，推送文件至供方
 
-	// 1.1) 接收到start请求后，实例化一个DataBox单例
-	// 1.2) 初始化， 启动DataBox，
-	// 2) 接收normal请求，DataBox处理
-	// 3.1) 接收end请求，DataBox处理
-	// 3.2) 关闭DataBox
 }
 
 /**

@@ -17,7 +17,6 @@ import (
 	"time"
 
 	"github.com/henrylee2cn/pholcus/logs"
-	"dat/core/interaction/response"
 	"fmt"
 	"dat/runtime/status"
 )
@@ -25,14 +24,15 @@ import (
 // 数据信使配送引擎
 type (
 	DataMan interface {
-		MiniInit(box *databox.DataBox) DataMan             // 最小化初始化配送信使引擎
-		Init(box *databox.DataBox) DataMan                 // 初始化配送信使引擎
-		Run()                                              // 运行配送任务
-		SyncRun()                                          // 同步运行配送任务
-		RunRequest(obj interface{}) *response.DataResponse // 执行DataRequest
-		Stop()                                             // 主动终止
-		CanStop() bool                                     // 能否终止
-		GetId() int                                        // 获取引擎ID
+		MiniInit(box *databox.DataBox) DataMan       // 最小化初始化配送信使引擎
+		Init(box *databox.DataBox) DataMan           // 初始化配送信使引擎
+		Run()                                        // 运行配送任务
+		SyncRun()                                    // 同步运行配送任务
+		RunRequest(obj interface{}) *databox.Context // 执行DataRequest
+		Stop()                                       // 主动终止
+		CanStop() bool                               // 能否终止
+		GetId() int                                  // 获取引擎ID
+		GetPipeline() pipeline.Pipeline              // 获取管道
 	}
 	dataMan struct {
 		*databox.DataBox    //执行的采集规则
@@ -100,6 +100,9 @@ func (m *dataMan) SyncRun() {
 	// 启动任务
 	m.DataBox.Start()
 
+	// 持续活跃DataBox的原始dataman id
+	m.DataBox.OrigDataManId = m.id
+
 	// 启动成功后加入活跃队列
 	m.DataBox.AddActiveList()
 
@@ -145,15 +148,21 @@ func (m *dataMan) run() {
 	m.DataBox.Defer()
 }
 
-func (m *dataMan) RunRequest(obj interface{}) *response.DataResponse {
+func (m *dataMan) RunRequest(obj interface{}) *databox.Context {
 	// 队列中取出一条请求并处理
-	req := m.GetOne()
-	if req == nil {
-		// 停止任务
-		if m.DataBox.CanStop() {
-			return nil
+	var req *request.DataRequest
+	for {
+		req = m.GetOne()
+		if req == nil {
+			m.DataBox.Start()
+			//// 停止任务
+			//if m.DataBox.CanStop() {
+			//	return nil
+			//}
+			//return nil
+		} else {
+			break
 		}
-		return nil
 	}
 
 	// 执行请求
@@ -163,12 +172,12 @@ func (m *dataMan) RunRequest(obj interface{}) *response.DataResponse {
 	}()
 	logs.Log.Debug(" *     Start: %v", req.GetUrl())
 	req.Bobject = obj
-	dataResp := m.SyncProcess(req)
+	context := m.SyncProcess(req)
 
 	// 等待处理中的任务完成
 	//m.DataBox.Defer()
 
-	return dataResp
+	return context
 }
 
 func (m *dataMan) CanStop() bool {
@@ -178,13 +187,13 @@ func (m *dataMan) CanStop() bool {
 	return false
 }
 
-// 主动终止
+// 临时dataman终止
 func (m *dataMan) Stop() {
 	// 主动崩溃DataBox运行协程
 	m.status = status.STOP
 
-	m.DataBox.Stop()
-	m.Pipeline.Stop()
+	//m.DataBox.Stop()
+	//m.Pipeline.Stop()
 }
 
 // core processer
@@ -264,7 +273,7 @@ func (m *dataMan) Process(req *request.DataRequest) {
 }
 
 // core processer
-func (m *dataMan) SyncProcess(req *request.DataRequest) *response.DataResponse {
+func (m *dataMan) SyncProcess(req *request.DataRequest) *databox.Context {
 	var (
 		//downUrl = req.GetUrl()
 		b = m.DataBox
@@ -314,17 +323,17 @@ func (m *dataMan) SyncProcess(req *request.DataRequest) *response.DataResponse {
 	ctx.Parse(req.GetRuleName())
 
 	// 该条请求文件结果存入pipeline
-	for _, f := range ctx.PullFiles() {
-		if m.Pipeline.CollectFile(f) != nil {
-			break
-		}
-	}
-	// 该条请求文本结果存入pipeline
-	for _, item := range ctx.PullItems() {
-		if m.Pipeline.CollectData(item) != nil {
-			break
-		}
-	}
+	//for _, f := range ctx.PullFiles() {
+	//	if om.GetPipeline().CollectFile(f) != nil {
+	//		break
+	//	}
+	//}
+	//// 该条请求文本结果存入pipeline
+	//for _, item := range ctx.PullItems() {
+	//	if om.GetPipeline().CollectData(item) != nil {
+	//		break
+	//	}
+	//}
 
 	// 处理成功请求记录
 	b.DoHistory(req, true)
@@ -335,17 +344,18 @@ func (m *dataMan) SyncProcess(req *request.DataRequest) *response.DataResponse {
 	// 提示抓取成功
 	//logs.Log.Informational(" *     Success: %v\n", downUrl)
 
-	// 执行完本次请求，放入一条请求至请求队列供下一次调用使用
-	ctx.AddQueue(req)
-
 	// 释放ctx准备复用
-	defer databox.PutContext(ctx)
-	return ctx.DataResponse
+	//defer databox.PutContext(ctx)
+	return ctx
 }
 
 // 从调度读取一个请求
 func (m *dataMan) GetOne() *request.DataRequest {
 	return m.DataBox.RequestPull()
+}
+
+func (m *dataMan) IsRequestEmpty() bool {
+	return m.DataBox.IsRequestEmpty()
 }
 
 //从调度使用一个资源空位
@@ -370,4 +380,8 @@ func (m *dataMan) SetId(id int) {
 
 func (m *dataMan) GetId() int {
 	return m.id
+}
+
+func (m *dataMan) GetPipeline() pipeline.Pipeline {
+	return m.Pipeline
 }

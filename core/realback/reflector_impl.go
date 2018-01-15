@@ -1,4 +1,4 @@
-package interaction
+package realback
 
 import (
 	"dat/core/interaction/response"
@@ -14,12 +14,14 @@ type Reflect struct {
 	fastHttpTsf transfer.Transfer
 	sftpTsf     transfer.Transfer
 	noneTsf     transfer.Transfer
+	redisTsf    transfer.Transfer
 }
 
 var ReflectHandler = &Reflect{
 	fastHttpTsf: transfer.NewFastTransfer(),
 	sftpTsf:     transfer.NewSftpTransfer(),
 	noneTsf:     transfer.NewNoneTransfer(),
+	redisTsf:    transfer.NewRedisTransfer(),
 }
 
 func (c *Reflect) Handle(cReq *request.DataRequest) *response.DataResponse {
@@ -34,6 +36,8 @@ func (c *Reflect) Handle(cReq *request.DataRequest) *response.DataResponse {
 		resp = c.sftpTsf.ExecuteMethod(cReq).(*response.DataResponse)
 	case request.NONETYPE:
 		resp = c.noneTsf.ExecuteMethod(cReq).(*response.DataResponse)
+	case request.REDIS:
+		resp = c.redisTsf.ExecuteMethod(cReq).(*response.DataResponse)
 	}
 
 	if resp.GetStatusCode() >= 400 {

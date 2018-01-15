@@ -135,6 +135,19 @@ func (self *Matrix) Pull() (req *request.DataRequest) {
 	return
 }
 
+func (m *Matrix) IsEmpty() bool {
+	m.Lock()
+	defer m.Unlock()
+
+	for i := len(m.reqs) - 1; i >= 0; i-- {
+		idx := m.priorities[i]
+		if len(m.reqs[idx]) > 0 {
+			return false
+		}
+	}
+	return true
+}
+
 // 添加节点地址到队列，并发安全
 func (self *Matrix) PushAddr(addr *request.NodeAddress) {
 

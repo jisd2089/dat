@@ -17,6 +17,7 @@ import (
 // DataRequest represents object waiting for being crawled.
 type DataRequest struct {
 	DataBox       string            // 规则名，自动设置，禁止人为填写
+	DataBoxId     int               // databox id
 	TransferType  string            // 传输类型
 	Url           string            // 目标URL，必须设置
 	Rule          string            // 用于解析响应的规则节点名，必须设置
@@ -59,6 +60,7 @@ const (
 
 	HTTP     = "HTTP"
 	SFTP     = "SFTP"
+	REDIS    = "REDIS"
 	NONETYPE = "NONETYPE"
 )
 

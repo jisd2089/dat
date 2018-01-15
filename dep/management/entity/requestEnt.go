@@ -17,10 +17,11 @@ type BatchReqestVo struct {
 	TaskId    string `json:"taskId"`
 	MaxDelay  string `json:"maxDelay"`
 	Header    string `json:"header"`
+	DataBoxId int    `json:"dataBoxId"`
 }
 
 const (
-	ReqType_Start         = "start"
-	ReqType_Normal        = "normal"
-	ReqType_End           = "end"
+	ReqType_Start  = "start"
+	ReqType_Normal = "normal"
+	ReqType_End    = "end"
 )

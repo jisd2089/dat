@@ -14,17 +14,19 @@ import (
 
 type (
 	DataManPool interface {
-		Reset(dataBoxNum int) int // 设置数据信使数量，根据数据流产品数量按需分配
+		Reset(dataBoxNum int) int  // 设置数据信使数量，根据数据流产品数量按需分配
 		Use() DataMan              // 并发安全的使用数据信使
 		Free(DataMan)              // 释放信使资源
-		Stop()
+		Stop()                     // 主动停止
+		GetOneById(id int) DataMan // 根据id获取dataman
 	}
 	dataManPool struct {
-		capacity int          // 信使团队规模
-		count    int          // 信使在岗数量
-		usable   chan DataMan // 信使可用队列
-		all      []DataMan    // 信使团队
-		status   int          // 信使团队状态
+		capacity int             // 信使团队规模
+		count    int             // 信使在岗数量
+		usable   chan DataMan    // 信使可用（空闲）队列
+		all      []DataMan       // 信使团队
+		ranks    map[int]DataMan // 在运行的信使团队，根据编号
+		status   int             // 信使团队状态
 		sync.RWMutex
 	}
 )
@@ -32,6 +34,7 @@ type (
 func NewDataManPool() DataManPool {
 	return &dataManPool{
 		status: status.RUN,
+		ranks:  make(map[int]DataMan),
 		all:    make([]DataMan, 0, config.DATAMANS_CAP),
 	}
 }
@@ -74,6 +77,7 @@ func (dmp *dataManPool) Use() DataMan {
 		}
 		select {
 		case dataMan = <-dmp.usable:
+			dmp.ranks[dataMan.GetId()] = dataMan
 			dmp.Unlock()
 			return dataMan
 		default:
@@ -81,6 +85,7 @@ func (dmp *dataManPool) Use() DataMan {
 				dataMan = New(dmp.count)
 				dmp.all = append(dmp.all, dataMan)
 				dmp.count++
+				dmp.ranks[dataMan.GetId()] = dataMan
 				dmp.Unlock()
 				return dataMan
 			}
@@ -97,6 +102,7 @@ func (dmp *dataManPool) Free(dataMan DataMan) {
 	if dmp.status == status.STOP || !dataMan.CanStop() {
 		return
 	}
+	//delete(dmp.ranks, dataMan.GetId())
 	dmp.usable <- dataMan
 }
 
@@ -117,4 +123,11 @@ func (dmp *dataManPool) Stop() {
 		dataMan.Stop()
 	}
 	// println("CrawlerPool$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$")
+}
+
+// 根据id获取dataman
+func (dmp *dataManPool) GetOneById(id int) DataMan {
+	dmp.Lock()
+	defer dmp.Unlock()
+	return dmp.ranks[id]
 }

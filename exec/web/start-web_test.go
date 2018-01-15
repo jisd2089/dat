@@ -15,6 +15,10 @@ func init() {
 	assetnode.AssetNodeEntity.Init()
 }
 
-func TestRun(t *testing.T) {
-	Run()
+func TestDemRun(t *testing.T) {
+	Run(8899)
+}
+
+func TestSupRun(t *testing.T) {
+	Run(8081)
 }

@@ -8,7 +8,10 @@ import (
 	"dat/core/interaction/request"
 	. "dat/core/databox"
 	"fmt"
-	"dat/core/interaction/response"
+	"dat/runtime/output"
+	"dat/dep/management/entity"
+	"strings"
+	"dat/dep/management/constant"
 )
 
 func init() {
@@ -18,9 +21,6 @@ func init() {
 var SUPREC = &DataBox{
 	Name:        "suprec",
 	Description: "suprec",
-	// Pausetime:    300,
-	// Keyin:        KEYIN,
-	// Limit:        LIMIT,
 	EnableCookie: false,
 	RuleTree: &RuleTree{
 		Root: func(ctx *Context) {
@@ -30,48 +30,48 @@ var SUPREC = &DataBox{
 				TransferType: request.NONETYPE,
 				Priority:     1,
 				//Bobject:      paramBatch,
-				Reloadable:   true,
+				Reloadable: true,
 			})
 		},
 
 		Trunk: map[string]*Rule{
 			"process": {
+				ItemFields: []string{
+					"FileName",
+					"LocalDir",
+					"TargetFolder",
+					"WriteType",
+					"Content",
+				},
 				ParseFunc: func(ctx *Context) {
 					fmt.Println("process start ...")
-					fmt.Println("obj: ", ctx.DataRequest.Bobject.(string))
-					ctx.ExecDataReq(&request.DataRequest{})
-					//ctx.DataResponse = &response.DataResponse{StatusCode: 200, ReturnCode: "000000", ReturnMsg: "成功"}
-				},
-			},
-			"ruleTest2": {
-				ParseFunc: func(ctx *Context) {
-					fmt.Println(")))))))))))))))))))")
-					//fmt.Println(string(ctx.DataResponse.GetBody()))
-					ctx.AddQueue(&request.DataRequest{
-						Rule:         "process",
-						TransferType: request.NONETYPE,
-						Priority:     1,
-						//Bobject:      paramBatch,
-						Reloadable:   true,
-					})
-				},
-			},
-			"ruleTest3": {
-				SyncFunc: func(ctx *Context) *response.DataResponse {
-					fmt.Println(")))))))))))))))))))")
+					batchRequestVo := ctx.DataRequest.Bobject.(*entity.BatchReqestVo)
+					fmt.Println("obj: ", batchRequestVo)
+					writeType := output.CTW
+					fileName := batchRequestVo.UserId + "_" + batchRequestVo.OrderId + "_" + batchRequestVo.IdType + "_" + batchRequestVo.BatchNo + "_" + batchRequestVo.FileNo + ".TARGET"
+					content := ""
 
-					//ctx.GetDataBox().SyncProcess(ctx.DataRequest)
-					//fmt.Println(string(ctx.DataResponse.GetBody()))
-					dResponse := &response.DataResponse{}
-					dResponse.StatusCode = 303
-					return dResponse
-				},
-			},
-			"ruleTest4": {
-				SyncFunc: func(ctx *Context) *response.DataResponse {
-					fmt.Println(")))))))))))))))))))")
+					// Redis碰撞
+					ctx.ExecDataReq(&request.DataRequest{TransferType: request.REDIS,Rule: "process",})
+					if ctx.DataResponse.StatusCode == 200 && strings.EqualFold(ctx.DataResponse.ReturnCode, "000000") {
+						switch batchRequestVo.ReqType {
+						case constant.ReqType_Start:
+							writeType = output.CTW
+							content = batchRequestVo.Header + constant.LineTag
+						case constant.ReqType_Normal:
+							writeType = output.WA
+							content = batchRequestVo.Exid + constant.LineTag
+						}
 
-					return nil
+						// 碰撞成功输出
+						ctx.Output(map[string]interface{}{
+							"FileName":     fileName,
+							"LocalDir":     "D:/output",
+							"TargetFolder": constant.TargetFolder,
+							"WriteType":    writeType,
+							"Content":      content,
+						})
+					}
 				},
 			},
 		},

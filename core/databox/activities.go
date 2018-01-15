@@ -3,6 +3,7 @@ package databox
 import (
 	"fmt"
 	"dat/common/pinyin"
+	"strconv"
 )
 
 /**
@@ -24,7 +25,7 @@ var Activites = &DataBoxActivites{
 
 // 向DataBox活跃列表清单添加新种类
 func (self *DataBoxActivites) Add(b *DataBox) *DataBox {
-	name := b.Name
+	name := b.Name + "_" + strconv.Itoa(b.PairDataBoxId)
 	for i := 2; true; i++ {
 		if _, ok := self.hash[name]; !ok {
 			b.Name = name
