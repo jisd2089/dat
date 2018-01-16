@@ -32,22 +32,22 @@ const (
 
 // 来自配置文件的配置项。
 var (
-	DATAMANS_CAP int = setting.DefaultInt("dataManCap", dataManCap) //datamanpool最大容量
 	// DATA_CHAN_CAP            int    = setting.DefaultInt("datachancap", datachancap)                               // 收集器容量
-	PHANTOMJS                string = setting.String("phantomjs")                                                  // Surfer-Phantom下载器：phantomjs程序路径
-	PROXY                    string = setting.String("proxylib")                                                   // 代理IP文件路径
-	SPIDER_DIR               string = setting.String("spiderdir")                                                  // 动态规则目录
-	FILE_DIR                 string = setting.String("fileoutdir")                                                 // 文件（图片、HTML等）结果的输出目录
-	TEXT_DIR                 string = setting.String("textoutdir")                                                 // excel或csv输出方式下，文本结果的输出目录
-	DB_NAME                  string = setting.String("dbname")                                                     // 数据库名称
-	MGO_CONN_STR             string = setting.String("mgo::connstring")                                            // mongodb连接字符串
-	MGO_CONN_CAP             int    = setting.DefaultInt("mgo::conncap", mgoconncap)                               // mongodb连接池容量
-	MGO_CONN_GC_SECOND       int64  = setting.DefaultInt64("mgo::conngcsecond", mgoconngcsecond)                   // mongodb连接池GC时间，单位秒
-	MYSQL_CONN_STR           string = setting.String("mysql::connstring")                                          // mysql连接字符串
-	MYSQL_CONN_CAP           int    = setting.DefaultInt("mysql::conncap", mysqlconncap)                           // mysql连接池容量
+	DATAMANS_CAP             int    = setting.DefaultInt("dataManCap", dataManCap)                               //datamanpool最大容量
+	PHANTOMJS                string = setting.String("phantomjs")                                                // Surfer-Phantom下载器：phantomjs程序路径
+	PROXY                    string = setting.String("proxylib")                                                 // 代理IP文件路径
+	SPIDER_DIR               string = setting.String("spiderdir")                                                // 动态规则目录
+	FILE_DIR                 string = setting.String("fileoutdir")                                               // 文件（图片、HTML等）结果的输出目录
+	TEXT_DIR                 string = setting.String("textoutdir")                                               // excel或csv输出方式下，文本结果的输出目录
+	DB_NAME                  string = setting.String("dbname")                                                   // 数据库名称
+	MGO_CONN_STR             string = setting.String("mgo::connstring")                                          // mongodb连接字符串
+	MGO_CONN_CAP             int    = setting.DefaultInt("mgo::conncap", mgoconncap)                             // mongodb连接池容量
+	MGO_CONN_GC_SECOND       int64  = setting.DefaultInt64("mgo::conngcsecond", mgoconngcsecond)                 // mongodb连接池GC时间，单位秒
+	MYSQL_CONN_STR           string = setting.String("mysql::connstring")                                        // mysql连接字符串
+	MYSQL_CONN_CAP           int    = setting.DefaultInt("mysql::conncap", mysqlconncap)                         // mysql连接池容量
 	MYSQL_MAX_ALLOWED_PACKET int    = setting.DefaultInt("mysql::maxallowedpacket", mysqlmaxallowedpacket) << 20 // mysql通信缓冲区的最大长度
 
-	KAFKA_BORKERS string = setting.DefaultString("kafka::brokers", kafkabrokers) //kafka brokers
+	KAFKA_BORKERS 		string = setting.DefaultString("kafka::brokers", kafkabrokers) //kafka brokers
 
 	LOG_CAP            int64 = setting.DefaultInt64("log::cap", logcap)          // 日志缓存的容量
 	LOG_LEVEL          int   = logLevel(setting.String("log::level"))            // 全局日志打印级别（亦是日志文件输出级别）

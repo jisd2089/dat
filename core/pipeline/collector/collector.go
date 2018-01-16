@@ -96,6 +96,8 @@ func (c *Collector) Start() {
 				// println("DataChanStop$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$")
 			}()
 			for data := range c.DataChan {
+
+				fmt.Println("read from datachan:", data)
 				// 缓存分批数据
 				c.dataDocker = append(c.dataDocker, data)
 
@@ -111,6 +113,7 @@ func (c *Collector) Start() {
 			// 将剩余收集到但未输出的数据输出
 			c.dataBatch++
 			c.outputData()
+			fmt.Println("output collector closed...")
 			close(dataStop)
 		}()
 

@@ -63,6 +63,7 @@ var SUPREC = &DataBox{
 							content = batchRequestVo.Exid + constant.LineTag
 						}
 
+						fmt.Println("write content$$$$$$$$$: ", content)
 						// 碰撞成功输出
 						ctx.Output(map[string]interface{}{
 							"FileName":     fileName,

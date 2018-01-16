@@ -202,6 +202,7 @@ var DEMSEND = &DataBox{
 				ParseFunc: func(ctx *Context) {
 					fmt.Println("collision start.................")
 					fmt.Println("detail count ", ctx.GetDataBox().DetailCount)
+					fmt.Println("collision response.................", ctx.DataResponse.StatusCode)
 
 					addressList := ctx.GetDataBox().GetNodeAddress()
 					currentUrl := ctx.DataRequest.GetUrl()
@@ -210,40 +211,43 @@ var DEMSEND = &DataBox{
 					fmt.Println(currentUrl)
 					fmt.Println(ctx.DataResponse.ReturnCode)
 
-					if !strings.EqualFold(ctx.DataResponse.ReturnCode, "000000") {
-						for i, addr := range addressList {
-							if strings.EqualFold(addr.GetUrl(), currentUrl) {
-								if i+1 >= len(addressList) { // no hit
-									ctx.GetDataBox().TsfSuccCount ++
-									break
-								}
-								if !addressList[i+1].Connectable {
-									continue
-								}
-								nextUrl := addressList[i+1].GetUrl()
-								ctx.AddQueue(&request.DataRequest{
-									Url:          nextUrl,
-									Rule:         "collision",
-									TransferType: request.HTTP,
-									Priority:     0,
-									Bobject:      ctx.DataRequest.Bobject,
-									Reloadable:   true,
-									Parameters:   ctx.DataRequest.Parameters,
-								})
-							}
-						}
-					} else {
-						ctx.GetDataBox().TsfSuccCount ++
-						fmt.Println("TsfSuccCount ", ctx.GetDataBox().TsfSuccCount)
-					}
+					if ctx.DataResponse.StatusCode == 200 {
 
-					if ctx.GetDataBox().TsfSuccCount == ctx.GetDataBox().DetailCount-1 {
-						ctx.AddQueue(&request.DataRequest{
-							Rule:         "end",
-							TransferType: request.NONETYPE,
-							Priority:     0,
-							Bobject:      ctx.DataRequest.Bobject,
-						})
+						if !strings.EqualFold(ctx.DataResponse.ReturnCode, "000000") {
+							for i, addr := range addressList {
+								if strings.EqualFold(addr.GetUrl(), currentUrl) {
+									if i+1 >= len(addressList) { // no hit
+										ctx.GetDataBox().TsfSuccCount ++
+										break
+									}
+									if !addressList[i+1].Connectable {
+										continue
+									}
+									nextUrl := addressList[i+1].GetUrl()
+									ctx.AddQueue(&request.DataRequest{
+										Url:          nextUrl,
+										Rule:         "collision",
+										TransferType: request.HTTP,
+										Priority:     0,
+										Bobject:      ctx.DataRequest.Bobject,
+										Reloadable:   true,
+										Parameters:   ctx.DataRequest.Parameters,
+									})
+								}
+							}
+						} else {
+							ctx.GetDataBox().TsfSuccCount ++
+						}
+						fmt.Println("TsfSuccCount ", ctx.GetDataBox().TsfSuccCount)
+
+						if ctx.GetDataBox().TsfSuccCount == ctx.GetDataBox().DetailCount-1 {
+							ctx.AddQueue(&request.DataRequest{
+								Rule:         "end",
+								TransferType: request.NONETYPE,
+								Priority:     0,
+								Bobject:      ctx.DataRequest.Bobject,
+							})
+						}
 					}
 				},
 			},

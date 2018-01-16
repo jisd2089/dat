@@ -47,6 +47,7 @@ func (ft *FastTransfer) ExecuteMethod(req Request) Response {
 		dataResponse.SetHeader(&fresp.Header)
 		dataResponse.SetBody(fresp.Body())
 		dataResponse.SetStatusCode(fresp.StatusCode())
+		dataResponse.ReturnCode = "000000"
 		break
 	}
 

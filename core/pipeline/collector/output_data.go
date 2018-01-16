@@ -2,6 +2,7 @@ package collector
 
 import (
 	"github.com/henrylee2cn/pholcus/logs"
+	"fmt"
 )
 
 var (
@@ -34,6 +35,7 @@ func (self *Collector) outputData() {
 	}()
 
 	// 输出统计
+	fmt.Println("DataSum:", dataLen)
 	self.addDataSum(dataLen)
 
 	// 执行输出

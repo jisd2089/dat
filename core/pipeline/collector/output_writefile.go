@@ -27,6 +27,7 @@ func init() {
 			//err error
 		)
 
+		fmt.Println("DataOutput write file start ...")
 		for _, datacell := range self.dataDocker {
 
 			dataMap := datacell["Data"].(map[string]interface{})
@@ -52,6 +53,7 @@ func init() {
 			}
 			outputfile.WriteString(content)
 		}
+		fmt.Println("DataOutput write file end ...")
 		return
 	}
 }

@@ -355,7 +355,7 @@ func (ne *NodeEntity) exec() {
 
 	// 设置数据信使队列
 	//dataManCap := ne.DataManPool.Reset(count)
-	dataManCap := ne.DataManPool.Reset(10000)
+	dataManCap := ne.DataManPool.Reset(1000)
 
 	//logs.Log.Informational(" *     执行任务总数(任务数[*自定义配置数])为 %v 个\n", count)
 	logs.Log.Informational(" *     DataManPool池容量为 %v\n", dataManCap)
@@ -503,18 +503,22 @@ func (ne *NodeEntity) runDataBox() {
 	//	}
 	for {
 		b := ne.DataBoxQueue.GetOne()
-		// 从数据信使队列取出空闲信使，并发执行
-		m := ne.DataManPool.Use()
-		if m != nil {
-			// 执行并返回结果消息
-			m.Init(b).Run()
-			// 任务结束后回收该信使
-			ne.RWMutex.RLock()
-			if ne.status != status.STOP {
-				ne.DataManPool.Free(m)
-			}
-			ne.RWMutex.RUnlock()
+		go ne.goRunDataBox(b)
+	}
+}
+
+func (ne *NodeEntity) goRunDataBox(b *databox.DataBox) {
+	// 从数据信使队列取出空闲信使，并发执行
+	m := ne.DataManPool.Use()
+	if m != nil {
+		// 执行并返回结果消息
+		m.Init(b).Run()
+		// 任务结束后回收该信使
+		ne.RWMutex.RLock()
+		if ne.status != status.STOP {
+			ne.DataManPool.Free(m)
 		}
+		ne.RWMutex.RUnlock()
 	}
 }
 
@@ -587,21 +591,29 @@ func (ne *NodeEntity) goSyncRun() {
 	//		time.Sleep(time.Second)
 	//		goto pause
 	//	}
+	defer func() {
+		fmt.Println("goSyncRun end ^^^^^^^^^^^^^")
+	}()
 	for {
 		b := ne.DataBoxQueue.GetOneActive()
+		fmt.Println("GetOneActive%%%%%%%%%%%%%%%%%%%%%")
 		// 从数据信使队列取出空闲信使，并发执行
-		m := ne.DataManPool.Use()
-		if m != nil {
-			// 执行并返回结果消息
-			m.Init(b).SyncRun()
+		go ne.goManRunBox(b)
+	}
+}
 
-			// 任务结束后回收该信使
-			ne.RWMutex.RLock()
-			if ne.status != status.STOP {
-				ne.DataManPool.Free(m)
-			}
-			ne.RWMutex.RUnlock()
+func (ne *NodeEntity) goManRunBox(b *databox.DataBox) {
+	m := ne.DataManPool.Use()
+	if m != nil {
+		// 执行并返回结果消息
+		m.Init(b).SyncRun()
+
+		// 任务结束后回收该信使
+		ne.RWMutex.RLock()
+		if ne.status != status.STOP {
+			ne.DataManPool.Free(m)
 		}
+		ne.RWMutex.RUnlock()
 	}
 }
 
@@ -621,6 +633,9 @@ func (ne *NodeEntity) RunActiveBox(b *databox.DataBox, obj interface{}) *respons
 
 		// 该条请求文件结果存入pipeline
 		om := ne.DataManPool.GetOneById(b.OrigDataManId)
+
+		fmt.Println("dataman write to file: ", om.GetId())
+		fmt.Println("dataman write content to file: ", context)
 		for _, f := range context.PullFiles() {
 			if om.GetPipeline().CollectFile(f) != nil {
 				break
@@ -645,17 +660,25 @@ func (ne *NodeEntity) RunActiveBox(b *databox.DataBox, obj interface{}) *respons
 }
 
 func (ne *NodeEntity) StopActiveBox(b *databox.DataBox) {
-	for {
-		if b.IsRequestEmpty() {
+	go func() {
+		count := 0
+		for {
+			if b.IsRequestEmpty() {
+				if count == 0 {
+					time.Sleep(5 * time.Second)
+					continue
+				}
 
-			ne.RWMutex.RLock()
-			defer ne.RWMutex.RUnlock()
+				ne.RWMutex.RLock()
+				defer ne.RWMutex.RUnlock()
 
-			close(b.BlockChan)
-			b.RemoveActiveDataBox()
-			break
+				close(b.BlockChan)
+				b.RemoveActiveDataBox()
+				break
+			}
 		}
-	}
+	}()
+
 }
 
 // Offline 模式下暂停\恢复任务
