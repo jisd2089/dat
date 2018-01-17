@@ -61,6 +61,7 @@ const (
 	HTTP     = "HTTP"
 	SFTP     = "SFTP"
 	REDIS    = "REDIS"
+	DATABOX  = "DATABOX"
 	NONETYPE = "NONETYPE"
 )
 

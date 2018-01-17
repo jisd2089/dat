@@ -19,8 +19,8 @@ func init() {
 }
 
 var SUPREC = &DataBox{
-	Name:        "suprec",
-	Description: "suprec",
+	Name:         "suprec",
+	Description:  "suprec",
 	EnableCookie: false,
 	RuleTree: &RuleTree{
 		Root: func(ctx *Context) {
@@ -51,28 +51,49 @@ var SUPREC = &DataBox{
 					fileName := batchRequestVo.UserId + "_" + batchRequestVo.OrderId + "_" + batchRequestVo.IdType + "_" + batchRequestVo.BatchNo + "_" + batchRequestVo.FileNo + ".TARGET"
 					content := ""
 
-					// Redis碰撞
-					ctx.ExecDataReq(&request.DataRequest{TransferType: request.REDIS,Rule: "process",})
-					if ctx.DataResponse.StatusCode == 200 && strings.EqualFold(ctx.DataResponse.ReturnCode, "000000") {
-						switch batchRequestVo.ReqType {
-						case constant.ReqType_Start:
-							writeType = output.CTW
-							content = batchRequestVo.Header + constant.LineTag
-						case constant.ReqType_Normal:
-							writeType = output.WA
-							content = batchRequestVo.Exid + constant.LineTag
-						}
+					ctx.ExecDataReq(&request.DataRequest{TransferType: request.REDIS, Rule: "process",})
+					switch batchRequestVo.ReqType {
+					case constant.ReqType_Start:
+						writeType = output.CTW
+						content = batchRequestVo.Header + constant.LineTag
+					case constant.ReqType_Normal:
+						writeType = output.WA
+						content = batchRequestVo.Exid + constant.LineTag
 
-						fmt.Println("write content$$$$$$$$$: ", content)
-						// 碰撞成功输出
-						ctx.Output(map[string]interface{}{
-							"FileName":     fileName,
-							"LocalDir":     "D:/output",
-							"TargetFolder": constant.TargetFolder,
-							"WriteType":    writeType,
-							"Content":      content,
+						// Redis碰撞
+						ctx.ExecDataReq(&request.DataRequest{TransferType: request.REDIS, Rule: "process",})
+						if ctx.DataResponse.StatusCode == 200 && strings.EqualFold(ctx.DataResponse.ReturnCode, "000000") {
+
+						}
+					case constant.ReqType_End:
+						ctx.GetDataBox().ActiveWG.Wait()
+
+						ctx.AddQueue(&request.DataRequest{
+							Rule:         "pushToSup",
+							TransferType: request.SFTP,
+							Priority:     1,
+							Reloadable:   true,
+							//Bobject:      paramBatch,
 						})
+						return
 					}
+
+					fmt.Println("write content$$$$$$$$$: ", content)
+					ctx.GetDataBox().ActiveWG.Add(1)
+					// 碰撞成功输出
+					ctx.Output(map[string]interface{}{
+						"FileName":     fileName,
+						"LocalDir":     "D:/output",
+						"TargetFolder": constant.TargetFolder,
+						"WriteType":    writeType,
+						"Content":      content,
+					})
+				},
+			},
+			"pushToSup": {
+				ParseFunc: func(ctx *Context) {
+					fmt.Println("pushToSup start ...")
+					ctx.GetDataBox().StopActiveBox()
 				},
 			},
 		},

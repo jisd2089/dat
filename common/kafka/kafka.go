@@ -6,7 +6,7 @@ import (
 
 	"dat/common/util"
 	"dat/config"
-	"github.com/henrylee2cn/pholcus/logs"
+
 
 	"github.com/Shopify/sarama"
 )
@@ -35,7 +35,7 @@ func Refresh() {
 		brokerList := config.KAFKA_BORKERS
 		producer, err = sarama.NewSyncProducer(strings.Split(brokerList, ","), conf)
 		if err != nil {
-			logs.Log.Error("Kafka:%v\n", err)
+			//logs.Log.Error("Kafka:%v\n", err)
 		}
 	})
 }

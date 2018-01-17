@@ -5,7 +5,7 @@ import (
 	"os"
 	"path"
 
-	//"github.com/henrylee2cn/pholcus/logs"
+
 	"dat/runtime/output"
 )
 
@@ -53,6 +53,8 @@ func init() {
 			}
 			outputfile.WriteString(content)
 		}
+
+		self.DataBox.ActiveWG.Done()
 		fmt.Println("DataOutput write file end ...")
 		return
 	}

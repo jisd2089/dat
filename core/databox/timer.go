@@ -4,7 +4,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/henrylee2cn/pholcus/logs"
+
 )
 
 type Timer struct {
@@ -51,16 +51,16 @@ func (self *Timer) set(id string, tol time.Duration, bell *Bell) bool {
 	self.Lock()
 	defer self.Unlock()
 	if self.closed {
-		logs.Log.Critical("************************ ……设置定时器 <%s> 失败，定时系统已关闭 ……************************", id)
+		//logs.Log.Critical("************************ ……设置定时器 <%s> 失败，定时系统已关闭 ……************************", id)
 		return false
 	}
 	c, ok := newClock(id, tol, bell)
 	if !ok {
-		logs.Log.Critical("************************ ……设置定时器 <%s> 失败，参数不正确 ……************************", id)
+		//logs.Log.Critical("************************ ……设置定时器 <%s> 失败，参数不正确 ……************************", id)
 		return ok
 	}
 	self.setting[id] = c
-	logs.Log.Critical("************************ ……设置定时器 <%s> 成功 ……************************", id)
+	//logs.Log.Critical("************************ ……设置定时器 <%s> 成功 ……************************", id)
 	return ok
 }
 
@@ -129,11 +129,11 @@ func newClock(id string, tol time.Duration, bell *Bell) (*Clock, bool) {
 func (self *Clock) sleep() {
 	d := self.duration()
 	self.timer.Reset(d)
-	t0 := time.Now()
-	logs.Log.Critical("************************ ……定时器 <%s> 睡眠 %v ，计划 %v 醒来 ……************************", self.id, d, t0.Add(d).Format("2006-01-02 15:04:05"))
+	//t0 := time.Now()
+	//logs.Log.Critical("************************ ……定时器 <%s> 睡眠 %v ，计划 %v 醒来 ……************************", self.id, d, t0.Add(d).Format("2006-01-02 15:04:05"))
 	<-self.timer.C
-	t1 := time.Now()
-	logs.Log.Critical("************************ ……定时器 <%s> 在 %v 醒来，实际睡眠 %v ……************************", self.id, t1.Format("2006-01-02 15:04:05"), t1.Sub(t0))
+	//t1 := time.Now()
+	//logs.Log.Critical("************************ ……定时器 <%s> 在 %v 醒来，实际睡眠 %v ……************************", self.id, t1.Format("2006-01-02 15:04:05"), t1.Sub(t0))
 }
 
 func (self *Clock) wake() {

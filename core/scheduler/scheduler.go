@@ -7,7 +7,7 @@ import (
 	"dat/core/aid/proxy"
 	"dat/runtime/cache"
 	"dat/runtime/status"
-	"github.com/henrylee2cn/pholcus/logs"
+
 )
 
 // 调度器
@@ -38,14 +38,14 @@ func Init() {
 		if sdl.proxy.Count() > 0 {
 			sdl.useProxy = true
 			sdl.proxy.UpdateTicker(cache.Task.ProxyMinute)
-			logs.Log.Informational(" *     使用代理IP，代理IP更换频率为 %v 分钟\n", cache.Task.ProxyMinute)
+			//logs.Log.Informational(" *     使用代理IP，代理IP更换频率为 %v 分钟\n", cache.Task.ProxyMinute)
 		} else {
 			sdl.useProxy = false
-			logs.Log.Informational(" *     在线代理IP列表为空，无法使用代理IP\n")
+			//logs.Log.Informational(" *     在线代理IP列表为空，无法使用代理IP\n")
 		}
 	} else {
 		sdl.useProxy = false
-		logs.Log.Informational(" *     不使用代理IP\n")
+		//logs.Log.Informational(" *     不使用代理IP\n")
 	}
 
 	sdl.status = status.RUN

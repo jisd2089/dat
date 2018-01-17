@@ -22,7 +22,7 @@ import (
 
 	"golang.org/x/net/html/charset"
 
-	"github.com/henrylee2cn/pholcus/logs"
+
 )
 
 const (
@@ -61,7 +61,7 @@ func Mkdir(Path string) {
 	d, err := os.Stat(p)
 	if err != nil || !d.IsDir() {
 		if err = os.MkdirAll(p, 0777); err != nil {
-			logs.Log.Error("创建路径失败[%v]: %v\n", Path, err)
+			//logs.Log.Error("创建路径失败[%v]: %v\n", Path, err)
 		}
 	}
 }
@@ -126,7 +126,7 @@ func WalkFiles(targpath string, suffixes ...string) (filelist []string) {
 	})
 
 	if err != nil {
-		logs.Log.Error("util.WalkFiles: %v\n", err)
+		//logs.Log.Error("util.WalkFiles: %v\n", err)
 		return
 	}
 
@@ -158,7 +158,7 @@ func WalkDir(targpath string, suffixes ...string) (dirlist []string) {
 	})
 
 	if err != nil {
-		logs.Log.Error("util.WalkDir: %v\n", err)
+		//logs.Log.Error("util.WalkDir: %v\n", err)
 		return
 	}
 
@@ -191,7 +191,7 @@ func WalkRelFiles(targpath string, suffixes ...string) (filelist []string) {
 	})
 
 	if err != nil {
-		logs.Log.Error("util.WalkRelFiles: %v\n", err)
+		//logs.Log.Error("util.WalkRelFiles: %v\n", err)
 		return
 	}
 
@@ -224,7 +224,7 @@ func WalkRelDir(targpath string, suffixes ...string) (dirlist []string) {
 	})
 
 	if err != nil {
-		logs.Log.Error("util.WalkRelDir: %v\n", err)
+		//logs.Log.Error("util.WalkRelDir: %v\n", err)
 		return
 	}
 
@@ -316,7 +316,7 @@ func JsonString(obj interface{}) string {
 //检查并打印错误
 func CheckErr(err error) {
 	if err != nil {
-		logs.Log.Error("%v", err)
+		//logs.Log.Error("%v", err)
 	}
 }
 func CheckErrPanic(err error) {

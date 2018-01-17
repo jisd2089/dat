@@ -11,7 +11,7 @@ import (
 	"dat/runtime/cache"
 	"dat/runtime/status"
 
-	"github.com/henrylee2cn/pholcus/logs"
+
 )
 
 var (
@@ -91,23 +91,23 @@ func run() {
 
 // 服务器模式下接收添加任务的参数
 func parseInput() {
-	logs.Log.Informational("\n添加任务参数——必填：%v\n添加任务参数——必填可选：%v\n", "-c_spider", []string{
-		"-a_keyins",
-		"-a_limit",
-		"-a_outtype",
-		"-a_thread",
-		"-a_pause",
-		"-a_proxyminute",
-		"-a_dockercap",
-		"-a_success",
-		"-a_failure"})
-	logs.Log.Informational("\n添加任务：\n")
+	//logs.Log.Informational("\n添加任务参数——必填：%v\n添加任务参数——必填可选：%v\n", "-c_spider", []string{
+	//	"-a_keyins",
+	//	"-a_limit",
+	//	"-a_outtype",
+	//	"-a_thread",
+	//	"-a_pause",
+	//	"-a_proxyminute",
+	//	"-a_dockercap",
+	//	"-a_success",
+	//	"-a_failure"})
+	//logs.Log.Informational("\n添加任务：\n")
 retry:
 	*dataBoxFlag = ""
 	input := [12]string{}
 	fmt.Scanln(&input[0], &input[1], &input[2], &input[3], &input[4], &input[5], &input[6], &input[7], &input[8], &input[9])
 	if strings.Index(input[0], "=") < 4 {
-		logs.Log.Informational("\n添加任务的参数不正确，请重新输入：")
+		//logs.Log.Informational("\n添加任务的参数不正确，请重新输入：")
 		goto retry
 	}
 	for _, v := range input {
@@ -169,16 +169,16 @@ retry:
 		case "-c_spider":
 			*dataBoxFlag = value
 		default:
-			logs.Log.Informational("\n不可含有未知参数，必填参数：%v\n可选参数：%v\n", "-c_spider", []string{
-				"-a_keyins",
-				"-a_limit",
-				"-a_outtype",
-				"-a_thread",
-				"-a_pause",
-				"-a_proxyminute",
-				"-a_dockercap",
-				"-a_success",
-				"-a_failure"})
+			//logs.Log.Informational("\n不可含有未知参数，必填参数：%v\n可选参数：%v\n", "-c_spider", []string{
+			//	"-a_keyins",
+			//	"-a_limit",
+			//	"-a_outtype",
+			//	"-a_thread",
+			//	"-a_pause",
+			//	"-a_proxyminute",
+			//	"-a_dockercap",
+			//	"-a_success",
+			//	"-a_failure"})
 			goto retry
 		}
 	}

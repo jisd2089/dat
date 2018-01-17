@@ -7,7 +7,7 @@ package dataman
 import (
 	. "dat/core/databox"
 	"dat/common/util"
-	"github.com/henrylee2cn/pholcus/logs"
+
 	"fmt"
 )
 
@@ -110,7 +110,7 @@ func (q *dbq) AddKeyins(keyins string) {
 	}
 
 	if len(unit2) == 0 {
-		logs.Log.Warning("本批任务无需填写自定义配置！\n")
+		//logs.Log.Warning("本批任务无需填写自定义配置！\n")
 		return
 	}
 

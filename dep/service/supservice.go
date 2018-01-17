@@ -16,7 +16,10 @@ import (
     Author: luzequan
     Created: 2018-01-10 13:54:30
 */
-type SupService struct {}
+
+type SupService struct {
+	lock sync.RWMutex
+}
 
 func NewSupService() *SupService {
 	return &SupService{}
@@ -36,7 +39,7 @@ func NewSupService() *SupService {
 * 3.1) 接收end请求，DataBox处理
 * 3.2) 关闭DataBox
 */
-func (d *SupService) RecDemReqAndPushToSup(ctx *fasthttp.RequestCtx) {
+func (s *SupService) RecDemReqAndPushToSup(ctx *fasthttp.RequestCtx) {
 
 	requestData := ctx.Request.Body()
 	batchReqestVo := &entity.BatchReqestVo{}
@@ -50,6 +53,8 @@ func (d *SupService) RecDemReqAndPushToSup(ctx *fasthttp.RequestCtx) {
 
 	switch batchReqestVo.ReqType {
 	case constant.ReqType_Start:
+		s.lock.RLock()
+		defer s.lock.RUnlock()
 		fmt.Println("start activeDataBoxName: ***************", activeDataBoxName)
 		b := assetnode.AssetNodeEntity.GetDataBoxByName("suprec")
 		if b == nil {
@@ -57,7 +62,7 @@ func (d *SupService) RecDemReqAndPushToSup(ctx *fasthttp.RequestCtx) {
 		}
 		var wg sync.WaitGroup
 		wg.Add(1)
-		b.WG = &wg
+		b.StartWG = &wg
 		b.PairDataBoxId = pairDataBoxId
 
 		assetnode.AssetNodeEntity.PushActiveDataBox(b)
@@ -77,8 +82,10 @@ func (d *SupService) RecDemReqAndPushToSup(ctx *fasthttp.RequestCtx) {
 
 	case constant.ReqType_End:
 		fmt.Println("end activeDataBoxName: ***************", activeDataBoxName)
-		b:= assetnode.AssetNodeEntity.GetActiveDataBoxByName(activeDataBoxName)
-		assetnode.AssetNodeEntity.StopActiveBox(b)
+		ab := assetnode.AssetNodeEntity.GetActiveDataBoxByName(activeDataBoxName)
+		//dataResp := assetnode.AssetNodeEntity.RunActiveBox(ab, batchReqestVo)
+		//fmt.Println("dataResp:", dataResp)
+		assetnode.AssetNodeEntity.StopActiveBox(ab)
 	}
 
 }

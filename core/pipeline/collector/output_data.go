@@ -1,7 +1,7 @@
 package collector
 
 import (
-	"github.com/henrylee2cn/pholcus/logs"
+
 	"fmt"
 )
 
@@ -28,9 +28,9 @@ func (self *Collector) outputData() {
 
 	defer func() {
 		if p := recover(); p != nil {
-			logs.Log.Informational(" * ")
-			logs.Log.App(" *     Panic  [数据输出：%v | KEYIN：%v | 批次：%v]   数据 %v 条！ [ERROR]  %v\n",
-				self.DataBox.GetName(), self.DataBox.GetKeyin(), self.dataBatch, dataLen, p)
+			//logs.Log.Informational(" * ")
+			//logs.Log.App(" *     Panic  [数据输出：%v | KEYIN：%v | 批次：%v]   数据 %v 条！ [ERROR]  %v\n",
+			//	self.DataBox.GetName(), self.DataBox.GetKeyin(), self.dataBatch, dataLen, p)
 		}
 	}()
 
@@ -41,13 +41,13 @@ func (self *Collector) outputData() {
 	// 执行输出
 	err := DataOutput[self.outType](self)
 
-	logs.Log.Informational(" * ")
+	//logs.Log.Informational(" * ")
 	if err != nil {
-		logs.Log.App(" *     Fail  [数据输出：%v | KEYIN：%v | 批次：%v]   数据 %v 条！ [ERROR]  %v\n",
-			self.DataBox.GetName(), self.DataBox.GetKeyin(), self.dataBatch, dataLen, err)
+		//logs.Log.App(" *     Fail  [数据输出：%v | KEYIN：%v | 批次：%v]   数据 %v 条！ [ERROR]  %v\n",
+		//	self.DataBox.GetName(), self.DataBox.GetKeyin(), self.dataBatch, dataLen, err)
 	} else {
-		logs.Log.App(" *     [数据输出：%v | KEYIN：%v | 批次：%v]   数据 %v 条！\n",
-			self.DataBox.GetName(), self.DataBox.GetKeyin(), self.dataBatch, dataLen)
+		//logs.Log.App(" *     [数据输出：%v | KEYIN：%v | 批次：%v]   数据 %v 条！\n",
+		//	self.DataBox.GetName(), self.DataBox.GetKeyin(), self.dataBatch, dataLen)
 		self.DataBox.TryFlushSuccess()
 	}
 }

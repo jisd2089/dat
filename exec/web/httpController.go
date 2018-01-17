@@ -8,7 +8,7 @@ import (
 	"dat/core"
 	"dat/common/session"
 	"dat/config"
-	"github.com/henrylee2cn/pholcus/logs"
+
 	"dat/runtime/status"
 )
 
@@ -32,7 +32,7 @@ func web(rw http.ResponseWriter, req *http.Request) {
 	t, err := template.New("index").Parse(string(index)) //解析模板文件
 	// t, err := template.ParseFiles("web/views/index.html") //解析模板文件
 	if err != nil {
-		logs.Log.Error("%v", err)
+		//logs.Log.Error("%v", err)
 	}
 	//获取pholcus信息
 	data := map[string]interface{}{

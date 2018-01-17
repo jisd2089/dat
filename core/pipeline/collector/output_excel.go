@@ -9,7 +9,7 @@ import (
 	"dat/config"
 	"dat/runtime/cache"
 
-	"github.com/henrylee2cn/pholcus/logs"
+
 )
 
 /************************ excel 输出 ***************************/
@@ -38,7 +38,7 @@ func init() {
 				// 添加工作表
 				sheet, err := file.AddSheet(subNamespace)
 				if err != nil {
-					logs.Log.Error("%v", err)
+					//logs.Log.Error("%v", err)
 					continue
 				}
 				sheets[subNamespace] = sheet
@@ -77,7 +77,7 @@ func init() {
 		f2, err := os.Stat(folder)
 		if err != nil || !f2.IsDir() {
 			if err := os.MkdirAll(folder, 0777); err != nil {
-				logs.Log.Error("Error: %v\n", err)
+				//logs.Log.Error("Error: %v\n", err)
 			}
 		}
 

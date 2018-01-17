@@ -9,7 +9,7 @@ import (
 	"dat/common/pool"
 	"dat/common/util"
 	"dat/config"
-	"github.com/henrylee2cn/pholcus/logs"
+	//
 )
 
 /************************ MongoDB 输出 ***************************/
@@ -56,7 +56,7 @@ func init() {
 				for i := 0; i < loop; i++ {
 					err = c.Insert(docs[i*mgo.MaxLen: (i+1)*mgo.MaxLen]...)
 					if err != nil {
-						logs.Log.Error("%v", err)
+						//logs.Log.Error("%v", err)
 					}
 				}
 				if count%mgo.MaxLen == 0 {
@@ -64,7 +64,7 @@ func init() {
 				}
 				err = c.Insert(docs[loop*mgo.MaxLen:]...)
 				if err != nil {
-					logs.Log.Error("%v", err)
+					//logs.Log.Error("%v", err)
 				}
 			}
 

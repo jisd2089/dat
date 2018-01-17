@@ -1,7 +1,7 @@
 package collector
 
 import (
-	"github.com/henrylee2cn/pholcus/logs"
+
 )
 
 // 主命名空间相对于数据库名，不依赖具体数据内容，可选
@@ -22,7 +22,7 @@ func (self *Collector) subNamespace(dataCell map[string]interface{}) string {
 	}
 	defer func() {
 		if p := recover(); p != nil {
-			logs.Log.Error("subNamespace: %v", p)
+			//logs.Log.Error("subNamespace: %v", p)
 		}
 	}()
 	return self.DataBox.SubNamespace(self.DataBox, dataCell)

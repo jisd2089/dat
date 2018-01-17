@@ -78,7 +78,7 @@ var DEMSEND = &DataBox{
 					buf := bufio.NewReader(f)
 
 					for {
-						line, err := buf.ReadString('\n')
+						line, err := buf.ReadLine()
 						line = strings.TrimSpace(line)
 
 						if err == io.EOF {

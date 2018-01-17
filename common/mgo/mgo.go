@@ -7,7 +7,7 @@ import (
 
 	"dat/common/pool"
 	"dat/config"
-	"github.com/henrylee2cn/pholcus/logs"
+
 )
 
 type MgoSrc struct {
@@ -33,9 +33,9 @@ var (
 func Refresh() {
 	session, err = mgo.Dial(config.MGO_CONN_STR)
 	if err != nil {
-		logs.Log.Error("MongoDB：%v\n", err)
+		//logs.Log.Error("MongoDB：%v\n", err)
 	} else if err = session.Ping(); err != nil {
-		logs.Log.Error("MongoDB：%v\n", err)
+		//logs.Log.Error("MongoDB：%v\n", err)
 	} else {
 		session.SetPoolLimit(config.MGO_CONN_CAP)
 	}

@@ -39,10 +39,11 @@ type (
 		DetailCount     int                                                         // 明细条数
 		TsfSuccCount    int                                                         // 流通成功明细条数
 		BlockChan       chan bool                                                   // 用于ActiveDataBox阻塞，持续活跃
-		WG              *sync.WaitGroup                                             // 启动成功通知
+		StartWG         *sync.WaitGroup                                             // 启动成功通知
 		RuleTree        *RuleTree                                                   // 定义具体的配送规则树
 		OrigDataManId   int                                                         // 原始dataman id
 		PairDataBoxId   int                                                         // 对接的databox id
+		ActiveWG        *sync.WaitGroup                                             // 等待所有活动结束
 
 		//interaction.Carrier //全局公用的信息交互载体，使DataBox具有同步处理DataRequest请求能力
 
@@ -90,6 +91,15 @@ func (self DataBox) AddActiveList() *DataBox {
 func (self DataBox) RemoveActiveDataBox() *DataBoxActivites {
 	self.status = status.STOP
 	return Activites.Remove(&self)
+}
+
+// 停止活跃databox
+func (b *DataBox) StopActiveBox() {
+	b.lock.RLock()
+	defer b.lock.RUnlock()
+
+	close(b.BlockChan)
+	b.RemoveActiveDataBox()
 }
 
 // 数据流产品开始穿越
@@ -345,7 +355,7 @@ func (self *DataBox) Copy() *DataBox {
 
 	ghost.timer = self.timer
 	ghost.status = self.status
-	ghost.WG = self.WG
+	ghost.StartWG = self.StartWG
 	ghost.PairDataBoxId = self.PairDataBoxId
 
 	return ghost

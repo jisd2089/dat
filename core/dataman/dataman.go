@@ -16,7 +16,7 @@ import (
 	"dat/core/pipeline"
 	"time"
 
-	"github.com/henrylee2cn/pholcus/logs"
+
 	"fmt"
 	"dat/runtime/status"
 )
@@ -106,7 +106,7 @@ func (m *dataMan) SyncRun() {
 	// 启动成功后加入活跃队列
 	m.DataBox.AddActiveList()
 
-	m.DataBox.WG.Done()
+	m.DataBox.StartWG.Done()
 
 	<-m.DataBox.BlockChan // 等待处理协程退出
 
@@ -136,7 +136,7 @@ func (m *dataMan) run() {
 			defer func() {
 				m.FreeOne()
 			}()
-			logs.Log.Debug(" *     Start: %v", req.GetUrl())
+			//logs.Log.Debug(" *     Start: %v", req.GetUrl())
 			m.Process(req)
 		}()
 
@@ -170,7 +170,7 @@ func (m *dataMan) RunRequest(obj interface{}) *databox.Context {
 	defer func() {
 		m.FreeOne()
 	}()
-	logs.Log.Debug(" *     Start: %v", req.GetUrl())
+	//logs.Log.Debug(" *     Start: %v", req.GetUrl())
 	req.Bobject = obj
 	context := m.SyncProcess(req)
 

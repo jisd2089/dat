@@ -5,7 +5,7 @@ import (
 	"reflect"
 
 	"dat/common/util"
-	"github.com/henrylee2cn/pholcus/logs"
+
 )
 
 type Temp map[string]interface{}
@@ -14,7 +14,7 @@ type Temp map[string]interface{}
 func (self Temp) get(key string, defaultValue interface{}) interface{} {
 	defer func() {
 		if p := recover(); p != nil {
-			logs.Log.Error(" *     Request.Temp.Get(%v): %v", key, p)
+			//logs.Log.Error(" *     Request.Temp.Get(%v): %v", key, p)
 		}
 	}()
 
@@ -29,7 +29,7 @@ func (self Temp) get(key string, defaultValue interface{}) interface{} {
 		err = json.Unmarshal(b, &defaultValue)
 	}
 	if err != nil {
-		logs.Log.Error(" *     Request.Temp.Get(%v): %v", key, err)
+		//logs.Log.Error(" *     Request.Temp.Get(%v): %v", key, err)
 	}
 	return defaultValue
 }
@@ -37,7 +37,7 @@ func (self Temp) get(key string, defaultValue interface{}) interface{} {
 func (self Temp) set(key string, value interface{}) Temp {
 	b, err := json.Marshal(value)
 	if err != nil {
-		logs.Log.Error(" *     Request.Temp.Set(%v): %v", key, err)
+		//logs.Log.Error(" *     Request.Temp.Set(%v): %v", key, err)
 	}
 	self[key] = util.Bytes2String(b)
 	return self

@@ -14,7 +14,7 @@ import (
 	"dat/common/pool"
 	"dat/common/util"
 	"dat/config"
-	"github.com/henrylee2cn/pholcus/logs"
+
 )
 
 type (
@@ -106,7 +106,7 @@ func (self *History) ReadSuccess(provider string, inherit bool) {
 			"Collection": self.Success.tabName,
 		})
 		if err != nil {
-			logs.Log.Error(" *     Fail  [读取成功记录][mgo]: %v\n", err)
+			//logs.Log.Error(" *     Fail  [读取成功记录][mgo]: %v\n", err)
 			return
 		}
 		for _, v := range docs["Docs"].([]interface{}) {
@@ -116,7 +116,7 @@ func (self *History) ReadSuccess(provider string, inherit bool) {
 	case "mysql":
 		_, err := mysql.DB()
 		if err != nil {
-			logs.Log.Error(" *     Fail  [读取成功记录][mysql]: %v\n", err)
+			//logs.Log.Error(" *     Fail  [读取成功记录][mysql]: %v\n", err)
 			return
 		}
 		table, ok := getReadMysqlTable(self.Success.tabName)
@@ -148,7 +148,7 @@ func (self *History) ReadSuccess(provider string, inherit bool) {
 		b[0] = '{'
 		json.Unmarshal(append(b, '}'), &self.Success.old)
 	}
-	logs.Log.Informational(" *     [读取成功记录]: %v 条\n", len(self.Success.old))
+	//logs.Log.Informational(" *     [读取成功记录]: %v 条\n", len(self.Success.old))
 }
 
 // 取出失败记录
@@ -176,7 +176,7 @@ func (self *History) ReadFailure(provider string, inherit bool) {
 	switch provider {
 	case "mgo":
 		if mgo.Error() != nil {
-			logs.Log.Error(" *     Fail  [取出失败记录][mgo]: %v\n", mgo.Error())
+			//logs.Log.Error(" *     Fail  [取出失败记录][mgo]: %v\n", mgo.Error())
 			return
 		}
 
@@ -201,7 +201,7 @@ func (self *History) ReadFailure(provider string, inherit bool) {
 	case "mysql":
 		_, err := mysql.DB()
 		if err != nil {
-			logs.Log.Error(" *     Fail  [取出失败记录][mysql]: %v\n", err)
+			//logs.Log.Error(" *     Fail  [取出失败记录][mysql]: %v\n", err)
 			return
 		}
 		table, ok := getReadMysqlTable(self.Failure.tabName)
@@ -251,7 +251,7 @@ func (self *History) ReadFailure(provider string, inherit bool) {
 		}
 	}
 
-	logs.Log.Informational(" *     [取出失败记录]: %v 条\n", fLen)
+	//logs.Log.Informational(" *     [取出失败记录]: %v 条\n", fLen)
 }
 
 // 清空缓存，但不输出
@@ -274,9 +274,9 @@ func (self *History) FlushSuccess(provider string) {
 	}
 	// logs.Log.Informational(" * ")
 	if err != nil {
-		logs.Log.Error("%v", err)
+		//logs.Log.Error("%v", err)
 	} else {
-		logs.Log.Informational(" *     [添加成功记录]: %v 条\n", sucLen)
+		//logs.Log.Informational(" *     [添加成功记录]: %v 条\n", sucLen)
 	}
 }
 
@@ -291,9 +291,9 @@ func (self *History) FlushFailure(provider string) {
 	}
 	// logs.Log.Informational(" * ")
 	if err != nil {
-		logs.Log.Error("%v", err)
+		//logs.Log.Error("%v", err)
 	} else {
-		logs.Log.Informational(" *     [添加失败记录]: %v 条\n", failLen)
+		//logs.Log.Informational(" *     [添加失败记录]: %v 条\n", failLen)
 	}
 }
 

@@ -9,7 +9,7 @@ import (
 	"dat/config"
 	"dat/runtime/cache"
 	
-	"github.com/henrylee2cn/pholcus/logs"
+
 )
 
 /************************ CSV 输出 ***************************/
@@ -34,7 +34,7 @@ func init() {
 				f, err := os.Stat(folder)
 				if err != nil || !f.IsDir() {
 					if err := os.MkdirAll(folder, 0777); err != nil {
-						logs.Log.Error("Error: %v\n", err)
+						//logs.Log.Error("Error: %v\n", err)
 					}
 				}
 
@@ -42,7 +42,7 @@ func init() {
 				file, err := os.Create(filename)
 
 				if err != nil {
-					logs.Log.Error("%v", err)
+					//logs.Log.Error("%v", err)
 					continue
 				}
 				defer func() {

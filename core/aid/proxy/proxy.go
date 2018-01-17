@@ -13,11 +13,11 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/henrylee2cn/pholcus/app/downloader/request"
-	"github.com/henrylee2cn/pholcus/app/downloader/surfer"
+	"dat/core/interaction/request"
+	"dat/core/interaction/transfer"
 	"github.com/henrylee2cn/pholcus/common/ping"
-	"github.com/henrylee2cn/pholcus/config"
-	"github.com/henrylee2cn/pholcus/logs"
+	"dat/config"
+
 )
 
 type Proxy struct {
@@ -30,7 +30,7 @@ type Proxy struct {
 	ticker      *time.Ticker
 	tickMinute  int64
 	threadPool  chan bool
-	surf        surfer.Surfer
+	transfer    transfer.Transfer
 	sync.Mutex
 }
 
@@ -50,7 +50,7 @@ func New() *Proxy {
 		all:         map[string]bool{},
 		usable:      make(map[string]*ProxyForHost),
 		threadPool:  make(chan bool, MAX_THREAD_NUM),
-		surf:        surfer.New(),
+		transfer:    transfer.NewFastTransfer(),
 	}
 	go p.Update()
 	return p
@@ -127,7 +127,7 @@ func (self *Proxy) GetOne(u string) (curProxy string) {
 	}
 	u2, _ := url.Parse(u)
 	if u2.Host == "" {
-		logs.Log.Informational(" *     [%v]设置代理IP失败，目标url不正确\n", u)
+		//logs.Log.Informational(" *     [%v/]设置代理IP失败，目标url不正确\n", u)
 		return
 	}
 	var key = u2.Host
@@ -165,15 +165,15 @@ func (self *Proxy) GetOne(u string) (curProxy string) {
 		}
 	}
 	if !ok {
-		logs.Log.Informational(" *     [%v]设置代理IP失败，没有可用的代理IP\n", key)
+		//logs.Log.Informational(" *     [%v]设置代理IP失败，没有可用的代理IP\n", key)
 		return
 	}
 	curProxy = proxyForHost.proxys[proxyForHost.curIndex]
 	if proxyForHost.isEcho {
-		logs.Log.Informational(" *     设置代理IP为 [%v](%v)\n",
-			curProxy,
-			proxyForHost.timedelay[proxyForHost.curIndex],
-		)
+		//logs.Log.Informational(" *     设置代理IP为 [%v](%v)\n",
+		//	curProxy,
+		//	proxyForHost.timedelay[proxyForHost.curIndex],
+		//)
 		proxyForHost.isEcho = false
 	}
 	return
@@ -181,7 +181,7 @@ func (self *Proxy) GetOne(u string) (curProxy string) {
 
 // 测试并排序
 func (self *Proxy) testAndSort(key string, testHost string) (*ProxyForHost, bool) {
-	logs.Log.Informational(" *     [%v]正在测试与排序代理IP……", key)
+	//logs.Log.Informational(" *     [%v]正在测试与排序代理IP……", key)
 	proxyForHost := self.usable[key]
 	proxyForHost.proxys = []string{}
 	proxyForHost.timedelay = []time.Duration{}
@@ -207,17 +207,17 @@ func (self *Proxy) testAndSort(key string, testHost string) (*ProxyForHost, bool
 	}
 	if proxyForHost.Len() > 0 {
 		sort.Sort(proxyForHost)
-		logs.Log.Informational(" *     [%v]测试与排序代理IP完成，可用：%v 个\n", key, proxyForHost.Len())
+		//logs.Log.Informational(" *     [%v]测试与排序代理IP完成，可用：%v 个\n", key, proxyForHost.Len())
 		return proxyForHost, true
 	}
-	logs.Log.Informational(" *     [%v]测试与排序代理IP完成，没有可用的代理IP\n", key)
+	//logs.Log.Informational(" *     [%v]测试与排序代理IP完成，没有可用的代理IP\n", key)
 	return proxyForHost, false
 }
 
 // 测试代理ip可用性
 func (self *Proxy) findUsable(proxy string, testHost string) (alive bool, timedelay time.Duration) {
 	t0 := time.Now()
-	req := &request.Request{
+	req := &request.DataRequest{
 		Url:         testHost,
 		Method:      "HEAD",
 		Header:      make(http.Header),
@@ -226,6 +226,6 @@ func (self *Proxy) findUsable(proxy string, testHost string) (alive bool, timede
 		TryTimes:    TRY_TIMES,
 	}
 	req.SetProxy(proxy)
-	_, err := self.surf.Download(req)
-	return err == nil, time.Since(t0)
+	self.transfer.ExecuteMethod(req)
+	return false, time.Since(t0)
 }

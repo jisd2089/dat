@@ -14,7 +14,7 @@ import (
 const (
 	// datachancap             int    = 2 << 14                     // 收集器容量(默认65536)
 	dataManCap            int    = 1000                       // datamanpool最大容量
-	logcap                int64  = 100000                       // 日志缓存的容量
+	logcap                int64  = 100000000                      // 日志缓存的容量
 	loglevel              string = "debug"                     // 全局日志打印级别（亦是日志文件输出级别）
 	logconsolelevel       string = "info"                      // 日志在控制台的显示级别
 	logfeedbacklevel      string = "error"                     // 客户端反馈至服务端的日志级别

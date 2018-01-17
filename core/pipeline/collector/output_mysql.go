@@ -6,7 +6,7 @@ import (
 
 	"dat/common/mysql"
 	"dat/common/util"
-	"github.com/henrylee2cn/pholcus/logs"
+
 )
 
 /************************ Mysql 输出 ***************************/
@@ -60,7 +60,7 @@ func init() {
 						table.AddColumn(`Url VARCHAR(255)`, `ParentUrl VARCHAR(255)`, `DownloadTime VARCHAR(50)`)
 					}
 					if err := table.Create(); err != nil {
-						logs.Log.Error("%v", err)
+						//logs.Log.Error("%v", err)
 						continue
 					} else {
 						setMysqlTable(tName, table)

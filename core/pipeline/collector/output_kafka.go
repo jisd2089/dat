@@ -7,7 +7,7 @@ import (
 
 	"dat/common/kafka"
 	"dat/common/util"
-	"github.com/henrylee2cn/pholcus/logs"
+
 )
 
 /************************ Kafka 输出 ***************************/
@@ -45,7 +45,7 @@ func init() {
 			subNamespace := util.FileNameReplace(self.subNamespace(datacell))
 			topicName := joinNamespaces(namespace, subNamespace)
 			if !topic.MatchString(topicName) {
-				logs.Log.Error("topic格式要求'^[0-9a-zA-Z_-]+$'，当前为：%s", topicName)
+				//logs.Log.Error("topic格式要求'^[0-9a-zA-Z_-]+$'，当前为：%s", topicName)
 				continue
 			}
 			sender, ok := kafkas[topicName]

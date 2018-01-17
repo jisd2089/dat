@@ -8,7 +8,7 @@ import (
 	"dat/common/util"
 	ws "dat/common/websocket"
 	"dat/config"
-	"github.com/henrylee2cn/pholcus/logs"
+
 	"dat/runtime/status"
 )
 
@@ -119,7 +119,7 @@ var (
 func wsHandle(conn *ws.Conn) {
 	defer func() {
 		if p := recover(); p != nil {
-			logs.Log.Error("%v", p)
+			//logs.Log.Error("%v", p)
 		}
 	}()
 	sess, _ := globalSessions.SessionStart(nil, conn.Request())

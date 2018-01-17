@@ -1,7 +1,7 @@
 package databox
 
 import (
-	"bytes"
+	//"bytes"
 	//"io"
 	//"io/ioutil"
 	"mime"
@@ -16,8 +16,8 @@ import (
 	"dat/core/pipeline/collector/data"
 	"dat/common/util"
 
-	"github.com/henrylee2cn/pholcus/common/goquery"
-	"github.com/henrylee2cn/pholcus/logs"
+	//"github.com/henrylee2cn/pholcus/common/goquery"
+
 	//"golang.org/x/net/html/charset"
 	"dat/core/interaction/response"
 	"dat/core/realback"
@@ -28,7 +28,7 @@ type Context struct {
 	DataRequest  *request.DataRequest   // 原始请求
 	DataResponse *response.DataResponse // 响应流，其中URL拷贝自*request.DataRequest
 	text         []byte                 // 下载内容Body的字节流格式
-	dom          *goquery.Document      // 下载内容Body为html时，可转换为Dom的对象
+	//dom          *goquery.Document      // 下载内容Body为html时，可转换为Dom的对象
 	items        []data.DataCell        // 存放以文本形式输出的结果数据
 	files        []data.FileCell        // 存放欲直接输出的文件("Name": string; "Body": io.ReadCloser)
 	Reflector    realback.Reflector     // 同步 DataRequest执行器　
@@ -64,7 +64,7 @@ func PutContext(ctx *Context) {
 	ctx.DataRequest = nil
 	ctx.DataResponse = nil
 	ctx.text = nil
-	ctx.dom = nil
+	//ctx.dom = nil
 	ctx.err = nil
 	contextPool.Put(ctx)
 }
@@ -104,7 +104,7 @@ func (self *Context) AddQueue(req *request.DataRequest) *Context {
 		Prepare()
 
 	if err != nil {
-		logs.Log.Error(err.Error())
+		//logs.Log.Error(err.Error())
 		return self
 	}
 
@@ -181,7 +181,7 @@ func (self *Context) JsAddQueue(jreq map[string]interface{}) *Context {
 		Prepare()
 
 	if err != nil {
-		logs.Log.Error(err.Error())
+		//logs.Log.Error(err.Error())
 		return self
 	}
 
@@ -200,7 +200,7 @@ func (self *Context) JsAddQueue(jreq map[string]interface{}) *Context {
 func (self *Context) Output(item interface{}, ruleName ...string) {
 	_ruleName, rule, found := self.getRule(ruleName...)
 	if !found {
-		logs.Log.Error("DataBox %s 调用Output()时，指定的规则名不存在！", self.dataBox.GetName())
+		//logs.Log.Error("DataBox %s 调用Output()时，指定的规则名不存在！", self.dataBox.GetName())
 		return
 	}
 	var _item map[string]interface{}
@@ -272,7 +272,7 @@ func (self *Context) FileOutput(name ...string) {
 func (self *Context) CreatItem(item map[int]interface{}, ruleName ...string) map[string]interface{} {
 	_, rule, found := self.getRule(ruleName...)
 	if !found {
-		logs.Log.Error("DataBox %s 调用CreatItem()时，指定的规则名不存在！", self.dataBox.GetName())
+		//logs.Log.Error("DataBox %s 调用CreatItem()时，指定的规则名不存在！", self.dataBox.GetName())
 		return nil
 	}
 
@@ -306,7 +306,7 @@ func (self *Context) SetReferer(referer string) *Context {
 func (self *Context) UpsertItemField(field string, ruleName ...string) (index int) {
 	_, rule, found := self.getRule(ruleName...)
 	if !found {
-		logs.Log.Error("DataBox %s 调用UpsertItemField()时，指定的规则名不存在！", self.dataBox.GetName())
+		//logs.Log.Error("DataBox %s 调用UpsertItemField()时，指定的规则名不存在！", self.dataBox.GetName())
 		return
 	}
 	return self.dataBox.UpsertItemField(rule, field)
@@ -321,14 +321,14 @@ func (self *Context) Aid(aid map[string]interface{}, ruleName ...string) interfa
 	_, rule, found := self.getRule(ruleName...)
 	if !found {
 		if len(ruleName) > 0 {
-			logs.Log.Error("调用DataBox %s 不存在的规则: %s", self.dataBox.GetName(), ruleName[0])
+			//logs.Log.Error("调用DataBox %s 不存在的规则: %s", self.dataBox.GetName(), ruleName[0])
 		} else {
-			logs.Log.Error("调用DataBox %s 的Aid()时未指定的规则名", self.dataBox.GetName())
+			//logs.Log.Error("调用DataBox %s 的Aid()时未指定的规则名", self.dataBox.GetName())
 		}
 		return nil
 	}
 	if rule.AidFunc == nil {
-		logs.Log.Error("DataBox %s 的规则 %s 未定义AidFunc", self.dataBox.GetName(), ruleName[0])
+		//logs.Log.Error("DataBox %s 的规则 %s 未定义AidFunc", self.dataBox.GetName(), ruleName[0])
 		return nil
 	}
 	return rule.AidFunc(self, aid)
@@ -349,7 +349,7 @@ func (self *Context) Parse(ruleName ...string) *Context {
 		return self
 	}
 	if rule.ParseFunc == nil {
-		logs.Log.Error("DataBox %s 的规则 %s 未定义ParseFunc", self.dataBox.GetName(), ruleName[0])
+		//logs.Log.Error("DataBox %s 的规则 %s 未定义ParseFunc", self.dataBox.GetName(), ruleName[0])
 		return self
 	}
 	rule.ParseFunc(self)
@@ -370,7 +370,7 @@ func (self *Context) SyncParse(ruleName ...string) *response.DataResponse {
 		return self.DataResponse
 	}
 	if rule.SyncFunc == nil {
-		logs.Log.Error("DataBox %s 的规则 %s 未定义SyncFunc", self.dataBox.GetName(), ruleName[0])
+		//logs.Log.Error("DataBox %s 的规则 %s 未定义SyncFunc", self.dataBox.GetName(), ruleName[0])
 		return self.DataResponse
 	}
 	return rule.SyncFunc(self)
@@ -413,7 +413,7 @@ func (self *Context) ResetText(body string) *Context {
 	x := (*[2]uintptr)(unsafe.Pointer(&body))
 	h := [3]uintptr{x[0], x[1], x[1]}
 	self.text = *(*[]byte)(unsafe.Pointer(&h))
-	self.dom = nil
+	//self.dom = nil
 	return self
 }
 
@@ -427,9 +427,9 @@ func (self *Context) GetError() error {
 }
 
 // 获取日志接口实例。
-func (*Context) Log() logs.Logs {
-	return logs.Log
-}
+//func (*Context) Log() logs.Logs {
+//	return logs.Log
+//}
 
 // 获取DataBox名称。
 func (self *Context) GetDataBox() *DataBox {
@@ -460,7 +460,7 @@ func (self *Context) CopyRequest() *request.DataRequest {
 func (self *Context) GetItemFields(ruleName ...string) []string {
 	_, rule, found := self.getRule(ruleName...)
 	if !found {
-		logs.Log.Error("DataBox %s 调用GetItemFields()时，指定的规则名不存在！", self.dataBox.GetName())
+		//logs.Log.Error("DataBox %s 调用GetItemFields()时，指定的规则名不存在！", self.dataBox.GetName())
 		return nil
 	}
 	return self.dataBox.GetItemFields(rule)
@@ -471,7 +471,7 @@ func (self *Context) GetItemFields(ruleName ...string) []string {
 func (self *Context) GetItemField(index int, ruleName ...string) (field string) {
 	_, rule, found := self.getRule(ruleName...)
 	if !found {
-		logs.Log.Error("DataBox %s 调用GetItemField()时，指定的规则名不存在！", self.dataBox.GetName())
+		//logs.Log.Error("DataBox %s 调用GetItemField()时，指定的规则名不存在！", self.dataBox.GetName())
 		return
 	}
 	return self.dataBox.GetItemField(rule, index)
@@ -482,7 +482,7 @@ func (self *Context) GetItemField(index int, ruleName ...string) (field string) 
 func (self *Context) GetItemFieldIndex(field string, ruleName ...string) (index int) {
 	_, rule, found := self.getRule(ruleName...)
 	if !found {
-		logs.Log.Error("DataBox %s 调用GetItemField()时，指定的规则名不存在！", self.dataBox.GetName())
+		//logs.Log.Error("DataBox %s 调用GetItemField()时，指定的规则名不存在！", self.dataBox.GetName())
 		return
 	}
 	return self.dataBox.GetItemFieldIndex(rule, field)
@@ -588,12 +588,12 @@ func (self *Context) GetMethod() string {
 //}
 
 // GetHtmlParser returns goquery object binded to target crawl result.
-func (self *Context) GetDom() *goquery.Document {
-	if self.dom == nil {
-		self.initDom()
-	}
-	return self.dom
-}
+//func (self *Context) GetDom() *goquery.Document {
+//	if self.dom == nil {
+//		self.initDom()
+//	}
+//	return self.dom
+//}
 
 // GetBodyStr returns plain string crawled.
 func (self *Context) GetText() string {
@@ -620,17 +620,17 @@ func (self *Context) getRule(ruleName ...string) (name string, rule *Rule, found
 }
 
 // GetHtmlParser returns goquery object binded to target crawl result.
-func (self *Context) initDom() *goquery.Document {
-	if self.text == nil {
-		self.initText()
-	}
-	var err error
-	self.dom, err = goquery.NewDocumentFromReader(bytes.NewReader(self.text))
-	if err != nil {
-		panic(err.Error())
-	}
-	return self.dom
-}
+//func (self *Context) initDom() *goquery.Document {
+//	if self.text == nil {
+//		self.initText()
+//	}
+//	var err error
+//	self.dom, err = goquery.NewDocumentFromReader(bytes.NewReader(self.text))
+//	if err != nil {
+//		panic(err.Error())
+//	}
+//	return self.dom
+//}
 
 // GetBodyStr returns plain string crawled.
 func (self *Context) initText() {
@@ -683,7 +683,7 @@ func (self *Context) initText() {
 				//	logs.Log.Warning(" *     [convert][%v]: %v (ignore transcoding)\n", self.GetUrl(), err)
 				//}
 			} else {
-				logs.Log.Warning(" *     [convert][%v]: %v (ignore transcoding)\n", self.GetUrl(), err)
+				//logs.Log.Warning(" *     [convert][%v]: %v (ignore transcoding)\n", self.GetUrl(), err)
 			}
 		}
 	}

@@ -10,7 +10,7 @@ import (
 
 	"dat/common/util"
 	"dat/config"
-	"github.com/henrylee2cn/pholcus/logs"
+
 )
 
 /************************ Mysql 输出 ***************************/
@@ -41,14 +41,14 @@ func Refresh() {
 	once.Do(func() {
 		db, err = sql.Open("mysql", config.MYSQL_CONN_STR+"/"+config.DB_NAME+"?charset=utf8")
 		if err != nil {
-			logs.Log.Error("Mysql：%v\n", err)
+			//logs.Log.Error("Mysql：%v\n", err)
 			return
 		}
 		db.SetMaxOpenConns(config.MYSQL_CONN_CAP)
 		db.SetMaxIdleConns(config.MYSQL_CONN_CAP)
 	})
 	if err = db.Ping(); err != nil {
-		logs.Log.Error("Mysql：%v\n", err)
+		//logs.Log.Error("Mysql：%v\n", err)
 	}
 }
 
@@ -144,7 +144,7 @@ func (self *MyTable) AutoInsert(value []string) *MyTable {
 		nsize += len(v)
 	}
 	if nsize > max_allowed_packet {
-		logs.Log.Error("%v", "packet for query is too large. Try adjusting the 'maxallowedpacket'variable in the 'config.ini'")
+		//logs.Log.Error("%v", "packet for query is too large. Try adjusting the 'maxallowedpacket'variable in the 'config.ini'")
 		return self
 	}
 	self.size += nsize
