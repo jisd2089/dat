@@ -58,6 +58,15 @@ func (q *dbq) Add(df *DataBox) {
 func (q *dbq) AddChan(df *DataBox) {
 	df.SetId(q.idInc.Id())
 	q.dataBoxChan <- df
+
+	if df.IsParentBox {
+		df.ChildBoxChan = make(chan *DataBox )
+		for childBox := range df.ChildBoxChan {
+			//childBox := <- df.ChildBoxChan
+			childBox.SetId(q.idInc.Id())
+			q.dataBoxChan <- childBox
+		}
+	}
 }
 
 func (q *dbq) AddActiveChan(df *DataBox) {

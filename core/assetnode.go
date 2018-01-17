@@ -60,7 +60,7 @@ type (
 		*databox.DataBoxSpecies    //数据产品流种类
 		*databox.DataBoxActivites  // DataBox活跃列表
 		*distribute.TaskBase       //服务器与客户端间传递任务的存储库
-		dataman.DataBoxQueue       //当前任务的数产品流队列
+		dataman.DataBoxQueue       //当前任务的数据产品流队列
 		dataman.DataManPool        //配送回收池
 		teleport.Teleport          // socket长连接双工通信接口，json数据传输
 		status       int           // 运行状态

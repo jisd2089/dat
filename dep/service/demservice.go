@@ -73,21 +73,15 @@ func (d *DemService) RecSupRespAndPushToDem(ctx *fasthttp.RequestCtx) {
 }
 
 
-
-
-
 func (d *DemService) SendDemToSup(ctx *fasthttp.RequestCtx) {
 
 	fmt.Println("hello data")
 
-	df := assetnode.AssetNodeEntity.GetDataBoxByName("demtest")
+	b := assetnode.AssetNodeEntity.GetDataBoxByName("demsplit")
 
-	if df == nil {
+	if b == nil {
 		fmt.Println("databox is nil!")
 	}
 
-	context := databox.GetContext(df, &request.DataRequest{})
-	dresp := context.SyncParse("ruleTest3")
-
-	ctx.Response.SetStatusCode(dresp.StatusCode)
+	setDataBoxQueue(b)
 }

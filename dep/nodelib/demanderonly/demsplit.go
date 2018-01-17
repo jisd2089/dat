@@ -5,7 +5,7 @@ package demanderonly
     Created: 2018-01-16 15:37:57
 */
 import (
-	"path"
+	//"path"
 	"dat/core/interaction/request"
 	. "dat/core/databox"
 	"fmt"
@@ -24,46 +24,56 @@ func init() {
 var DEMSPLIT = &DataBox{
 	Name:        "demsplit",
 	Description: "demsplit",
+	IsParentBox: true,
 	RuleTree: &RuleTree{
 		Root: func(ctx *Context) {
 
-			dataFile := path.Base(ctx.GetDataBox().GetDataFilePath())
+			fmt.Println("demsplit start...")
 
-			f, err := os.Open(dataFile)
-			defer f.Close()
-			if err != nil {
-				fmt.Println(err.Error())
-				return
-			}
-			buf := bufio.NewReader(f)
+			childBox := ctx.GetDataBox().GetChildBoxByName("demchild")
 
-			headerLine := ""
-			rows := 0
-			for {
-				line, err := buf.ReadString('\n')
-				line = strings.TrimSpace(line)
 
-				if err == io.EOF {
-					fmt.Println("file end ###############################")
-					break
-				}
-				if err != nil {
-					break
-				}
-				if rows == 0 { // 返回第一行头记录
-					rows ++
-					headerLine = line
-				} else {
 
-				}
-			}
-			fmt.Println("headerlint", headerLine)
+			ctx.GetDataBox().ChildBoxChan <- childBox.Copy()
+			close(ctx.GetDataBox().ChildBoxChan)
 
-			fmt.Println("NodeAddress: %s", ctx.GetDataBox().GetNodeAddress())
-			ctx.AddQueue(&request.DataRequest{
-				Rule:         "split",
-				TransferType: request.DATABOX,
-			})
+			//dataFile := path.Base(ctx.GetDataBox().GetDataFilePath())
+			//
+			//f, err := os.Open(dataFile)
+			//defer f.Close()
+			//if err != nil {
+			//	fmt.Println(err.Error())
+			//	return
+			//}
+			//buf := bufio.NewReader(f)
+			//
+			//headerLine := ""
+			//rows := 0
+			//for {
+			//	line, err := buf.ReadString('\n')
+			//	line = strings.TrimSpace(line)
+			//
+			//	if err == io.EOF {
+			//		fmt.Println("file end ###############################")
+			//		break
+			//	}
+			//	if err != nil {
+			//		break
+			//	}
+			//	if rows == 0 { // 返回第一行头记录
+			//		rows ++
+			//		headerLine = line
+			//	} else {
+			//
+			//	}
+			//}
+			//fmt.Println("headerlint", headerLine)
+			//
+			//fmt.Println("NodeAddress: %s", ctx.GetDataBox().GetNodeAddress())
+			//ctx.AddQueue(&request.DataRequest{
+			//	Rule:         "split",
+			//	TransferType: request.DATABOX,
+			//})
 		},
 
 		Trunk: map[string]*Rule{

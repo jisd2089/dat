@@ -44,7 +44,8 @@ type (
 		OrigDataManId   int                                                         // 原始dataman id
 		PairDataBoxId   int                                                         // 对接的databox id
 		ActiveWG        *sync.WaitGroup                                             // 等待所有活动结束
-
+		ChildBoxChan    chan *DataBox                                               // 子盒子通道
+		IsParentBox     bool                                                        // 是否父databox
 		//interaction.Carrier //全局公用的信息交互载体，使DataBox具有同步处理DataRequest请求能力
 
 		// 以下字段系统自动赋值
@@ -79,6 +80,11 @@ type (
 func (self DataBox) Register() *DataBox {
 	self.status = status.STOPPED
 	return Species.Add(&self)
+}
+
+// 根据名称获取child box
+func (b *DataBox) GetChildBoxByName(name string) *DataBox {
+	return Species.GetByName(name)
 }
 
 // 添加自身到活跃DataBox列表
@@ -357,6 +363,7 @@ func (self *DataBox) Copy() *DataBox {
 	ghost.status = self.status
 	ghost.StartWG = self.StartWG
 	ghost.PairDataBoxId = self.PairDataBoxId
+	ghost.IsParentBox = self.IsParentBox
 
 	return ghost
 }
