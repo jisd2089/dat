@@ -55,17 +55,18 @@ func (q *dbq) Add(df *DataBox) {
 	q.list = append(q.list, df)
 }
 
-func (q *dbq) AddChan(df *DataBox) {
-	df.SetId(q.idInc.Id())
-	q.dataBoxChan <- df
+func (q *dbq) AddChan(db *DataBox) {
+	db.SetId(q.idInc.Id())
+	q.dataBoxChan <- db
 
-	if df.IsParentBox {
-		df.ChildBoxChan = make(chan *DataBox )
-		for childBox := range df.ChildBoxChan {
-			//childBox := <- df.ChildBoxChan
-			childBox.SetId(q.idInc.Id())
-			q.dataBoxChan <- childBox
-		}
+	if db.IsParentBox {
+		go func(q *dbq, b *DataBox) {
+			b.ChildBoxChan = make(chan *DataBox)
+			for childBox := range b.ChildBoxChan {
+				childBox.SetId(q.idInc.Id())
+				q.dataBoxChan <- childBox
+			}
+		}(q, db)
 	}
 }
 
