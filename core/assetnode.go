@@ -217,8 +217,8 @@ func (self *NodeEntity) DataBoxPrepare(original []*databox.DataBox) AssetNode {
 
 func (self *NodeEntity) PushDataBox(original []*databox.DataBox) AssetNode {
 	// 遍历任务
-	for _, df := range original {
-		dfcopy := df.Copy()
+	for _, b := range original {
+		dfcopy := b.Copy()
 		dfcopy.SetPausetime(self.AppConf.Pausetime)
 		if dfcopy.GetLimit() == databox.LIMIT {
 			dfcopy.SetLimit(self.AppConf.Limit)
@@ -226,6 +226,8 @@ func (self *NodeEntity) PushDataBox(original []*databox.DataBox) AssetNode {
 			dfcopy.SetLimit(-1 * self.AppConf.Limit)
 		}
 		self.DataBoxQueue.AddChan(dfcopy)
+
+		b.Refresh()
 	}
 	// 遍历自定义配置
 	//self.DataBoxQueue.AddKeyins(self.AppConf.Keyins)
@@ -528,6 +530,7 @@ func (ne *NodeEntity) goRunDataBox(b *databox.DataBox) {
 		// 任务结束后回收该信使
 		ne.RWMutex.RLock()
 		if ne.status != status.STOP {
+			//m.Stop()
 			ne.DataManPool.Free(m)
 		}
 		ne.RWMutex.RUnlock()

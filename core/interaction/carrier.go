@@ -15,4 +15,5 @@ import (
 // Function Handler need to return http response from Request.
 type Carrier interface {
 	Handle(*databox.DataBox, *request.DataRequest) *databox.Context
+	Close()
 }

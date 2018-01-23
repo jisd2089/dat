@@ -11,6 +11,7 @@ import (
 	"dat/runtime/status"
 	"dat/runtime/cache"
 
+	"fmt"
 )
 
 // 一个DataBox实例的请求矩阵
@@ -230,9 +231,11 @@ func (self *Matrix) DoHistory(req *request.DataRequest, ok bool) bool {
 
 func (self *Matrix) CanStop() bool {
 	if sdl.checkStatus(status.STOP) {
+		fmt.Println("Matrix status: ", sdl.status)
 		return true
 	}
 	if self.maxPage >= 0 {
+		fmt.Println("Matrix maxPage: ", self.maxPage)
 		return true
 	}
 	if atomic.LoadInt32(&self.resCount) != 0 {
@@ -260,6 +263,7 @@ func (self *Matrix) CanStop() bool {
 			return false
 		}
 	}
+	fmt.Println("Matrix end!!!!!!!!!!! ")
 	return true
 }
 

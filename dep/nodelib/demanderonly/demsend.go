@@ -101,7 +101,7 @@ var DEMSEND = &DataBox{
 								ctx.AddQueue(&request.DataRequest{
 									Url:          addr.GetUrl(),
 									Rule:         "process",
-									TransferType: request.HTTP,
+									TransferType: request.FASTHTTP,
 									Priority:     1,
 									Bobject:      paramBatch,
 									Reloadable:   true,
@@ -189,7 +189,7 @@ var DEMSEND = &DataBox{
 								Url:          addressList[0].GetUrl(),
 								Parameters:   data,
 								Rule:         "collision",
-								TransferType: request.HTTP,
+								TransferType: request.FASTHTTP,
 								Priority:     0,
 								Bobject:      paramBatch,
 								Reloadable:   true,
@@ -227,7 +227,7 @@ var DEMSEND = &DataBox{
 									ctx.AddQueue(&request.DataRequest{
 										Url:          nextUrl,
 										Rule:         "collision",
-										TransferType: request.HTTP,
+										TransferType: request.FASTHTTP,
 										Priority:     0,
 										Bobject:      ctx.DataRequest.Bobject,
 										Reloadable:   true,
@@ -266,7 +266,7 @@ var DEMSEND = &DataBox{
 					for _, addr := range addressList {
 						ctx.AddQueue(&request.DataRequest{
 							Url:          addr.GetUrl(),
-							TransferType: request.HTTP,
+							TransferType: request.FASTHTTP,
 							Priority:     1,
 							Reloadable:   true,
 							Parameters:   data,

@@ -123,10 +123,11 @@ func (m *dataMan) run() {
 		req := m.GetOne()
 		if req == nil {
 			// 停止任务
+			time.Sleep(10 * time.Millisecond)
 			if m.DataBox.CanStop() {
+				fmt.Println("DataBox Can Stop@@@@@@@@@@@@@@@@@@@@@@@@@@")
 				break
 			}
-			time.Sleep(10 * time.Millisecond)
 			continue
 		}
 
@@ -191,6 +192,8 @@ func (m *dataMan) CanStop() bool {
 func (m *dataMan) Stop() {
 	// 主动崩溃DataBox运行协程
 	m.status = status.STOP
+
+	//m.Carrier.Close()
 
 	//m.DataBox.Stop()
 	//m.Pipeline.Stop()

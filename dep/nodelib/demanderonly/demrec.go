@@ -9,6 +9,8 @@ import (
 	. "dat/core/databox"
 	"fmt"
 	"dat/common/sftp"
+	"path"
+	"time"
 )
 
 func init() {
@@ -16,21 +18,11 @@ func init() {
 }
 
 var DEMREC = &DataBox{
-	Name:        "demrec",
-	Description: "demrec",
-	// Pausetime:    300,
-	// Keyin:        KEYIN,
-	// Limit:        LIMIT,
+	Name:         "demrec",
+	Description:  "demrec",
 	EnableCookie: false,
 	RuleTree: &RuleTree{
-		Root: func(ctx *Context) {
-			fmt.Println("demrec Root start ...")
-			// 1. 校验md5
-			ctx.AddQueue(&request.DataRequest{
-				Rule:         "verify",
-				TransferType: request.NONETYPE,
-			})
-		},
+		Root: rootFunc,
 
 		Trunk: map[string]*Rule{
 			"verify": {
@@ -45,12 +37,62 @@ var DEMREC = &DataBox{
 				},
 			},
 			"pushdem": {
-				ParseFunc: func(ctx *Context) {
-					fmt.Println("demrec pushdem start ...")
-					// 3. 记录业务日志
-
-				},
+				ParseFunc: pushdemFunc,
+			},
+			"pushDone": {
+				ParseFunc: pushDoneFunc,
 			},
 		},
 	},
+}
+
+func rootFunc(ctx *Context) {
+	fmt.Println("demrec Root start ...")
+
+	dataFile := ctx.GetDataBox().DataFile
+
+	targetFileDir := "D:/input/SOURCE"
+	targetFilePath := path.Join(targetFileDir, dataFile.Filename)
+
+	ctx.AddQueue(&request.DataRequest{
+		Rule:         "pushdem",
+		TransferType: request.FILETYPE,
+		DataFile:     ctx.GetDataBox().DataFile,
+		PostData:     targetFilePath,
+		Reloadable:   true,
+	})
+}
+
+func pushdemFunc(ctx *Context) {
+	fmt.Println("demrec pushdem start ...")
+
+	targetFilePath := ctx.DataRequest.PostData
+	targetFileDir := path.Dir(targetFilePath)
+	targetFileName := path.Base(targetFilePath)
+
+	fmt.Println("demrec pushdem filePath ...", targetFilePath)
+
+	fileCatalog := &sftp.FileCatalog{
+		UserName:       "ddsdev",
+		Password:       `[BSR3+uLe\U*o^vy`,
+		Host:           "10.101.12.17",
+		Port:           22,
+		TimeOut:        10 * time.Second,
+		LocalDir:       targetFileDir,
+		LocalFileName:  targetFileName,
+		RemoteDir:      "/home/ddsdev/data/test/input",
+		RemoteFileName: targetFileName,
+	}
+
+	ctx.AddQueue(&request.DataRequest{
+		Method:       "PUT",
+		FileCatalog:  fileCatalog,
+		Rule:         "pushDone",
+		TransferType: request.SFTP,
+		Reloadable:   true,
+	})
+}
+
+func pushDoneFunc(ctx *Context) {
+	fmt.Println("demrec pushDoneFunc start ...")
 }

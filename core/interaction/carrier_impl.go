@@ -12,15 +12,19 @@ import (
 )
 
 type Cross struct {
+	httpTsf     transfer.Transfer
 	fastHttpTsf transfer.Transfer
 	sftpTsf     transfer.Transfer
 	noneTsf     transfer.Transfer
+	fileTsf     transfer.Transfer
 }
 
 var CrossHandler = &Cross{
+	httpTsf:     transfer.NewHttpTransfer(),
 	fastHttpTsf: transfer.NewFastTransfer(),
 	sftpTsf:     transfer.NewSftpTransfer(),
 	noneTsf:     transfer.NewNoneTransfer(),
+	fileTsf:     transfer.NewFileTransfer(),
 }
 
 func (c *Cross) Handle(df *databox.DataBox, cReq *request.DataRequest) *databox.Context {
@@ -31,9 +35,13 @@ func (c *Cross) Handle(df *databox.DataBox, cReq *request.DataRequest) *databox.
 
 	switch cReq.GetTransferType() {
 	case request.HTTP:
+		resp = c.httpTsf.ExecuteMethod(cReq).(*response.DataResponse)
+	case request.FASTHTTP:
 		resp = c.fastHttpTsf.ExecuteMethod(cReq).(*response.DataResponse)
 	case request.SFTP:
 		resp = c.sftpTsf.ExecuteMethod(cReq).(*response.DataResponse)
+	case request.FILETYPE:
+		resp = c.fileTsf.ExecuteMethod(cReq).(*response.DataResponse)
 	case request.NONETYPE:
 		resp = c.noneTsf.ExecuteMethod(cReq).(*response.DataResponse)
 	}
@@ -45,4 +53,8 @@ func (c *Cross) Handle(df *databox.DataBox, cReq *request.DataRequest) *databox.
 	ctx.SetResponse(resp).SetError(err)
 
 	return ctx
+}
+
+func (c *Cross) Close() {
+	c.sftpTsf.Close()
 }

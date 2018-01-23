@@ -11,8 +11,8 @@ import (
 */
 
 var (
-	err      error
-	once     sync.Once
+	err        error
+	once       sync.Once
 )
 
 type SSHClient struct {
@@ -29,6 +29,7 @@ func (s *SSHClient) Init(address string, config *ssh.ClientConfig) error {
 		return err
 	}
 	s.Client = sshClient
+
 	return nil
 }
 
@@ -45,4 +46,3 @@ func Refresh() {
 		//}
 	})
 }
-

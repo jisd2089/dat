@@ -19,6 +19,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"dat/common/sftp"
+	"mime/multipart"
 )
 
 type (
@@ -53,6 +55,8 @@ type (
 		GetDownloaderID() int
 		// select Transfer Type
 		GetTransferType() string
+		GetFileCatalog() *sftp.FileCatalog
+		GetDataFile() *multipart.FileHeader
 	}
 
 	// 默认实现的Request

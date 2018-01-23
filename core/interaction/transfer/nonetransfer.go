@@ -29,3 +29,7 @@ func (ft *NoneTransfer) ExecuteMethod(req Request) Response {
 	//fmt.Println("NoneTransfer: %s", req.GetBobject())
 	return &DataResponse{StatusCode: 200, ReturnCode: retCode}
 }
+
+func (ft *NoneTransfer) Close() {
+
+}

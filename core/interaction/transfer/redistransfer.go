@@ -21,3 +21,7 @@ func (ft *RedisTransfer) ExecuteMethod(req Request) Response {
 
 	return  &DataResponse{StatusCode: 200, ReturnCode: "000000"}
 }
+
+func (ft *RedisTransfer) Close() {
+
+}

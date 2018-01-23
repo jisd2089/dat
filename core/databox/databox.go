@@ -13,6 +13,7 @@ import (
 	"dat/core/scheduler"
 	"dat/core/interaction/request"
 	"dat/core/interaction/response"
+	"mime/multipart"
 )
 
 const (
@@ -28,6 +29,7 @@ type (
 		Name            string                                                      // 用户界面显示的名称（应保证唯一性）
 		Description     string                                                      // 用户界面显示的描述
 		DataFilePath    string                                                      // 数据文件地址
+		DataFile        *multipart.FileHeader                                       // 数据文件内容
 		NodeAddress     []*request.NodeAddress                                      // 交互节点地址
 		Pausetime       int64                                                       // 随机暂停区间(50%~200%)，若规则中直接定义，则不被界面传参覆盖
 		Limit           int64                                                       // 默认限制请求数，0为不限；若规则中定义为LIMIT，则采用规则的自定义限制方案
@@ -354,6 +356,7 @@ func (self *DataBox) Copy() *DataBox {
 	ghost.Keyin = self.Keyin
 	ghost.NodeAddress = self.NodeAddress
 	ghost.DataFilePath = self.DataFilePath
+	ghost.DataFile = self.DataFile
 
 	ghost.NotDefaultField = self.NotDefaultField
 	ghost.Namespace = self.Namespace
@@ -366,6 +369,28 @@ func (self *DataBox) Copy() *DataBox {
 	ghost.IsParentBox = self.IsParentBox
 
 	return ghost
+}
+
+func (b *DataBox) Refresh() *DataBox {
+
+	b.Description = ""
+	b.Pausetime = 0
+	b.EnableCookie = false
+	b.Limit = 0
+	b.Keyin = ""
+	b.NodeAddress = nil
+	b.DataFilePath = ""
+	b.DataFile = nil
+
+	b.NotDefaultField = false
+	b.Namespace = nil
+	b.SubNamespace = nil
+
+	b.status = status.RUN
+	b.StartWG = nil
+	b.PairDataBoxId = 0
+	b.IsParentBox = false
+	return b
 }
 
 // DataRequest矩阵初始化

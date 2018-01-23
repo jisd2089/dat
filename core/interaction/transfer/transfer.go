@@ -7,4 +7,5 @@ package transfer
 
 type Transfer interface {
 	ExecuteMethod(Request) Response
+	Close()
 }

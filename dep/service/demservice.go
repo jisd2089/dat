@@ -61,12 +61,20 @@ func setDataBoxQueue(box *databox.DataBox) {
   */
 func (d *DemService) RecSupRespAndPushToDem(ctx *fasthttp.RequestCtx) {
 
+	dataFile, err := ctx.FormFile("file")
+	if err != nil {
+		fmt.Println("filePath err:", err)
+	}
+	fmt.Println("filePath***********: ", dataFile.Filename)
+
 	// 1.1 匹配相应的DataBox
 	b := assetnode.AssetNodeEntity.GetDataBoxByName("demrec")
 
 	if b == nil {
 		fmt.Println("databox is nil!")
 	}
+	b.DataFile = dataFile
+
 	// 1.2 setDataBoxQueue
 	setDataBoxQueue(b)
 	// 1.3 执行DataBox，sftp推送文件，核验

@@ -54,6 +54,9 @@ func (ft *FastTransfer) ExecuteMethod(req Request) Response {
 	return dataResponse
 }
 
+func (ft *FastTransfer) Close() {
+
+}
 
 var (
 	_clientMutex sync.RWMutex

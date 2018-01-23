@@ -97,11 +97,15 @@ func (s *SupService) RecDemReqAndPushToSup(ctx *fasthttp.RequestCtx) {
 */
 func (d *SupService) SupRespSendToDem(ctx *fasthttp.RequestCtx) {
 
+	filePath := string(ctx.FormValue("filePath"))
+
 	// 3.1 匹配相应的DataBox
 	b := assetnode.AssetNodeEntity.GetDataBoxByName("supsend")
 	if b == nil {
 		fmt.Println("databox is nil!")
 	}
+	b.DataFilePath = filePath
+
 	// 3.2 setDataBoxQueue
 	setDataBoxQueue(b)
 	// 3.3 执行DataBox，通过Sftp传输
