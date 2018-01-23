@@ -76,6 +76,13 @@ func (sc *SFTPClient) RemoteRM(remoteDir, remoteFileName string) error {
 从远程服务器指定目录拉取文件
 */
 func (sc *SFTPClient) RemoteGet(fc *FileCatalog) error {
+	defer func() {
+		err := recover()
+		if err != nil {
+			fmt.Println("sftp RemoteGet recover error: ", err)
+		}
+	}()
+
 	sc.lock.RLock()
 	defer sc.lock.RUnlock()
 
@@ -84,6 +91,8 @@ func (sc *SFTPClient) RemoteGet(fc *FileCatalog) error {
 	remoteFile, err := sc.client.Open(path.Join(fc.RemoteDir, fc.RemoteFileName))
 	defer remoteFile.Close()
 	if err != nil {
+		fmt.Println("RemoteGet fc.RemoteFileName", fc.RemoteFileName)
+		fmt.Println("RemoteGet error >>>>>>>>>>>>>>>", fmt.Errorf("RemoteGet Open Remote File [%s] Error: %s", fc.RemoteFileName, err.Error()).Error())
 		return fmt.Errorf("RemoteGet Open Remote File [%s] Error: %s", fc.RemoteFileName, err.Error())
 	}
 
@@ -119,6 +128,13 @@ func isDirExists(path string) bool {
 SFTP推送文件到远程服务器
 */
 func (sc *SFTPClient) RemotePut(fc *FileCatalog) error {
+	defer func() {
+		err := recover()
+		if err != nil {
+			fmt.Println("sftp RemotePut recover error: ", err)
+		}
+	}()
+
 	sc.lock.RLock()
 	defer sc.lock.RUnlock()
 
