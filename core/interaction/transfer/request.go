@@ -21,6 +21,7 @@ import (
 	"time"
 	"dat/common/sftp"
 	"mime/multipart"
+	"gopkg.in/redis.v5"
 )
 
 type (
@@ -57,6 +58,7 @@ type (
 		GetTransferType() string
 		GetFileCatalog() *sftp.FileCatalog
 		GetDataFile() *multipart.FileHeader
+		GetRedisOptions() *redis.Options
 	}
 
 	// 默认实现的Request

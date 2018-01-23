@@ -16,5 +16,7 @@ type (
 		//SetStatusCode(statusCode int) Response
 		GetBody() []byte
 		//SetBody(body []byte) Response
+		GetBodyStr() string
+		GetBodyStrs() []string
 	}
 )

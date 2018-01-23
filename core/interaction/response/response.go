@@ -13,6 +13,8 @@ type DataResponse struct {
 	DataBoxName string                   // 规则名
 	Header      *fasthttp.ResponseHeader // response头
 	Body        []byte                   // 返回消息体
+	BodyStr     string                   // 消息体字符串
+	BodyStrs []string                 // 消息体字符串数组
 	StatusCode  int                      // 返回码
 	ReturnCode  string                   // 业务返回码
 	ReturnMsg   string                   // 业务返回信息
@@ -43,4 +45,12 @@ func (resp *DataResponse) SetBody(body []byte) *DataResponse {
 
 func (resp *DataResponse) GetBody() []byte {
 	return resp.Body
+}
+
+func (dr *DataResponse) GetBodyStr() string {
+	return dr.BodyStr
+}
+
+func (dr *DataResponse) GetBodyStrs() []string {
+	return dr.BodyStrs
 }

@@ -13,6 +13,7 @@ import (
 	"dat/common/util"
 	"dat/common/sftp"
 	"mime/multipart"
+	"gopkg.in/redis.v5"
 )
 
 // DataRequest represents object waiting for being crawled.
@@ -38,6 +39,7 @@ type DataRequest struct {
 	Priority      int                   // 指定调度优先级，默认为0（最小优先级为0）
 	Reloadable    bool                  // 是否允许重复该链接下载
 	FileCatalog   *sftp.FileCatalog     // SFTP使用
+	RedisOptions  *redis.Options        // Redis 连接参数
 	DataFile      *multipart.FileHeader // http传输文件
 	//Surfer下载器内核ID
 	//0为Surf高并发下载器，各种控制功能齐全
@@ -380,6 +382,10 @@ func (dq *DataRequest) GetFileCatalog() *sftp.FileCatalog {
 
 func (dq *DataRequest) GetDataFile() *multipart.FileHeader {
 	return dq.DataFile
+}
+
+func (dq *DataRequest) GetRedisOptions() *redis.Options {
+	return dq.RedisOptions
 }
 
 func (self *DataRequest) MarshalJSON() ([]byte, error) {

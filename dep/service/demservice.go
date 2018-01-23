@@ -18,7 +18,7 @@ func NewDemService() *DemService {
 	return &DemService{}
 }
 
-/**
+/**********************************************************************************************
   * 以一对一批量碰撞为例
   * 1. 需方exid文件，发往供方前置机
   */
@@ -55,7 +55,7 @@ func setDataBoxQueue(box *databox.DataBox) {
 	assetnode.AssetNodeEntity.PushDataBox(dataBoxs)
 }
 
-/**
+/**********************************************************************************************
   * 以一对一批量碰撞为例
   * 4. 需方前置机接收到供方返回文件，推送给需方
   */
@@ -80,6 +80,9 @@ func (d *DemService) RecSupRespAndPushToDem(ctx *fasthttp.RequestCtx) {
 	// 1.3 执行DataBox，sftp推送文件，核验
 }
 
+/**********************************************************************************************
+	test
+ */
 
 func (d *DemService) SendDemToSup(ctx *fasthttp.RequestCtx) {
 

@@ -61,7 +61,12 @@ var SUPREC = &DataBox{
 						content = batchRequestVo.Exid + constant.LineTag
 
 						// Redis碰撞
-						ctx.ExecDataReq(&request.DataRequest{TransferType: request.REDIS, Rule: "process",})
+						ctx.ExecDataReq(&request.DataRequest{
+							Method:       "EXIST",
+							TransferType: request.REDIS,
+							Rule:         "process",
+							PostData:     batchRequestVo.Exid,
+						})
 						if ctx.DataResponse.StatusCode == 200 && strings.EqualFold(ctx.DataResponse.ReturnCode, "000000") {
 
 						}
