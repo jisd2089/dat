@@ -13,10 +13,12 @@ import (
 	"bufio"
 	"strings"
 	"io"
+	"dat/dep/management/constant"
 	"dat/dep/management/util"
 	"dat/dep/management/entity"
 	"os"
 	"strconv"
+	"dat/runtime/output"
 )
 
 func init() {
@@ -56,8 +58,9 @@ var DEMSEND = &DataBox{
 			ctx.AddQueue(&request.DataRequest{
 				Rule:         "start",
 				TransferType: request.NONETYPE,
-				Priority:     1,
+				Priority:     0,
 				Bobject:      paramBatch,
+				Reloadable:   true,
 			})
 		},
 
@@ -237,6 +240,16 @@ var DEMSEND = &DataBox{
 							}
 						} else {
 							ctx.GetDataBox().TsfSuccCount ++
+
+							paramBatch := ctx.DataRequest.Bobject.(entity.BatchReqestVo)
+
+							ctx.Output(map[string]interface{}{
+								"FileName":     path.Base(ctx.GetDataBox().GetDataFilePath()) + ".SUCCESS",
+								"LocalDir":     "D:/dds_send",
+								"TargetFolder": constant.SuccessFolder,
+								"WriteType":    output.CTWR,
+								"Content":      paramBatch.Exid + "\n",
+							})
 						}
 						fmt.Println("TsfSuccCount ", ctx.GetDataBox().TsfSuccCount)
 

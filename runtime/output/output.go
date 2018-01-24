@@ -7,5 +7,5 @@ package output
 const (
 	CTW = iota - 1
 	WA
-
+	CTWR
 )

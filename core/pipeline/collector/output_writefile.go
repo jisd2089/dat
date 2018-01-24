@@ -5,7 +5,6 @@ import (
 	"os"
 	"path"
 
-
 	"dat/runtime/output"
 )
 
@@ -18,6 +17,7 @@ func init() {
 	DataOutput["file"] = func(self *Collector) (err error) {
 		defer func() {
 			if p := recover(); p != nil {
+				fmt.Println("DataOutput recover err ***************************", p)
 				err = fmt.Errorf("%v", p)
 			}
 		}()
@@ -30,6 +30,7 @@ func init() {
 		fmt.Println("DataOutput write file start ...")
 		for _, datacell := range self.dataDocker {
 
+			fmt.Println("datacell content: ", datacell)
 			dataMap := datacell["Data"].(map[string]interface{})
 			fileName := dataMap["FileName"].(string)
 			localDir := dataMap["LocalDir"].(string)
@@ -50,11 +51,19 @@ func init() {
 				if err != nil {
 
 				}
+			case output.CTWR:
+				outputfile, err = os.OpenFile(path.Join(localDir, targetFolder, fileName), os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0666)
+				defer outputfile.Close()
+				if err != nil {
+
+				}
 			}
 			outputfile.WriteString(content)
 		}
 
-		self.DataBox.ActiveWG.Done()
+		if self.DataBox.ActiveWG != nil {
+			self.DataBox.ActiveWG.Done()
+		}
 		fmt.Println("DataOutput write file end ...")
 		return
 	}

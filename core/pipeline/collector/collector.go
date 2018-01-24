@@ -14,7 +14,7 @@ import (
 
 // 结果收集与输出
 type Collector struct {
-	*databox.DataBox             //绑定的流通规则
+	*databox.DataBox              //绑定的流通规则
 	DataChan   chan data.DataCell //文本数据收集通道
 	FileChan   chan data.FileCell //文件收集通道
 	dataDocker []data.DataCell    //分批输出结果缓存
@@ -26,6 +26,7 @@ type Collector struct {
 	wait        sync.WaitGroup
 	dataSumLock sync.RWMutex
 	fileSumLock sync.RWMutex
+	once        sync.Once
 }
 
 func NewCollector(df *databox.DataBox) *Collector {
@@ -205,9 +206,9 @@ func (self *Collector) addFileSum(add uint64) {
 func (self *Collector) Report() {
 	cache.ReportChan <- &cache.Report{
 		DataBoxName: self.DataBox.GetName(),
-		Keyin:        self.GetKeyin(),
-		DataNum:      self.dataSum(),
-		FileNum:      self.fileSum(),
+		Keyin:       self.GetKeyin(),
+		DataNum:     self.dataSum(),
+		FileNum:     self.fileSum(),
 		// DataSize:   self.dataSize(),
 		// FileSize: self.fileSize(),
 		Time: time.Since(cache.StartTime),

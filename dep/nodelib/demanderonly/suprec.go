@@ -10,7 +10,7 @@ import (
 	"fmt"
 	"dat/runtime/output"
 	"dat/dep/management/entity"
-	"strings"
+	//"strings"
 	"dat/dep/management/constant"
 )
 
@@ -61,15 +61,15 @@ var SUPREC = &DataBox{
 						content = batchRequestVo.Exid + constant.LineTag
 
 						// Redis碰撞
-						ctx.ExecDataReq(&request.DataRequest{
-							Method:       "EXIST",
-							TransferType: request.REDIS,
-							Rule:         "process",
-							PostData:     batchRequestVo.Exid,
-						})
-						if ctx.DataResponse.StatusCode == 200 && strings.EqualFold(ctx.DataResponse.ReturnCode, "000000") {
-
-						}
+						//ctx.ExecDataReq(&request.DataRequest{
+						//	Method:       "EXIST",
+						//	TransferType: request.REDIS,
+						//	Rule:         "process",
+						//	PostData:     batchRequestVo.Exid,
+						//})
+						//if ctx.DataResponse.StatusCode == 200 && strings.EqualFold(ctx.DataResponse.ReturnCode, "000000") {
+						//
+						//}
 					case constant.ReqType_End:
 						ctx.GetDataBox().ActiveWG.Wait()
 

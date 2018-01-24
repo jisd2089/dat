@@ -22,5 +22,6 @@ const (
 const (
 	SourceFolder = "source"
 	TargetFolder = "target"
+	SuccessFolder = "success"
 	LineTag = "\n"
 )
