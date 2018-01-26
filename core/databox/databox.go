@@ -114,6 +114,7 @@ func (b *DataBox) StopActiveBox() {
 func (self *DataBox) Start() {
 	defer func() {
 		if p := recover(); p != nil {
+			self.status = status.STOP
 			//logs.Log.Error(" *     Panic  [root]: %v\n", p)
 		}
 		self.lock.Lock()
@@ -435,6 +436,10 @@ func (self *DataBox) RequestPullChan() *request.DataRequest {
 	return self.reqMatrix.PullChan()
 }
 
+func (self *DataBox) RequestChan() chan *request.DataRequest {
+	return self.reqMatrix.RequestChan()
+}
+
 func (self *DataBox) CloseRequestChan() {
 	self.reqMatrix.CloseReqChan()
 }
@@ -474,7 +479,7 @@ func (self *DataBox) TryFlushFailure() {
 func (self *DataBox) CanStop() bool {
 	self.lock.RLock()
 	defer self.lock.RUnlock()
-	return self.status != status.STOPPED && self.reqMatrix.CanStop() && self.status != status.RUNNING
+	return self.status != status.STOPPED && self.reqMatrix.CanStop() && self.status != status.RUN
 }
 
 func (b *DataBox) SetStatus(status int) {

@@ -24,5 +24,4 @@ const (
 	STOP
 	RUN
 	PAUSE
-	RUNNING
 )

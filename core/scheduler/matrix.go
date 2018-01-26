@@ -40,7 +40,7 @@ func newMatrix(dataBoxName, dataBoxSubName string, maxPage int64) *Matrix {
 		addpriors:   []int{},
 		reqs:        make(map[int][]*request.DataRequest),
 		priorities:  []int{},
-		reqChan:     make(chan *request.DataRequest, 1000000),
+		reqChan:     make(chan *request.DataRequest, 100000),
 		history:     history.New(dataBoxName, dataBoxSubName),
 		tempHistory: make(map[string]bool),
 		failures:    make(map[string]*request.DataRequest),
@@ -146,6 +146,10 @@ func (self *Matrix) PushChan(req *request.DataRequest) {
 // 从队列取出请求，不存在时返回nil，并发不安全
 func (self *Matrix) PullChan() (req *request.DataRequest) {
 	return <- self.reqChan
+}
+
+func (self *Matrix) RequestChan() chan *request.DataRequest {
+	return self.reqChan
 }
 
 func (self *Matrix) CloseReqChan() {
@@ -279,7 +283,7 @@ func (self *Matrix) CanStop() bool {
 			return false
 		}
 	}
-	fmt.Println("Matrix end!!!!!!!!!!! ")
+	//fmt.Println("Matrix end!!!!!!!!!!! ")
 	return true
 }
 

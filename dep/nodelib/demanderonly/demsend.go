@@ -181,6 +181,7 @@ func normalFunc(ctx *Context) {
 		err := recover()
 		if err != nil {
 			fmt.Println("normaltype recover error: ", err)
+			ctx.GetDataBox().CloseRequestChan()
 		}
 	}()
 	rows := 0
@@ -201,6 +202,7 @@ func normalFunc(ctx *Context) {
 
 		if err == io.EOF {
 			ctx.GetDataBox().DetailCount = rows
+			defer ctx.GetDataBox().CloseRequestChan()
 			//fmt.Println("file end ###############################", rows, line)
 			break
 		}
@@ -209,7 +211,7 @@ func normalFunc(ctx *Context) {
 		}
 		rows ++
 		if rows != 1 { // 跳过第一行头记录
-			fmt.Println("rownum: ", rows, line)
+			//fmt.Println("rownum: ", rows, line)
 			paramBatch.Exid = line
 			paramBatch.ReqType = entity.ReqType_Normal
 			paramBatch.DataBoxId = ctx.DataRequest.DataBoxId
@@ -231,11 +233,11 @@ func normalFunc(ctx *Context) {
 }
 
 func collisionFunc(ctx *Context) {
-	fmt.Println("collision start.................")
+	//fmt.Println("collision start.................")
 	//fmt.Println("detail count ", ctx.GetDataBox().DetailCount)
-	fmt.Println("collision response.................", ctx.DataResponse.StatusCode, ctx.DataResponse.ReturnCode)
+	//fmt.Println("collision response.................", ctx.DataResponse.StatusCode, ctx.DataResponse.ReturnCode)
 
-	ctx.GetDataBox().SetStatus(status.RUNNING)
+
 	addressList := ctx.GetDataBox().GetNodeAddress()
 	currentUrl := ctx.DataRequest.GetUrl()
 
@@ -281,11 +283,11 @@ func collisionFunc(ctx *Context) {
 				"Content":      paramBatch.Exid + "\n",
 			})
 		}
-		fmt.Println("TsfSuccCount ", ctx.GetDataBox().TsfSuccCount)
+		//fmt.Println("TsfSuccCount ", ctx.GetDataBox().TsfSuccCount)
 
 		if ctx.GetDataBox().TsfSuccCount == ctx.GetDataBox().DetailCount-1 {
-			//ctx.GetDataBox().CloseRequestChan()
-			fmt.Println("dem send end ************************")
+
+			fmt.Println("dem send end ************************", ctx.GetDataBox().GetId())
 
 			ctx.AddQueue(&request.DataRequest{
 				Rule:         "end",
@@ -301,7 +303,7 @@ func collisionFunc(ctx *Context) {
 func endFunc(ctx *Context) {
 	fmt.Println("end start ...")
 
-	ctx.GetDataBox().SetStatus(status.RUN)
+	defer ctx.GetDataBox().SetStatus(status.STOP)
 
 	paramBatch := ctx.DataRequest.Bobject.(entity.BatchReqestVo)
 	addressList := ctx.GetDataBox().GetNodeAddress()

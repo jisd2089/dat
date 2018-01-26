@@ -42,7 +42,7 @@ type (
 		pause  [2]int64        // [请求间隔的最短时长,请求间隔的增幅时长]
 		status int             // 信使状态
 		runWG  *sync.WaitGroup // 运行等待
-		lock   sync.RWMutex    // 读写锁
+		sync.RWMutex           // 读写锁
 	}
 )
 
@@ -74,31 +74,37 @@ func (m *dataMan) MiniInit(b *databox.DataBox) DataMan {
 
 // 任务执行入口
 func (m *dataMan) Run() {
+	m.Lock()
+
 	// 预先启动数据拆包/核验管道
 	m.Pipeline.Start()
 
 	// 运行处理协程
-	c := make(chan bool)
-	go func() {
-		var wg sync.WaitGroup
+	//c := make(chan bool)
+	//go func() {
+	var wg sync.WaitGroup
+	m.runWG = &wg
+	wg.Add(1)
+	go m.run()
+
+	for i := 0; i < 5; i++ {
 		wg.Add(1)
-		m.runWG = &wg
-		go m.run()
+		go m.runChanReq()
+	}
 
-		for i := 0; i < 5; i++ {
-			wg.Add(1)
-			go m.runChanReq()
-		}
-
-		wg.Wait()
-		close(c)
-	}()
+	//	wg.Wait()
+	//	fmt.Println("Run Close Block chan^^^^^^^^^^^")
+	//	close(c)
+	//}()
 
 	// 启动任务
 	m.DataBox.Start()
 
-	<-c // 等待处理协程退出
+	m.Unlock()
+	m.runWG.Wait()
+	//<-c // 等待处理协程退出
 
+	fmt.Println("m.Pipeline.Stop()", m.id)
 	// 停止数据拆包/核验管道
 	m.Pipeline.Stop()
 }
@@ -131,6 +137,22 @@ func (m *dataMan) SyncRun() {
 }
 
 func (m *dataMan) run() {
+
+	fmt.Println("dataMan run start >>>>>>>>>>>>>>>>>>>>>>")
+
+	// 完成
+	defer func() {
+		fmt.Println("dataMan run end @@@@@@@@@@@@@@@@@@@@@@@@@@")
+		m.runWG.Done()
+	}()
+
+	defer func() {
+		err := recover()
+		if err != nil {
+			fmt.Println("dataMan run recover error: ", err)
+		}
+	}()
+
 	for {
 		// 队列中取出一条请求并处理
 		req := m.GetOne()
@@ -155,14 +177,13 @@ func (m *dataMan) run() {
 		}()
 
 		// 随机等待
-		m.sleep()
+		//m.sleep()
 	}
 
 	// 等待处理中的任务完成
 	m.DataBox.Defer()
 
-	// 完成
-	m.runWG.Done()
+	fmt.Println("dataMan run end......")
 }
 
 func (m *dataMan) runChanReq() {
@@ -170,13 +191,14 @@ func (m *dataMan) runChanReq() {
 		// 等待处理中的任务完成
 		//m.DataBox.Defer()TODO
 
+		fmt.Println("runChanReq end............")
+
 		// 完成
 		m.runWG.Done()
 	}()
 
-	for {
-		// 队列中取出一条请求并处理
-		req := m.GetOneFromChan()
+	// 队列中取出一条请求并处理
+	for req := range m.GetRequestChan() {
 
 		// 执行请求
 		m.UseOne()
@@ -242,14 +264,16 @@ func (m *dataMan) Stop() {
 
 // core processer
 func (m *dataMan) Process(req *request.DataRequest) {
-	m.lock.RLock()
-	defer m.lock.RUnlock()
+	m.Lock()
+	defer m.Unlock()
 	var (
 		//downUrl = req.GetUrl()
 		b = m.DataBox
 	)
 	defer func() {
 		if p := recover(); p != nil {
+			defer b.SetStatus(status.RUN)
+
 			if b.IsStopping() {
 				// println("Process$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$")
 				return
@@ -403,6 +427,10 @@ func (m *dataMan) GetOne() *request.DataRequest {
 // 从调度Channel中读取请求
 func (m *dataMan) GetOneFromChan() *request.DataRequest {
 	return m.DataBox.RequestPullChan()
+}
+
+func (m *dataMan) GetRequestChan() chan *request.DataRequest {
+	return m.DataBox.RequestChan()
 }
 
 func (m *dataMan) IsRequestEmpty() bool {
