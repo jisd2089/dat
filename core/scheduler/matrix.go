@@ -23,6 +23,7 @@ type Matrix struct {
 	addpriors       []int                           // 优先级顺序，从低到高
 	reqs            map[int][]*request.DataRequest  // [优先级]队列，优先级默认为0
 	priorities      []int                           // 优先级顺序，从低到高
+	reqChan         chan *request.DataRequest       // 并发DataRequest Channel
 	history         history.Historier               // 历史记录
 	tempHistory     map[string]bool                 // 临时记录 [reqUnique(url+method)]true
 	failures        map[string]*request.DataRequest // 历史及本次失败请求
@@ -39,6 +40,7 @@ func newMatrix(dataBoxName, dataBoxSubName string, maxPage int64) *Matrix {
 		addpriors:   []int{},
 		reqs:        make(map[int][]*request.DataRequest),
 		priorities:  []int{},
+		reqChan:     make(chan *request.DataRequest, 1000000),
 		history:     history.New(dataBoxName, dataBoxSubName),
 		tempHistory: make(map[string]bool),
 		failures:    make(map[string]*request.DataRequest),
@@ -134,6 +136,20 @@ func (self *Matrix) Pull() (req *request.DataRequest) {
 		}
 	}
 	return
+}
+
+// 添加请求到队列，并发不安全
+func (self *Matrix) PushChan(req *request.DataRequest) {
+	self.reqChan <- req
+}
+
+// 从队列取出请求，不存在时返回nil，并发不安全
+func (self *Matrix) PullChan() (req *request.DataRequest) {
+	return <- self.reqChan
+}
+
+func (self *Matrix) CloseReqChan() {
+	close(self.reqChan)
 }
 
 func (m *Matrix) IsEmpty() bool {

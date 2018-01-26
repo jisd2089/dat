@@ -117,6 +117,28 @@ func (self *Context) AddQueue(req *request.DataRequest) *Context {
 	return self
 }
 
+func (self *Context) AddChanQueue(req *request.DataRequest) *Context {
+	self.dataBox.tryPanic()
+
+	err := req.
+		SetDataBoxName(self.dataBox.GetName()).
+		SetEnableCookie(self.dataBox.GetEnableCookie()).
+		Prepare()
+
+	if err != nil {
+		//logs.Log.Error(err.Error())
+		return self
+	}
+
+	// 自动设置Referer
+	if req.GetReferer() == "" && self.DataResponse != nil {
+		req.SetReferer(self.GetUrl())
+	}
+
+	self.dataBox.RequestPushChan(req)
+	return self
+}
+
 // 同步执行DataRequest
 func (c *Context) ExecDataReq(req *request.DataRequest) {
 	c.DataResponse = c.Reflector.Handle(req)

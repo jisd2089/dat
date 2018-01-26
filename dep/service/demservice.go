@@ -24,6 +24,8 @@ func NewDemService() *DemService {
   */
 func (d *DemService) SendDemReqToSup(ctx *fasthttp.RequestCtx) {
 
+	fmt.Println("SendDemReqToSup^^^^^^^^^^^^^^^^^^^^^^")
+
 	filePath := string(ctx.FormValue("filePath"))
 	fmt.Println("filePath:" + filePath)
 	//filePath := "D:/dds_send/JON20171102000000276_ID010201_20171213175701_0002.TARGET"

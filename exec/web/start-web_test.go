@@ -6,7 +6,6 @@ package web
 */
 import (
 	"testing"
-	"dat/core"
 	"encoding/json"
 
 	_ "dat/dep/nodelib/demanderonly"
@@ -15,9 +14,9 @@ import (
 	"reflect"
 )
 
-func init() {
-	assetnode.AssetNodeEntity.Init()
-}
+//func init() {
+//	assetnode.AssetNodeEntity.Init()
+//}
 
 
 

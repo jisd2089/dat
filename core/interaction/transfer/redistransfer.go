@@ -26,7 +26,7 @@ var (
 
 // 封装fasthttp服务
 func (rt *RedisTransfer) ExecuteMethod(req Request) Response {
-	fmt.Println("RedisTransfer")
+	//fmt.Println("RedisTransfer")
 
 	defer func() {
 		err := recover()

@@ -7,8 +7,6 @@ package dataman
 import (
 	. "dat/core/databox"
 	"dat/common/util"
-
-	"fmt"
 )
 
 type (
@@ -72,7 +70,6 @@ func (q *dbq) AddChan(db *DataBox) {
 
 func (q *dbq) AddActiveChan(df *DataBox) {
 	df.SetId(q.idInc.Id())
-	fmt.Println("AddActiveChan&&&&&&&&&&&&&&")
 	q.activeDataBoxChan <- df
 }
 
@@ -98,7 +95,6 @@ func (q *dbq) GetOne() *DataBox {
 }
 
 func (q *dbq) GetOneActive() *DataBox {
-	fmt.Println("GetOneActive&&&&&&&&&&&&&&")
 	return <-q.activeDataBoxChan
 }
 

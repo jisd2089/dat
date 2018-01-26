@@ -98,7 +98,7 @@ func (c *Collector) Start() {
 			}()
 			for data := range c.DataChan {
 
-				fmt.Println("read from datachan:", data)
+				//fmt.Println("read from datachan:", data)
 				// 缓存分批数据
 				c.dataDocker = append(c.dataDocker, data)
 

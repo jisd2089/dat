@@ -18,6 +18,7 @@ import (
 type SftpTransfer struct {
 	sshClient  *SSH.SSHClient
 	sftpClient *sftp.SFTPClient
+	lock       sync.RWMutex
 }
 
 func NewSftpTransfer() *SftpTransfer {
@@ -37,12 +38,16 @@ var (
 
 // 封装sftp服务
 func (st *SftpTransfer) ExecuteMethod(req Request) Response {
+
 	defer func() {
 		err := recover()
 		if err != nil {
 			fmt.Println("sftp recover error: ", err)
 		}
 	}()
+
+	st.lock.Lock()
+	defer st.lock.Unlock()
 
 	var (
 		err        error
@@ -59,6 +64,8 @@ RETRY:
 	case "PUT":
 		fmt.Println("sftp put ^^^^^^^^^^^^^^^^^^^^: ", req.GetFileCatalog().LocalFileName)
 		err = st.sftpClient.RemotePut(req.GetFileCatalog())
+	case "CLOSE":
+		st.Close()
 	}
 
 	if err != nil {

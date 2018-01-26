@@ -16,9 +16,9 @@ import (
 	"dat/core/pipeline"
 	"time"
 
-
 	"fmt"
 	"dat/runtime/status"
+	"sync"
 )
 
 // 数据信使配送引擎
@@ -35,12 +35,14 @@ type (
 		GetPipeline() pipeline.Pipeline              // 获取管道
 	}
 	dataMan struct {
-		*databox.DataBox    //执行的采集规则
-		interaction.Carrier //全局公用的信息交互载体
-		pipeline.Pipeline   // 拆包与核验管道
-		id     int          // 信使ID
-		pause  [2]int64     //[请求间隔的最短时长,请求间隔的增幅时长]
-		status int          // 信使状态
+		*databox.DataBox       // 执行的采集规则
+		interaction.Carrier    // 全局公用的信息交互载体
+		pipeline.Pipeline      // 拆包与核验管道
+		id     int             // 信使ID
+		pause  [2]int64        // [请求间隔的最短时长,请求间隔的增幅时长]
+		status int             // 信使状态
+		runWG  *sync.WaitGroup // 运行等待
+		lock   sync.RWMutex    // 读写锁
 	}
 )
 
@@ -52,10 +54,10 @@ func New(id int) DataMan {
 	}
 }
 
-func (m *dataMan) Init(f *databox.DataBox) DataMan {
-	m.DataBox = f.ReqmatrixInit()
-	m.Pipeline = pipeline.New(f)
-	m.pause[0] = f.Pausetime / 2
+func (m *dataMan) Init(b *databox.DataBox) DataMan {
+	m.DataBox = b.ReqmatrixInit()
+	m.Pipeline = pipeline.New(b)
+	m.pause[0] = b.Pausetime / 2
 	if m.pause[0] > 0 {
 		m.pause[1] = m.pause[0] * 3
 	} else {
@@ -65,6 +67,7 @@ func (m *dataMan) Init(f *databox.DataBox) DataMan {
 }
 
 func (m *dataMan) MiniInit(b *databox.DataBox) DataMan {
+	//m.DataBox = b.ReqmatrixInit()
 	m.DataBox = b
 	return m
 }
@@ -77,7 +80,17 @@ func (m *dataMan) Run() {
 	// 运行处理协程
 	c := make(chan bool)
 	go func() {
-		m.run()
+		var wg sync.WaitGroup
+		wg.Add(1)
+		m.runWG = &wg
+		go m.run()
+
+		for i := 0; i < 5; i++ {
+			wg.Add(1)
+			go m.runChanReq()
+		}
+
+		wg.Wait()
 		close(c)
 	}()
 
@@ -147,6 +160,34 @@ func (m *dataMan) run() {
 
 	// 等待处理中的任务完成
 	m.DataBox.Defer()
+
+	// 完成
+	m.runWG.Done()
+}
+
+func (m *dataMan) runChanReq() {
+	defer func() {
+		// 等待处理中的任务完成
+		//m.DataBox.Defer()TODO
+
+		// 完成
+		m.runWG.Done()
+	}()
+
+	for {
+		// 队列中取出一条请求并处理
+		req := m.GetOneFromChan()
+
+		// 执行请求
+		m.UseOne()
+		go func() {
+			defer func() {
+				m.FreeOne()
+			}()
+			//logs.Log.Debug(" *     Start: %v", req.GetUrl())
+			m.Process(req)
+		}()
+	}
 }
 
 func (m *dataMan) RunRequest(obj interface{}) *databox.Context {
@@ -201,6 +242,8 @@ func (m *dataMan) Stop() {
 
 // core processer
 func (m *dataMan) Process(req *request.DataRequest) {
+	m.lock.RLock()
+	defer m.lock.RUnlock()
 	var (
 		//downUrl = req.GetUrl()
 		b = m.DataBox
@@ -355,6 +398,11 @@ func (m *dataMan) SyncProcess(req *request.DataRequest) *databox.Context {
 // 从调度读取一个请求
 func (m *dataMan) GetOne() *request.DataRequest {
 	return m.DataBox.RequestPull()
+}
+
+// 从调度Channel中读取请求
+func (m *dataMan) GetOneFromChan() *request.DataRequest {
+	return m.DataBox.RequestPullChan()
 }
 
 func (m *dataMan) IsRequestEmpty() bool {

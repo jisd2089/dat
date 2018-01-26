@@ -2,16 +2,13 @@ package exec
 
 import (
 	"flag"
-	"fmt"
 	"runtime"
 	"strconv"
 	"strings"
 
-	"dat/config"
 	"dat/core"
 	"dat/runtime/cache"
 	"dat/runtime/status"
-	"dat/exec/cmd"
 )
 
 var (
@@ -37,18 +34,22 @@ func init() {
 	//gc.ManualGC()
 }
 
-func DefaultRun(uiDefault string) {
-	fmt.Printf("%v\n\n", config.FULL_NAME)
-	flag.String("a *********************************************** common *********************************************** -a", "", "")
-	// 操作界面
-	uiflag = flag.String("_ui", uiDefault, "   <选择操作界面> [web] [gui] [cmd]")
-	flagCommon()
-	//web.Flag()
-	cmd.Flag()
-	flag.String("z", "", "README:   参数设置参考 [xxx] 提示，参数中包含多个值时以 \",\" 间隔。\r\n")
-	flag.Parse()
-	writeFlag()
-	run(*uiflag)
+//func DefaultRun(uiDefault string) {
+//	fmt.Printf("%v\n\n", config.FULL_NAME)
+//	flag.String("a *********************************************** common *********************************************** -a", "", "")
+//	// 操作界面
+//	uiflag = flag.String("_ui", uiDefault, "   <选择操作界面> [web] [gui] [cmd]")
+//	flagCommon()
+//	//web.Flag()
+//	cmd.Flag()
+//	flag.String("z", "", "README:   参数设置参考 [xxx] 提示，参数中包含多个值时以 \",\" 间隔。\r\n")
+//	flag.Parse()
+//	writeFlag()
+//	run(*uiflag)
+//}
+
+func DefaultRun(port int) {
+	run(port)
 }
 
 func flagCommon() {

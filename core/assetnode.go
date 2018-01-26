@@ -659,8 +659,8 @@ func (ne *NodeEntity) RunActiveBox(b *databox.DataBox, obj interface{}) *respons
 
 		// 该条请求文件结果存入pipeline
 		om := ne.DataManPool.GetOneById(b.OrigDataManId)
-		fmt.Println("dataman write to file: ", om.GetId())
-		fmt.Println("dataman write content to file: ", context)
+		//fmt.Println("dataman write to file, manId: ", om.GetId())
+		//fmt.Println("dataman write content to file: ", context)
 		for _, f := range context.PullFiles() {
 			if om.GetPipeline().CollectFile(f) != nil {
 				break

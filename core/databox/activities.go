@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"dat/common/pinyin"
 	"strconv"
+	"sync"
 )
 
 /**
@@ -15,6 +16,7 @@ type DataBoxActivites struct {
 	list   []*DataBox
 	hash   map[string]*DataBox
 	sorted bool
+	lock   sync.RWMutex
 }
 
 // 全局DataBox活跃列表实例
@@ -25,6 +27,8 @@ var Activites = &DataBoxActivites{
 
 // 向DataBox活跃列表清单添加新种类
 func (self *DataBoxActivites) Add(b *DataBox) *DataBox {
+	self.lock.Lock()
+	defer self.lock.Unlock()
 	name := b.Name + "_" + strconv.Itoa(b.PairDataBoxId)
 	for i := 2; true; i++ {
 		if _, ok := self.hash[name]; !ok {
@@ -41,12 +45,16 @@ func (self *DataBoxActivites) Add(b *DataBox) *DataBox {
 
 // 从DataBox活跃列表清单移除DataBox
 func (self *DataBoxActivites) Remove(b *DataBox) *DataBoxActivites {
+	self.lock.RLock()
+	defer self.lock.RUnlock()
 	delete(self.hash, b.Name)
 	return self
 }
 
 // 获取全部DataBox活跃列表
 func (self *DataBoxActivites) Get() []*DataBox {
+	self.lock.RLock()
+	defer self.lock.RUnlock()
 	if !self.sorted {
 		l := len(self.list)
 		initials := make([]string, l)
@@ -55,7 +63,7 @@ func (self *DataBoxActivites) Get() []*DataBox {
 			initials[i] = self.list[i].GetName()
 			newlist[initials[i]] = self.list[i]
 		}
-		pinyin.SortInitials(initials)  // TODO 定制化排序方法
+		pinyin.SortInitials(initials) // TODO 定制化排序方法
 		for i := 0; i < l; i++ {
 			self.list[i] = newlist[initials[i]]
 		}
@@ -65,5 +73,7 @@ func (self *DataBoxActivites) Get() []*DataBox {
 }
 
 func (self *DataBoxActivites) GetByName(name string) *DataBox {
+	self.lock.RLock()
+	defer self.lock.RUnlock()
 	return self.hash[name]
 }

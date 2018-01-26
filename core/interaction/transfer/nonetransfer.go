@@ -6,28 +6,29 @@ package transfer
 */
 import (
 	. "dat/core/interaction/response"
-	"strings"
-	"fmt"
+	"sync"
 )
 
-type NoneTransfer struct {}
+type NoneTransfer struct {
+	lock sync.RWMutex
+}
 
 func NewNoneTransfer() *NoneTransfer {
 	return &NoneTransfer{}
 }
 
 // 封装NoneType服务
-func (ft *NoneTransfer) ExecuteMethod(req Request) Response {
+func (nt *NoneTransfer) ExecuteMethod(req Request) Response {
 
-	retCode := "000000"
-	if strings.EqualFold(req.GetUrl(), "127.0.0.1/send01") {
-		retCode = "021003"
-		fmt.Println(req.GetBobject())
-	} else {
-
-	}
+	//retCode := "000000"
+	//if strings.EqualFold(req.GetUrl(), "127.0.0.1/send01") {
+	//	retCode = "021003"
+	//	fmt.Println(req.GetBobject())
+	//} else {
+	//
+	//}
 	//fmt.Println("NoneTransfer: %s", req.GetBobject())
-	return &DataResponse{StatusCode: 200, ReturnCode: retCode}
+	return &DataResponse{StatusCode: 200, ReturnCode: "000000"}
 }
 
 func (ft *NoneTransfer) Close() {

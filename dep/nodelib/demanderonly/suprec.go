@@ -8,10 +8,12 @@ import (
 	"dat/core/interaction/request"
 	. "dat/core/databox"
 	"fmt"
+	"dat/common/sftp"
 	"dat/runtime/output"
 	"dat/dep/management/entity"
-	//"strings"
 	"dat/dep/management/constant"
+	"time"
+	"dat/core/interaction/response"
 )
 
 func init() {
@@ -24,7 +26,7 @@ var SUPREC = &DataBox{
 	EnableCookie: false,
 	RuleTree: &RuleTree{
 		Root: func(ctx *Context) {
-			fmt.Println("suprec Root start...")
+			//fmt.Println("suprec Root start...")
 			ctx.AddQueue(&request.DataRequest{
 				Rule:         "process",
 				TransferType: request.NONETYPE,
@@ -44,22 +46,49 @@ var SUPREC = &DataBox{
 					"Content",
 				},
 				ParseFunc: func(ctx *Context) {
-					fmt.Println("process start ...")
+					//fmt.Println("process start ...")
 					batchRequestVo := ctx.DataRequest.Bobject.(*entity.BatchReqestVo)
-					fmt.Println("obj: ", batchRequestVo)
+					//fmt.Println("obj: ", batchRequestVo)
 					writeType := output.CTW
 					fileName := batchRequestVo.UserId + "_" + batchRequestVo.OrderId + "_" + batchRequestVo.IdType + "_" + batchRequestVo.BatchNo + "_" + batchRequestVo.FileNo + ".TARGET"
 					content := ""
 
-					ctx.ExecDataReq(&request.DataRequest{TransferType: request.REDIS, Rule: "process",})
 					switch batchRequestVo.ReqType {
 					case constant.ReqType_Start:
 						writeType = output.CTW
 						content = batchRequestVo.Header + constant.LineTag
+
+						ctx.DataResponse = &response.DataResponse{
+							StatusCode: 200,
+							ReturnCode: "000000",
+						}
+
+						//fmt.Println("write content$$$$$$$$$: ", content)
+						ctx.GetDataBox().ActiveWG.Add(1)
+						// 碰撞成功输出
+						ctx.Output(map[string]interface{}{
+							"FileName":     fileName,
+							"LocalDir":     "D:/output",
+							"TargetFolder": constant.TargetFolder,
+							"WriteType":    writeType,
+							"Content":      content,
+						})
 					case constant.ReqType_Normal:
 						writeType = output.WA
 						content = batchRequestVo.Exid + constant.LineTag
 
+						ctx.ExecDataReq(&request.DataRequest{TransferType: request.REDIS, Rule: "process",})
+
+						//fmt.Println("write content$$$$$$$$$: ", content)
+						ctx.GetDataBox().ActiveWG.Add(1)
+						// 碰撞成功输出
+						ctx.Output(map[string]interface{}{
+							"FileName":     fileName,
+							"LocalDir":     "D:/output",
+							"TargetFolder": constant.TargetFolder,
+							"WriteType":    writeType,
+							"Content":      content,
+						})
 						// Redis碰撞
 						//ctx.ExecDataReq(&request.DataRequest{
 						//	Method:       "EXIST",
@@ -73,32 +102,46 @@ var SUPREC = &DataBox{
 					case constant.ReqType_End:
 						ctx.GetDataBox().ActiveWG.Wait()
 
-						ctx.AddQueue(&request.DataRequest{
+						//fmt.Println("ReqType_End ^^^^^^^^^^^^^^^^^^^^^^")
+
+						fileCatalog := &sftp.FileCatalog{
+							UserName:       "ddsdev",
+							Password:       `[BSR3+uLe\U*o^vy`,
+							Host:           "10.101.12.17",
+							Port:           22,
+							TimeOut:        10 * time.Second,
+							LocalDir:       "D:/output/target",
+							LocalFileName:  fileName,
+							RemoteDir:      "/home/ddsdev/data/test/supsftp",
+							RemoteFileName: fileName,
+						}
+						ctx.ExecDataReq(&request.DataRequest{
 							Rule:         "pushToSup",
 							TransferType: request.SFTP,
-							Priority:     1,
+							Method:       "PUT",
+							FileCatalog:  fileCatalog,
 							Reloadable:   true,
-							//Bobject:      paramBatch,
 						})
-						return
-					}
 
-					fmt.Println("write content$$$$$$$$$: ", content)
-					ctx.GetDataBox().ActiveWG.Add(1)
-					// 碰撞成功输出
-					ctx.Output(map[string]interface{}{
-						"FileName":     fileName,
-						"LocalDir":     "D:/output",
-						"TargetFolder": constant.TargetFolder,
-						"WriteType":    writeType,
-						"Content":      content,
-					})
+						if ctx.DataResponse.StatusCode == 200 && ctx.DataResponse.ReturnCode == "000000" {
+							fmt.Println("StopActiveBox ~~~~~~~~~~~~", ctx.GetDataBox().PairDataBoxId)
+
+							ctx.GetDataBox().StopActiveBox()
+						}
+
+						//go ctx.ExecDataReq(&request.DataRequest{
+						//	TransferType: request.SFTP,
+						//	Method:       "CLOSE",
+						//	FileCatalog:  fileCatalog,
+						//	Reloadable:   true,
+						//})
+					}
 				},
 			},
 			"pushToSup": {
 				ParseFunc: func(ctx *Context) {
 					fmt.Println("pushToSup start ...")
-					ctx.GetDataBox().StopActiveBox()
+
 				},
 			},
 		},

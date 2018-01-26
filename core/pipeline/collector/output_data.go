@@ -2,7 +2,6 @@ package collector
 
 import (
 
-	"fmt"
 )
 
 var (
@@ -35,7 +34,7 @@ func (self *Collector) outputData() {
 	}()
 
 	// 输出统计
-	fmt.Println("DataSum:", dataLen)
+	//fmt.Println("DataSum:", dataLen)
 	self.addDataSum(dataLen)
 
 	// 执行输出

@@ -7,9 +7,9 @@ import (
 	"sync"
 	//"dat/core/databox"
 	"dat/dep/management/entity"
-	"github.com/kubernetes/kubernetes/staging/src/k8s.io/apimachinery/pkg/util/json"
 	"dat/dep/management/constant"
 	"strconv"
+	"encoding/json"
 )
 
 /**
@@ -49,7 +49,7 @@ func (s *SupService) RecDemReqAndPushToSup(ctx *fasthttp.RequestCtx) {
 	pairDataBoxId := batchReqestVo.DataBoxId
 	activeDataBoxName := "suprec" + "_" + strconv.Itoa(pairDataBoxId)
 
-	fmt.Println("reqType: ", batchReqestVo.ReqType)
+	//fmt.Println("reqType: ", batchReqestVo.ReqType)
 
 	switch batchReqestVo.ReqType {
 	case constant.ReqType_Start:
@@ -67,25 +67,29 @@ func (s *SupService) RecDemReqAndPushToSup(ctx *fasthttp.RequestCtx) {
 
 		assetnode.AssetNodeEntity.PushActiveDataBox(b)
 		wg.Wait()
-		fmt.Println("waitgroup end")
+		//fmt.Println("waitgroup end")
 
 		ab := assetnode.AssetNodeEntity.GetActiveDataBoxByName(activeDataBoxName)
-		fmt.Println("active databox name", ab.Name)
+		//fmt.Println("active databox name", ab.Name)
 		dataResp := assetnode.AssetNodeEntity.RunActiveBox(ab, batchReqestVo)
-		fmt.Println("dataResp:", dataResp)
+		//fmt.Println("dataResp:", dataResp)
+		ctx.SetStatusCode(dataResp.StatusCode)
 	case constant.ReqType_Normal:
 		ab := assetnode.AssetNodeEntity.GetActiveDataBoxByName(activeDataBoxName)
-		fmt.Println("activeDataBoxName: ***************", activeDataBoxName)
-		fmt.Println("active databox name", ab.Name)
+		//fmt.Println("activeDataBoxName: ***************", activeDataBoxName)
+		//fmt.Println("active databox name", ab.Name)
 		dataResp := assetnode.AssetNodeEntity.RunActiveBox(ab, batchReqestVo)
-		fmt.Println("dataResp:", dataResp)
+		//fmt.Println("dataResp:", dataResp)
+
+		ctx.SetStatusCode(dataResp.StatusCode)
 
 	case constant.ReqType_End:
 		fmt.Println("end activeDataBoxName: ***************", activeDataBoxName)
 		ab := assetnode.AssetNodeEntity.GetActiveDataBoxByName(activeDataBoxName)
-		//dataResp := assetnode.AssetNodeEntity.RunActiveBox(ab, batchReqestVo)
+		dataResp := assetnode.AssetNodeEntity.RunActiveBox(ab, batchReqestVo)
 		//fmt.Println("dataResp:", dataResp)
-		assetnode.AssetNodeEntity.StopActiveBox(ab)
+		ctx.SetStatusCode(dataResp.StatusCode)
+		//assetnode.AssetNodeEntity.StopActiveBox(ab)
 	}
 
 }

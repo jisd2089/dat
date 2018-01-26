@@ -139,6 +139,12 @@ func (self *DataBox) Stop() {
 	}
 }
 
+func (b *DataBox) ExecTsfSuccCount() {
+	b.lock.RLock()
+	defer b.lock.RUnlock()
+	b.TsfSuccCount ++
+}
+
 // 若已主动终止任务，则崩溃DataBox协程
 func (self *DataBox) tryPanic() {
 	if self.IsStopping() {
@@ -421,6 +427,18 @@ func (self *DataBox) RequestPull() *request.DataRequest {
 	return r
 }
 
+func (self *DataBox) RequestPushChan(req *request.DataRequest) {
+	self.reqMatrix.PushChan(req)
+}
+
+func (self *DataBox) RequestPullChan() *request.DataRequest {
+	return self.reqMatrix.PullChan()
+}
+
+func (self *DataBox) CloseRequestChan() {
+	self.reqMatrix.CloseReqChan()
+}
+
 func (self *DataBox) IsRequestEmpty() bool {
 	return self.reqMatrix.IsEmpty()
 }
@@ -456,7 +474,11 @@ func (self *DataBox) TryFlushFailure() {
 func (self *DataBox) CanStop() bool {
 	self.lock.RLock()
 	defer self.lock.RUnlock()
-	return self.status != status.STOPPED && self.reqMatrix.CanStop()
+	return self.status != status.STOPPED && self.reqMatrix.CanStop() && self.status != status.RUNNING
+}
+
+func (b *DataBox) SetStatus(status int) {
+	b.status = status
 }
 
 func (self *DataBox) IsStopping() bool {

@@ -8,6 +8,7 @@ import (
 
 	"dat/runtime/status"
 	"dat/common/config"
+	"path/filepath"
 )
 
 // 配置文件涉及的默认配置。
@@ -48,10 +49,12 @@ const (
 )
 
 var setting = func() config.Configer {
-	//os.MkdirAll(filepath.Clean(HISTORY_DIR), 0777)
-	//os.MkdirAll(filepath.Clean(CACHE_DIR), 0777)
-	//os.MkdirAll(filepath.Clean(PHANTOMJS_TEMP), 0777)
+	os.MkdirAll(filepath.Clean(HISTORY_DIR), 0777)
+	os.MkdirAll(filepath.Clean(CACHE_DIR), 0777)
+	os.MkdirAll(filepath.Clean(PHANTOMJS_TEMP), 0777)
 
+	conf := CONFIG
+	fmt.Println(conf)
 	iniconf, err := config.NewConfig("ini", CONFIG)
 	if err != nil {
 		file, err := os.Create(CONFIG)

@@ -10,7 +10,6 @@ import (
 
 	"dat/runtime/status"
 	"dat/config"
-	"fmt"
 )
 
 type (
@@ -70,7 +69,7 @@ func (dmp *dataManPool) Reset(dataBoxNum int) int {
 // 并发安全地使用资源
 func (dmp *dataManPool) Use() DataMan {
 	var dataMan DataMan
-	fmt.Println("dataManPool count:", dmp.count)
+	//fmt.Println("dataManPool count:", dmp.count)
 	for {
 		dmp.Lock()
 		if dmp.status == status.STOP {

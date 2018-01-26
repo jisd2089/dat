@@ -2,7 +2,6 @@ package transfer
 
 import (
 	"github.com/valyala/fasthttp"
-	"fmt"
 	"sync"
 	neturl "net/url"
 	. "dat/core/interaction/response"
@@ -22,7 +21,8 @@ func NewFastTransfer() Transfer {
 
 // 封装fasthttp服务
 func (ft *FastTransfer) ExecuteMethod(req Request) Response {
-	fmt.Println("execute fasthttp")
+	//fmt.Println("execute fasthttp")
+	//fmt.Println("fasthttp param:", string(req.GetParameters()))
 	timeout := 30*1000
 	dataResponse := &DataResponse{}
 

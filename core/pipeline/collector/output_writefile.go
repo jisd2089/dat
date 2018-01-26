@@ -27,10 +27,10 @@ func init() {
 			//err error
 		)
 
-		fmt.Println("DataOutput write file start ...")
+		//fmt.Println("DataOutput write file start ...")
 		for _, datacell := range self.dataDocker {
 
-			fmt.Println("datacell content: ", datacell)
+			//fmt.Println("datacell content: ", datacell)
 			dataMap := datacell["Data"].(map[string]interface{})
 			fileName := dataMap["FileName"].(string)
 			localDir := dataMap["LocalDir"].(string)
@@ -64,7 +64,7 @@ func init() {
 		if self.DataBox.ActiveWG != nil {
 			self.DataBox.ActiveWG.Done()
 		}
-		fmt.Println("DataOutput write file end ...")
+		//fmt.Println("DataOutput write file end ...")
 		return
 	}
 }
