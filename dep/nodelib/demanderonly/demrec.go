@@ -26,15 +26,7 @@ var DEMREC = &DataBox{
 
 		Trunk: map[string]*Rule{
 			"verify": {
-				ParseFunc: func(ctx *Context) {
-					fmt.Println("demrec verify start ...")
-					// 2. 将接收到的反馈文件推送至需方dmp
-					ctx.AddQueue(&request.DataRequest{
-						FileCatalog:  &sftp.FileCatalog{},
-						Rule:         "pushdem",
-						TransferType: request.SFTP,
-					})
-				},
+				ParseFunc: verifyFunc,
 			},
 			"pushdem": {
 				ParseFunc: pushdemFunc,
@@ -51,7 +43,7 @@ func rootFunc(ctx *Context) {
 
 	dataFile := ctx.GetDataBox().DataFile
 
-	targetFileDir := "D:/input/SOURCE"
+	targetFileDir := "/home/ddsdev/data/test/dem/rec"
 	targetFilePath := path.Join(targetFileDir, dataFile.Filename)
 
 	ctx.AddQueue(&request.DataRequest{
@@ -73,14 +65,14 @@ func pushdemFunc(ctx *Context) {
 	fmt.Println("demrec pushdem filePath ...", targetFilePath)
 
 	fileCatalog := &sftp.FileCatalog{
-		UserName:       "ddsdev",
-		Password:       `[BSR3+uLe\U*o^vy`,
-		Host:           "10.101.12.17",
+		UserName:       "bdaas",
+		Password:       `bdaas`,
+		Host:           "10.101.12.11",
 		Port:           22,
 		TimeOut:        10 * time.Second,
 		LocalDir:       targetFileDir,
 		LocalFileName:  targetFileName,
-		RemoteDir:      "/home/ddsdev/data/test/input",
+		RemoteDir:      "/home/bdaas/data/test/dem/rec",
 		RemoteFileName: targetFileName,
 	}
 
@@ -95,4 +87,15 @@ func pushdemFunc(ctx *Context) {
 
 func pushDoneFunc(ctx *Context) {
 	fmt.Println("demrec pushDoneFunc start ...")
+}
+
+
+func verifyFunc(ctx *Context) {
+	fmt.Println("demrec verify start ...")
+	// 2. 将接收到的反馈文件推送至需方dmp
+	ctx.AddQueue(&request.DataRequest{
+		FileCatalog:  &sftp.FileCatalog{},
+		Rule:         "pushdem",
+		TransferType: request.SFTP,
+	})
 }

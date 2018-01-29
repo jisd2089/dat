@@ -68,7 +68,7 @@ var SUPREC = &DataBox{
 						// 碰撞成功输出
 						ctx.Output(map[string]interface{}{
 							"FileName":     fileName,
-							"LocalDir":     "D:/output",
+							"LocalDir":     "/home/ddsdev/data/test/sup/rec",
 							"TargetFolder": constant.TargetFolder,
 							"WriteType":    writeType,
 							"Content":      content,
@@ -84,7 +84,7 @@ var SUPREC = &DataBox{
 						// 碰撞成功输出
 						ctx.Output(map[string]interface{}{
 							"FileName":     fileName,
-							"LocalDir":     "D:/output",
+							"LocalDir":     "/home/ddsdev/data/test/sup/rec",
 							"TargetFolder": constant.TargetFolder,
 							"WriteType":    writeType,
 							"Content":      content,
@@ -105,14 +105,14 @@ var SUPREC = &DataBox{
 						//fmt.Println("ReqType_End ^^^^^^^^^^^^^^^^^^^^^^")
 
 						fileCatalog := &sftp.FileCatalog{
-							UserName:       "ddsdev",
-							Password:       `[BSR3+uLe\U*o^vy`,
-							Host:           "10.101.12.17",
+							UserName:       "bdaas",
+							Password:       `bdaas`,
+							Host:           "10.101.12.11",
 							Port:           22,
 							TimeOut:        10 * time.Second,
-							LocalDir:       "D:/output/target",
+							LocalDir:       "/home/ddsdev/data/test/sup/rec/target",
 							LocalFileName:  fileName,
-							RemoteDir:      "/home/ddsdev/data/test/supsftp",
+							RemoteDir:      "/home/bdaas/data/test/sup/rec",
 							RemoteFileName: fileName,
 						}
 						ctx.ExecDataReq(&request.DataRequest{

@@ -26,8 +26,8 @@ const (
 type (
 	DataBox struct {
 		// 以下字段由用户定义
-		Name            string                                                      // 用户界面显示的名称（应保证唯一性）
-		Description     string                                                      // 用户界面显示的描述
+		Name            string                                                      // 名称（应保证唯一性）
+		Description     string                                                      // 描述
 		DataFilePath    string                                                      // 数据文件地址
 		DataFile        *multipart.FileHeader                                       // 数据文件内容
 		NodeAddress     []*request.NodeAddress                                      // 交互节点地址

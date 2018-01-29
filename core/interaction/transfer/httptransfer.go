@@ -61,7 +61,7 @@ func postFile(fileName string, targetUrl string) error {
 	}
 
 	//打开文件句柄操作
-	filePath := path.Join("D:/output/SOURCE", fileName)
+	filePath := path.Join("/home/ddsdev/data/test/sup/send", fileName)
 	fh, err := os.Open(filePath)
 	defer fh.Close()
 	if err != nil {

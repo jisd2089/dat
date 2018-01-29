@@ -18,8 +18,10 @@ import (
 	"dat/dep/management/entity"
 	"os"
 	"strconv"
+	"dat/common/sftp"
 	"dat/runtime/output"
 	"dat/runtime/status"
+	"time"
 )
 
 func init() {
@@ -59,7 +61,9 @@ func demsendRootFunc(ctx *Context) {
 	fmt.Println("demsend Root ...")
 
 	memId := "000001"
-	dataFile := path.Base(ctx.GetDataBox().GetDataFilePath())
+	filePath := ctx.GetDataBox().GetDataFilePath()
+	dataFile := path.Base(filePath)
+	dataFilePath := path.Dir(filePath)
 	dataFileName := &util.DataFileName{}
 	if err := dataFileName.ParseAndValidFileName(dataFile); err != nil {
 		return
@@ -81,11 +85,25 @@ func demsendRootFunc(ctx *Context) {
 
 	fmt.Println(ctx.GetDataBox().GetDataFilePath())
 
+	// 1. 从sftp服务器（需方dmp服务器）拉取文件到节点服务器本地
+	fileCatalog := &sftp.FileCatalog{
+		UserName:       "bdaas",
+		Password:       `bdaas`,
+		Host:           "10.101.12.11",
+		Port:           22,
+		TimeOut:        10 * time.Second,
+		LocalDir:       "/home/ddsdev/data/test/dem/send",
+		LocalFileName:  dataFile,
+		RemoteDir:      dataFilePath,
+		RemoteFileName: dataFile,
+	}
+
 	fmt.Println("NodeAddress: %s", ctx.GetDataBox().GetNodeAddress())
 	ctx.AddQueue(&request.DataRequest{
 		Rule:         "start",
-		TransferType: request.NONETYPE,
-		Priority:     0,
+		Method:       "GET",
+		TransferType: request.SFTP,
+		FileCatalog:  fileCatalog,
 		Bobject:      paramBatch,
 		Reloadable:   true,
 	})
@@ -97,7 +115,10 @@ func startFunc(ctx *Context) {
 	paramBatch := ctx.DataRequest.Bobject.(entity.BatchReqestVo)
 	addressList := ctx.GetDataBox().GetNodeAddress()
 
-	f, err := os.Open(ctx.GetDataBox().GetDataFilePath())
+	dataFilePath := path.Join(ctx.DataRequest.FileCatalog.LocalDir, ctx.DataRequest.FileCatalog.LocalFileName)
+	ctx.GetDataBox().DataFilePath = dataFilePath
+
+	f, err := os.Open(dataFilePath)
 	defer f.Close()
 	if err != nil {
 		fmt.Println(err.Error())
@@ -237,7 +258,6 @@ func collisionFunc(ctx *Context) {
 	//fmt.Println("detail count ", ctx.GetDataBox().DetailCount)
 	//fmt.Println("collision response.................", ctx.DataResponse.StatusCode, ctx.DataResponse.ReturnCode)
 
-
 	addressList := ctx.GetDataBox().GetNodeAddress()
 	currentUrl := ctx.DataRequest.GetUrl()
 
@@ -277,7 +297,7 @@ func collisionFunc(ctx *Context) {
 
 			ctx.Output(map[string]interface{}{
 				"FileName":     path.Base(ctx.GetDataBox().GetDataFilePath()) + ".SUCCESS",
-				"LocalDir":     "D:/dds_send",
+				"LocalDir":     "/home/ddsdev/data/test/dem/send",
 				"TargetFolder": constant.SuccessFolder,
 				"WriteType":    output.CTWR,
 				"Content":      paramBatch.Exid + "\n",

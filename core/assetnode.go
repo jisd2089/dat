@@ -53,15 +53,15 @@ type (
 		distribute.Distributer                                                   // 实现分布式接口
 	}
 	NodeEntity struct {
-		id           int           //资产方系统ID
-		rights       []string      //资产方权利
-		roleType     string        //资产方角色类型
+		id           int           // 资产方系统ID
+		rights       []string      // 资产方权利
+		roleType     string        // 资产方角色类型
 		*cache.AppConf             // 全局配置
-		*databox.DataBoxSpecies    //数据产品流种类
+		*databox.DataBoxSpecies    // 数据产品流种类
 		*databox.DataBoxActivites  // DataBox活跃列表
-		*distribute.TaskBase       //服务器与客户端间传递任务的存储库
-		dataman.DataBoxQueue       //当前任务的数据产品流队列
-		dataman.DataManPool        //配送回收池
+		*distribute.TaskBase       // 服务器与客户端间传递任务的存储库
+		dataman.DataBoxQueue       // 当前任务的数据产品流队列
+		dataman.DataManPool        // 配送回收池
 		teleport.Teleport          // socket长连接双工通信接口，json数据传输
 		status       int           // 运行状态
 		sum          [2]uint64     // 执行计数
@@ -102,37 +102,13 @@ func getNewNodeEntity() *NodeEntity {
 
 // 必要的初始化
 func (a *NodeEntity) Init() AssetNode {
-	//a.Teleport = teleport.New()
 	a.TaskBase = distribute.NewTaskBase()
 	a.DataBoxQueue = dataman.NewDataBoxQueue()
 	a.DataManPool = dataman.NewDataManPool()
 
-	//switch a.AppConf.Mode {
-	//case status.SERVER:
-	//	if a.checkPort() {
-	//		logs.Log.Informational("                                                                                               ！！当前运行模式为：[ 服务器 ] 模式！！")
-	//		a.Teleport.SetAPI(distribute.MasterApi(a)).Server(":" + strconv.Itoa(a.AppConf.Port))
-	//	}
-	//
-	//case status.CLIENT:
-	//	if a.checkAll() {
-	//		logs.Log.Informational("                                                                                               ！！当前运行模式为：[ 客户端 ] 模式！！")
-	//		a.Teleport.SetAPI(distribute.SlaveApi(a)).Client(a.AppConf.Master, ":"+strconv.Itoa(a.AppConf.Port))
-	//		// 开启节点间log打印
-	//		a.canSocketLog = true
-	//		go a.socketLog()
-	//	}
-	//case status.OFFLINE:
-	//	logs.Log.Informational("                                                                                               ！！当前运行模式为：[ 单机 ] 模式！！")
-	//	return a
-	//default:
-	//	logs.Log.Warning(" *    ——请指定正确的运行模式！——")
-	//	return a
-	//}
 	return a
 }
 
-// 切换运行模式时使用
 //func (n *NodeEntity) ReInit(mode int, port int, master string, w ...io.Writer) AssetNode {
 //	if !n.IsStopped() {
 //		n.Stop()
@@ -308,35 +284,15 @@ func (ne *NodeEntity) Run() {
 	defer ne.setStatus(status.STOPPED)
 	// 任务执行
 	ne.exec()
-	//switch ne.AppConf.Mode {
-	//case status.OFFLINE:
-	//	ne.offline()
-	//case status.SERVER:
-	//	ne.server()
-	//case status.CLIENT:
-	//	ne.client()
-	//default:
-	//	return
-	//}
 
 	//<-ne.finish //TODO 节点持续运行不退出
 }
 
 // 系统启动, 同步返回
 func (ne *NodeEntity) SyncRun() {
-	//ne.finish = make(chan bool)
-	//ne.finishOnce = sync.Once{}
-	//// 重置计数
-	//ne.sum[0], ne.sum[1] = 0, 0
-	//// 重置计时
-	//ne.takeTime = 0
-	//// 设置状态
-	//ne.setStatus(status.RUN)
-	//defer ne.setStatus(status.STOPPED)
 	// 任务执行
 	ne.syncExec()
 
-	//<-ne.finish
 }
 
 // 返回当前运行状态
@@ -361,52 +317,17 @@ func (ne *NodeEntity) exec() {
 	dataManCap := ne.DataManPool.Reset(1000)
 
 	fmt.Println(" *     DataManPool池容量为 %v\n", dataManCap)
-	//logs.Log.Informational(" *     执行任务总数(任务数[*自定义配置数])为 %v 个\n", count)
-	//logs.Log.Informational(" *     DataManPool池容量为 %v\n", dataManCap)
-	//logs.Log.Informational(" *     并发协程最多 %v 个\n", ne.AppConf.ThreadNum)
-	//logs.Log.Informational(" *     默认随机停顿 %v~%v 毫秒\n", ne.AppConf.Pausetime/2, ne.AppConf.Pausetime*2)
-	//logs.Log.App(" *                                                                                                 —— 开始抓取，请耐心等候 ——")
-	//logs.Log.Informational(` *********************************************************************************************************************************** `)
 
 	// 开始计时
 	cache.StartTime = time.Now()
 
-	// 根据模式选择合理的并发
-	//go ne.goRun(count)
 	//TODO 根据节点支持业务类型启动 两类DataBox
 	go ne.runDataBox()
 	go ne.goSyncRun()
-	//if ne.AppConf.Mode == status.OFFLINE {
-	//	// 可控制执行状态
-	//	go ne.goRun(count)
-	//} else {
-	//	// 保证接收服务端任务的同步
-	//	ne.goRun(count)
-	//}
 }
 
 // 开始执行任务，同步开始
 func (ne *NodeEntity) syncExec() {
-	//count := ne.DataBoxQueue.Len()
-
-	//cache.ResetPageCount()
-	//// 刷新输出方式的状态
-	//pipeline.RefreshOutput()
-	//// 初始化资源队列
-	//scheduler.Init()
-
-	// 设置数据信使队列
-	//dataManCap := ne.DataManPool.Reset(1)
-
-	//logs.Log.Informational(" *     执行任务总数(任务数[*自定义配置数])为 %v 个\n", count)
-	//logs.Log.Informational(" *     DataManPool容量为 %v\n", dataManCap)
-	//logs.Log.Informational(" *     并发协程最多 %v 个\n", ne.AppConf.ThreadNum)
-	//logs.Log.Informational(" *     默认随机停顿 %v~%v 毫秒\n", ne.AppConf.Pausetime/2, ne.AppConf.Pausetime*2)
-	//logs.Log.App(" *                                                                                                 —— 开始抓取，请耐心等候 ——")
-	//logs.Log.Informational(` *********************************************************************************************************************************** `)
-
-	// 开始计时
-	//cache.StartTime = time.Now()
 
 	// 根据模式选择合理的并发
 	go ne.goSyncRun()
