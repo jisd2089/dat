@@ -144,6 +144,7 @@ func (sc *SFTPClient) RemotePut(fc *FileCatalog) error {
 	if err := sc.Verify(fc); err != nil {
 		return err
 	}
+
 	//创建远程文件
 	dstFile, err := sc.client.Create(path.Join(fc.RemoteDir, fc.RemoteFileName))
 	defer dstFile.Close()

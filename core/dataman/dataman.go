@@ -26,6 +26,7 @@ type (
 	DataMan interface {
 		MiniInit(box *databox.DataBox) DataMan       // 最小化初始化配送信使引擎
 		Init(box *databox.DataBox) DataMan           // 初始化配送信使引擎
+		Obtain(carrierPool CarrierPool) DataMan      // 获取交互资源
 		Run()                                        // 运行配送任务
 		SyncRun()                                    // 同步运行配送任务
 		RunRequest(obj interface{}) *databox.Context // 执行DataRequest
@@ -35,14 +36,15 @@ type (
 		GetPipeline() pipeline.Pipeline              // 获取管道
 	}
 	dataMan struct {
-		*databox.DataBox       // 执行的采集规则
-		interaction.Carrier    // 全局公用的信息交互载体
-		pipeline.Pipeline      // 拆包与核验管道
-		id     int             // 信使ID
-		pause  [2]int64        // [请求间隔的最短时长,请求间隔的增幅时长]
-		status int             // 信使状态
-		runWG  *sync.WaitGroup // 运行等待
-		sync.RWMutex           // 读写锁
+		*databox.DataBox            // 执行的采集规则
+		CarrierPool CarrierPool     // 全局公用的信息交互载体资源池
+		interaction.Carrier         // 全局公用的信息交互载体
+		pipeline.Pipeline           // 拆包与核验管道
+		id          int             // 信使ID
+		pause       [2]int64        // [请求间隔的最短时长,请求间隔的增幅时长]
+		status      int             // 信使状态
+		runWG       *sync.WaitGroup // 运行等待
+		sync.RWMutex                // 读写锁
 	}
 )
 
@@ -63,6 +65,11 @@ func (m *dataMan) Init(b *databox.DataBox) DataMan {
 	} else {
 		m.pause[1] = 1
 	}
+	return m
+}
+
+func (m *dataMan) Obtain(carrierPool CarrierPool) DataMan {
+	m.CarrierPool = carrierPool
 	return m
 }
 
@@ -87,9 +94,9 @@ func (m *dataMan) Run() {
 	wg.Add(1)
 	go m.run()
 
-	for i := 0; i < 5; i++ {
+	for i := 0; i < 10; i++ {
 		wg.Add(1)
-		go m.runChanReq()
+		go m.runChanRequest()
 	}
 
 	//	wg.Wait()
@@ -199,16 +206,43 @@ func (m *dataMan) runChanReq() {
 
 	// 队列中取出一条请求并处理
 	for req := range m.GetRequestChan() {
+		fmt.Println("run chan request: ", req.PostData)
 
 		// 执行请求
 		m.UseOne()
-		go func() {
-			defer func() {
-				m.FreeOne()
-			}()
+		go func(req *request.DataRequest) {
+			defer m.FreeOne()
 			//logs.Log.Debug(" *     Start: %v", req.GetUrl())
 			m.Process(req)
-		}()
+		}(req)
+	}
+}
+
+func (m *dataMan) runChanRequest() {
+	defer func() {
+		// 等待处理中的任务完成
+		//m.DataBox.Defer()TODO
+		err := recover()
+		if err != nil {
+			fmt.Println("runChanRequest recover error: ", err)
+		}
+
+		fmt.Println("runChanReq end............")
+
+		// 完成
+		m.runWG.Done()
+	}()
+
+	// 队列中取出一条请求并处理
+	for req := range m.GetRequestChan() {
+		go func(req *request.DataRequest) {
+			carrier := m.CarrierPool.Use()
+			if carrier != nil {
+
+				carrier.Process(m.DataBox, req)
+				m.CarrierPool.Free(carrier)
+			}
+		}(req)
 	}
 }
 
@@ -299,6 +333,7 @@ func (m *dataMan) Process(req *request.DataRequest) {
 	}()
 
 	// TODO execute http、kafka、protocolbuffer... communication
+	fmt.Println("Carrier handle: ", req.PostData)
 	var ctx = m.Carrier.Handle(b, req)
 	//var ctx = self.Downloader.Download(sp, req) // download page
 

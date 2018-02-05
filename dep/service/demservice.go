@@ -6,6 +6,9 @@ import (
 	"dat/core"
 	"dat/core/databox"
 	"dat/core/interaction/request"
+	"path"
+	"io"
+	"os"
 )
 
 /**
@@ -69,13 +72,32 @@ func (d *DemService) RecSupRespAndPushToDem(ctx *fasthttp.RequestCtx) {
 	}
 	fmt.Println("filePath***********: ", dataFile.Filename)
 
+	//targetFileDir := "D:/dds_receive/tmp"
+	targetFileDir := "/home/ddsdev/data/test/dem/rec"
+	targetFilePath := path.Join(targetFileDir, dataFile.Filename)
+
+	targetFile, err := os.OpenFile(targetFilePath, os.O_WRONLY|os.O_CREATE, 0644)
+	defer targetFile.Close()
+	if err != nil {
+
+	}
+
+	dataFileContent, err := dataFile.Open()
+	defer dataFileContent.Close()
+	if err != nil {
+
+	}
+
+	io.Copy(targetFile, dataFileContent)
+
 	// 1.1 匹配相应的DataBox
-	b := assetnode.AssetNodeEntity.GetDataBoxByName("demrec")
+	//b := assetnode.AssetNodeEntity.GetDataBoxByName("demrec")
+	b := assetnode.AssetNodeEntity.GetDataBoxByName("demrecbig")
 
 	if b == nil {
 		fmt.Println("databox is nil!")
 	}
-	b.DataFile = dataFile
+	b.DataFilePath = targetFilePath
 
 	// 1.2 setDataBoxQueue
 	setDataBoxQueue(b)
@@ -86,15 +108,32 @@ func (d *DemService) RecSupRespAndPushToDem(ctx *fasthttp.RequestCtx) {
 	test
  */
 
-func (d *DemService) SendDemToSup(ctx *fasthttp.RequestCtx) {
+func (d *DemService) SplitFile(ctx *fasthttp.RequestCtx) {
 
 	fmt.Println("hello data")
+	filePath := string(ctx.FormValue("filePath"))
+	fmt.Println("filePath:" + filePath)
 
 	b := assetnode.AssetNodeEntity.GetDataBoxByName("demsplit")
-
 	if b == nil {
 		fmt.Println("databox is nil!")
 	}
+	b.SetDataFilePath(filePath)
+
+	setDataBoxQueue(b)
+}
+
+func (d *DemService) ReadFile(ctx *fasthttp.RequestCtx) {
+
+	fmt.Println("hello data")
+	filePath := string(ctx.FormValue("filePath"))
+	fmt.Println("filePath:" + filePath)
+
+	b := assetnode.AssetNodeEntity.GetDataBoxByName("fileread")
+	if b == nil {
+		fmt.Println("databox is nil!")
+	}
+	b.SetDataFilePath(filePath)
 
 	setDataBoxQueue(b)
 }

@@ -130,11 +130,8 @@ func startFunc(ctx *Context) {
 		line, err := buf.ReadString('\n')
 		line = strings.TrimSpace(line)
 
-		if err == io.EOF {
+		if err == io.EOF || err != nil {
 			//fmt.Println("file end ###############################")
-			break
-		}
-		if err != nil {
 			break
 		}
 		if rows == 0 { // 返回第一行头记录
@@ -242,6 +239,7 @@ func normalFunc(ctx *Context) {
 			}
 			ctx.AddChanQueue(&request.DataRequest{
 				Url:          addressList[0].GetUrl(),
+				Method:       "POST",
 				Parameters:   data,
 				Rule:         "collision",
 				TransferType: request.FASTHTTP,
@@ -281,6 +279,7 @@ func collisionFunc(ctx *Context) {
 					ctx.AddQueue(&request.DataRequest{
 						Url:          nextUrl,
 						Rule:         "collision",
+						Method:       "POST",
 						TransferType: request.FASTHTTP,
 						Priority:     0,
 						Bobject:      ctx.DataRequest.Bobject,
@@ -337,6 +336,7 @@ func endFunc(ctx *Context) {
 	for _, addr := range addressList {
 		ctx.AddQueue(&request.DataRequest{
 			Url:          addr.GetUrl(),
+			Method:       "POST",
 			TransferType: request.FASTHTTP,
 			Rule:         "endreslt",
 			Priority:     1,

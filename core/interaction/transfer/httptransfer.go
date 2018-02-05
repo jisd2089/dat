@@ -11,13 +11,16 @@ import (
 	"dat/core/interaction/response"
 	"path"
 	"time"
+	"sync"
 )
 
 /**
     Author: luzequan
     Created: 2018-01-21 16:27:49
 */
-type HttpTransfer struct {}
+type HttpTransfer struct {
+	sync.RWMutex
+}
 
 func NewHttpTransfer() Transfer {
 	return &HttpTransfer{}
@@ -25,6 +28,9 @@ func NewHttpTransfer() Transfer {
 
 // 封装fasthttp服务
 func (ft *HttpTransfer) ExecuteMethod(req Request) Response {
+
+	ft.RLock()
+	defer ft.RUnlock()
 
 	switch req.GetMethod() {
 	case "Post":
@@ -61,7 +67,9 @@ func postFile(fileName string, targetUrl string) error {
 	}
 
 	//打开文件句柄操作
-	filePath := path.Join("/home/ddsdev/data/test/sup/send", fileName)
+	//filePath := path.Join("/home/ddsdev/data/test/sup/send", fileName)
+	filePath := path.Join("D:/dds_send/tmp", fileName)
+
 	fh, err := os.Open(filePath)
 	defer fh.Close()
 	if err != nil {

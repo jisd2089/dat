@@ -11,6 +11,8 @@ import (
 	"dat/common/sftp"
 	"time"
 	"path"
+	"os"
+	"dat/runtime/status"
 )
 
 func init() {
@@ -18,15 +20,18 @@ func init() {
 }
 
 var SUPSEND = &DataBox{
-	Name:        "supsend",
-	Description: "supsend",
+	Name:         "supsend",
+	Description:  "supsend",
 	EnableCookie: false,
 	RuleTree: &RuleTree{
 		Root: supsendRootFunc,
 
 		Trunk: map[string]*Rule{
+			"splitfile": {
+				ParseFunc: splitfileFunc,
+			},
 			"pushfile": {
-				ParseFunc:pushfileFunc,
+				ParseFunc: pushfileFunc,
 			},
 			"notifydem": {
 				ParseFunc: notifydemFunc,
@@ -53,7 +58,8 @@ func supsendRootFunc(ctx *Context) {
 		Host:           "10.101.12.11",
 		Port:           22,
 		TimeOut:        10 * time.Second,
-		LocalDir:       "/home/ddsdev/data/test/sup/send",
+		//LocalDir:       "/home/ddsdev/data/test/sup/send",
+		LocalDir:       "D:/dds_send",
 		LocalFileName:  fileName,
 		RemoteDir:      remoteDir,
 		RemoteFileName: fileName,
@@ -61,9 +67,34 @@ func supsendRootFunc(ctx *Context) {
 	ctx.AddQueue(&request.DataRequest{
 		Method:       "GET",
 		FileCatalog:  fileCatalog,
-		Rule:         "pushfile",
-		TransferType: request.SFTP,
+		Rule:         "splitfile",
+		TransferType: request.NONETYPE,
 		Reloadable:   true,
+	})
+}
+
+func splitfileFunc(ctx *Context) {
+	fmt.Println("split file start ...")
+
+	fileCatalog := ctx.DataRequest.FileCatalog
+	localDir := fileCatalog.LocalDir
+	fileName := fileCatalog.LocalFileName
+	filePath := path.Join(localDir, fileName)
+	tmpPath := path.Join(localDir, "tmp")
+	os.MkdirAll(tmpPath, 0777)
+	tmpFilePrefix := tmpPath + "/" + fileName + "__"
+
+	fmt.Println("split file name:", filePath, tmpFilePrefix)
+	cmdParams := []string{"-l", "1000000", filePath, tmpFilePrefix}
+
+	ctx.AddChanQueue(&request.DataRequest{
+		Rule:          "pushfile",
+		TransferType:  request.SHELLTYPE,
+		Priority:      1,
+		CommandName:   "split",
+		Reloadable:    true,
+		CommandParams: cmdParams,
+		FileCatalog:   fileCatalog,
 	})
 }
 
@@ -71,18 +102,41 @@ func pushfileFunc(ctx *Context) {
 	fmt.Println("pushfile start ...")
 	// 2. 从本地节点服务器通过sftp方式推送至dem节点服务器
 	fileCatalog := ctx.DataRequest.FileCatalog
-	fileName := fileCatalog.LocalFileName
+	//fileName := fileCatalog.LocalFileName
 
-	fmt.Println("push file name:", fileName)
+	localDir := fileCatalog.LocalDir
+	tmpPath := path.Join(localDir, "tmp")
 
-	ctx.AddQueue(&request.DataRequest{
-		Url:          `http://10.101.12.17:8899/api/dem/rec`,
-		Rule:         "notifydem",
-		TransferType: request.HTTP,
-		Method:       "PostFile",
-		PostData:     fileName,
-		Reloadable:   true,
-	})
+	fmt.Println("pushfile open path ...", tmpPath)
+
+	dir, err := os.Open(tmpPath)
+	if err != nil {
+		fmt.Println("open file path error: ", err)
+		return
+	}
+
+	names, err := dir.Readdirnames(0)
+	if err != nil {
+		fmt.Println("Readdirnames error: ", err)
+		return
+	}
+
+	ctx.GetDataBox().DetailCount = len(names)
+
+	fmt.Println("push file count: ", ctx.GetDataBox().DetailCount)
+
+	for _, fileN := range names {
+		fmt.Println("push file name:", fileN)
+
+		ctx.AddChanQueue(&request.DataRequest{
+			Url:          `http://10.101.12.17:8899/api/dem/rec`,
+			Rule:         "notifydem",
+			TransferType: request.HTTP,
+			Method:       "PostFile",
+			PostData:     "tmp/" + fileN,
+			Reloadable:   true,
+		})
+	}
 }
 
 func notifydemFunc(ctx *Context) {
@@ -93,4 +147,13 @@ func notifydemFunc(ctx *Context) {
 	//	Rule:         "notifydem",
 	//	TransferType: request.NONETYPE,
 	//})
+	ctx.GetDataBox().ExecTsfSuccCount()
+	fmt.Println("TsfSuccCount: ", ctx.GetDataBox().TsfSuccCount)
+
+	if ctx.GetDataBox().TsfSuccCount == ctx.GetDataBox().DetailCount {
+
+		fmt.Println("notifydem ok ...")
+		defer ctx.GetDataBox().SetStatus(status.STOP)
+	}
+
 }

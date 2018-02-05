@@ -62,6 +62,7 @@ type (
 		*distribute.TaskBase       // 服务器与客户端间传递任务的存储库
 		dataman.DataBoxQueue       // 当前任务的数据产品流队列
 		dataman.DataManPool        // 配送回收池
+		dataman.CarrierPool        // 传输资源池
 		teleport.Teleport          // socket长连接双工通信接口，json数据传输
 		status       int           // 运行状态
 		sum          [2]uint64     // 执行计数
@@ -95,6 +96,7 @@ func getNewNodeEntity() *NodeEntity {
 			TaskBase:         distribute.NewTaskBase(),
 			DataBoxQueue:     dataman.NewDataBoxQueue(),
 			DataManPool:      dataman.NewDataManPool(),
+			CarrierPool:      dataman.NewCarrierPool(),
 		}
 	})
 	return newNodeEntity
@@ -315,6 +317,7 @@ func (ne *NodeEntity) exec() {
 	// 设置数据信使队列
 	//dataManCap := ne.DataManPool.Reset(count)
 	dataManCap := ne.DataManPool.Reset(1000)
+	//ne.CarrierPool.Reset(5)
 
 	fmt.Println(" *     DataManPool池容量为 %v\n", dataManCap)
 
@@ -447,7 +450,7 @@ func (ne *NodeEntity) goRunDataBox(b *databox.DataBox) {
 	m := ne.DataManPool.Use()
 	if m != nil {
 		// 执行并返回结果消息
-		m.Init(b).Run()
+		m.Init(b).Obtain(ne.CarrierPool).Run()
 		// 任务结束后回收该信使
 		ne.RWMutex.RLock()
 		if ne.status != status.STOP {

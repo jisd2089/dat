@@ -19,9 +19,13 @@ func NewHttpRouter() *HttpRouter {
 }
 
 func (r *HttpRouter) Register() {
-	r.Router.POST("/api/dem/test/", NewDemService().SendDemToSup)
+	r.Router.POST("/api/dem/read/", NewDemService().ReadFile)
+	r.Router.POST("/api/dem/split/", NewDemService().SplitFile)
 	r.Router.POST("/api/dem/send", NewDemService().SendDemReqToSup)
 	r.Router.POST("/api/dem/rec", NewDemService().RecSupRespAndPushToDem)
+
+
 	r.Router.POST("/api/sup/rec", NewSupService().RecDemReqAndPushToSup)
 	r.Router.POST("/api/sup/send", NewSupService().SupRespSendToDem)
+	r.Router.POST("/api/sup/sendfull", NewSupService().SupRespWholeSendToDem)
 }

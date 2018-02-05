@@ -16,4 +16,5 @@ import (
 type Carrier interface {
 	Handle(*databox.DataBox, *request.DataRequest) *databox.Context
 	Close()
+	Process(*databox.DataBox, *request.DataRequest)
 }

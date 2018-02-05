@@ -118,6 +118,8 @@ func (self *Context) AddQueue(req *request.DataRequest) *Context {
 }
 
 func (self *Context) AddChanQueue(req *request.DataRequest) *Context {
+	self.Lock()
+	defer self.Unlock()
 	self.dataBox.tryPanic()
 
 	err := req.

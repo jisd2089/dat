@@ -27,6 +27,8 @@ type DataRequest struct {
 	Header        http.Header           // 请求头信息
 	EnableCookie  bool                  // 是否使用cookies，在DataBox的EnableCookie设置
 	Parameters    []byte                // 传参
+	CommandName   string                // command命令名称
+	CommandParams []string              // command参数
 	Bobject       interface{}           // 业务参数
 	PostData      string                // POST values
 	DialTimeout   time.Duration         // 创建连接超时 dial tcp: i/o timeout
@@ -62,13 +64,14 @@ const (
 	SURF_ID    = 0 // 默认的surf下载内核（Go原生），此值不可改动
 	PHANTOM_ID = 1 // 备用的phantomjs下载内核，一般不使用（效率差，头信息支持不完善）
 
-	HTTP     = "HTTP"
-	FASTHTTP = "FASTHTTP"
-	SFTP     = "SFTP"
-	REDIS    = "REDIS"
-	DATABOX  = "DATABOX"
-	NONETYPE = "NONETYPE"
-	FILETYPE = "FILETYPE"
+	HTTP      = "HTTP"
+	FASTHTTP  = "FASTHTTP"
+	SFTP      = "SFTP"
+	REDIS     = "REDIS"
+	DATABOX   = "DATABOX"
+	NONETYPE  = "NONETYPE"
+	FILETYPE  = "FILETYPE"
+	SHELLTYPE = "SHELLTYPE"
 )
 
 // 发送请求前的准备工作，设置一系列默认值
@@ -386,6 +389,14 @@ func (dq *DataRequest) GetDataFile() *multipart.FileHeader {
 
 func (dq *DataRequest) GetRedisOptions() *redis.Options {
 	return dq.RedisOptions
+}
+
+func (dq *DataRequest) GetCommandName() string {
+	return dq.CommandName
+}
+
+func (dq *DataRequest) GetCommandParams() []string {
+	return dq.CommandParams
 }
 
 func (self *DataRequest) MarshalJSON() ([]byte, error) {

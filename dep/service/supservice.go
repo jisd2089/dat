@@ -114,3 +114,23 @@ func (d *SupService) SupRespSendToDem(ctx *fasthttp.RequestCtx) {
 	setDataBoxQueue(b)
 	// 3.3 执行DataBox，通过Sftp传输
 }
+
+
+/**********************************************************************************************
+ *test
+ */
+func (d *SupService) SupRespWholeSendToDem(ctx *fasthttp.RequestCtx) {
+
+	filePath := string(ctx.FormValue("filePath"))
+
+	// 3.1 匹配相应的DataBox
+	b := assetnode.AssetNodeEntity.GetDataBoxByName("supsendnotsplit")
+	if b == nil {
+		fmt.Println("databox is nil!")
+	}
+	b.DataFilePath = filePath
+
+	// 3.2 setDataBoxQueue
+	setDataBoxQueue(b)
+	// 3.3 执行DataBox，通过Sftp传输
+}

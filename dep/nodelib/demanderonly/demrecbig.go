@@ -14,54 +14,52 @@ import (
 )
 
 func init() {
-	DEMREC.Register()
+	DEMRECBIG.Register()
 }
 
-var DEMREC = &DataBox{
-	Name:         "demrec",
-	Description:  "demrec",
+var DEMRECBIG = &DataBox{
+	Name:         "demrecbig",
+	Description:  "demrecbig",
 	EnableCookie: false,
 	RuleTree: &RuleTree{
-		Root: rootFunc,
+		Root: rootBigFunc,
 
 		Trunk: map[string]*Rule{
 			"verify": {
 				ParseFunc: verifyFunc,
 			},
 			"pushdem": {
-				ParseFunc: pushdemFunc,
+				ParseFunc: pushBigDemFunc,
 			},
 			"pushDone": {
-				ParseFunc: pushDoneFunc,
+				ParseFunc: pushBigDoneFunc,
 			},
 		},
 	},
 }
 
-func rootFunc(ctx *Context) {
+func rootBigFunc(ctx *Context) {
 	fmt.Println("demrec Root start ...")
 
-	dataFile := ctx.GetDataBox().DataFile
-
-	fmt.Println("file name : ", dataFile.Filename)
-
-	//targetFileDir := "/home/ddsdev/data/test/dem/rec"
-	targetFileDir := "D:/dds_receive/tmp"
-	targetFilePath := path.Join(targetFileDir, dataFile.Filename)
+	//dataFile := ctx.GetDataBox().DataFile
+	//
+	//fmt.Println("file name : ", dataFile.Filename)
+	//
+	////targetFileDir := "/home/ddsdev/data/test/dem/rec"
+	//targetFileDir := "D:/dds_receive/tmp"
+	//targetFilePath := path.Join(targetFileDir, dataFile.Filename)
 
 	ctx.AddQueue(&request.DataRequest{
 		Rule:         "pushdem",
-		TransferType: request.FILETYPE,
-		DataFile:     ctx.GetDataBox().DataFile,
-		PostData:     targetFilePath,
+		TransferType: request.NONETYPE,
 		Reloadable:   true,
 	})
 }
 
-func pushdemFunc(ctx *Context) {
+func pushBigDemFunc(ctx *Context) {
 	fmt.Println("demrec pushdem start ...")
 
-	targetFilePath := ctx.DataRequest.PostData
+	targetFilePath := ctx.GetDataBox().DataFilePath
 	targetFileDir := path.Dir(targetFilePath)
 	targetFileName := path.Base(targetFilePath)
 
@@ -88,18 +86,7 @@ func pushdemFunc(ctx *Context) {
 	})
 }
 
-func pushDoneFunc(ctx *Context) {
+func pushBigDoneFunc(ctx *Context) {
 	fmt.Println("demrec pushDoneFunc start ...", ctx.GetDataBox().GetId())
 
-}
-
-
-func verifyFunc(ctx *Context) {
-	fmt.Println("demrec verify start ...")
-	// 2. 将接收到的反馈文件推送至需方dmp
-	ctx.AddQueue(&request.DataRequest{
-		FileCatalog:  &sftp.FileCatalog{},
-		Rule:         "pushdem",
-		TransferType: request.SFTP,
-	})
 }

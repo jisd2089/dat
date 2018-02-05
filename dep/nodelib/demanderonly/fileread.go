@@ -1,0 +1,70 @@
+package demanderonly
+
+/**
+    Author: luzequan
+    Created: 2018-02-02 13:27:36
+*/
+import (
+	. "dat/core/databox"
+	"fmt"
+	"os"
+	"io"
+	"bufio"
+	"strings"
+	"dat/core/interaction/request"
+)
+
+func init() {
+	FILEREAD.Register()
+}
+
+var FILEREAD = &DataBox{
+	Name:        "fileread",
+	Description: "fileread",
+	RuleTree: &RuleTree{
+		Root: readFileRootFunc,
+
+		Trunk: map[string]*Rule{
+			"read": {
+				ParseFunc: readFunc,
+			},
+		},
+	},
+}
+
+func readFileRootFunc(ctx *Context) {
+	fmt.Println("readFileRoot start ...")
+
+	filePath := ctx.GetDataBox().GetDataFilePath()
+
+	f, err := os.Open(filePath)
+	defer f.Close()
+	if err != nil {
+		fmt.Println(err.Error())
+		return
+	}
+	buf := bufio.NewReader(f)
+
+	for {
+		line, err := buf.ReadString('\n')
+		line = strings.TrimSpace(line)
+
+		if err == io.EOF || err != nil {
+			break
+		}
+
+		ctx.AddChanQueue(&request.DataRequest{
+			Url:          "",
+			Rule:         "read",
+			TransferType: request.NONETYPE,
+			Priority:     0,
+			PostData:     line,
+			Reloadable:   true,
+		})
+	}
+}
+
+func readFunc(ctx *Context) {
+	fmt.Println("read start...", ctx.DataRequest.PostData)
+
+}

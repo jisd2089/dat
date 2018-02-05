@@ -36,6 +36,8 @@ type (
 		GetPostData() string
 		// fasthttp 传参
 		GetParameters() []byte
+		GetCommandName() string
+		GetCommandParams() []string
 		// http header
 		GetHeader() http.Header
 		// enable http cookies

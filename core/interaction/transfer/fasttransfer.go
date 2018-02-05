@@ -6,6 +6,12 @@ import (
 	neturl "net/url"
 	. "dat/core/interaction/response"
 	"time"
+	"path"
+	"mime/multipart"
+	"os"
+	"io"
+	"bytes"
+	"fmt"
 )
 
 /**
@@ -23,8 +29,22 @@ func NewFastTransfer() Transfer {
 func (ft *FastTransfer) ExecuteMethod(req Request) Response {
 	//fmt.Println("execute fasthttp")
 	//fmt.Println("fasthttp param:", string(req.GetParameters()))
-	timeout := 30*1000
+
 	dataResponse := &DataResponse{}
+
+	switch req.GetMethod() {
+	case "POST":
+		execPost(req, dataResponse)
+	case "POSTFILE":
+		execPostFile(req, dataResponse)
+	}
+
+	return dataResponse
+}
+
+func execPost(req Request, dataResponse *DataResponse)  {
+
+	timeout := 30*1000
 
 	freq := fasthttp.AcquireRequest()
 	fresp := fasthttp.AcquireResponse()
@@ -50,8 +70,62 @@ func (ft *FastTransfer) ExecuteMethod(req Request) Response {
 		dataResponse.ReturnCode = "000000"
 		break
 	}
+}
 
-	return dataResponse
+func execPostFile(req Request, dataResponse *DataResponse) error {
+	fileName := req.GetPostData()
+	targetUrl := req.GetUrl()
+
+	timeOut := time.Duration(50) * time.Minute
+
+	bodyBuf := &bytes.Buffer{}
+	bodyWriter := multipart.NewWriter(bodyBuf)
+
+	//关键的一步操作
+	fileWriter, err := bodyWriter.CreateFormFile("file", fileName)
+	if err != nil {
+		fmt.Println("error writing to buffer")
+		return err
+	}
+
+	//打开文件句柄操作
+	//filePath := path.Join("/home/ddsdev/data/test/sup/send", fileName)
+	filePath := path.Join("D:/dds_send/tmp", fileName)
+
+	fh, err := os.Open(filePath)
+	defer fh.Close()
+	if err != nil {
+		fmt.Println("error opening file")
+		return err
+	}
+
+	//iocopy
+	_, err = io.Copy(fileWriter, fh)
+	if err != nil {
+		return err
+	}
+
+	contentType := bodyWriter.FormDataContentType()
+	bodyWriter.Close()
+
+	freq := fasthttp.AcquireRequest()
+	fresp := fasthttp.AcquireResponse()
+	defer fasthttp.ReleaseRequest(freq)
+	defer fasthttp.ReleaseResponse(fresp)
+
+	freq.Header.SetContentType(contentType)
+	freq.Header.SetMethod("POST")
+	freq.SetRequestURI(targetUrl)
+	freq.SetBody(bodyBuf.Bytes())
+
+	err = fasthttp.DoTimeout(freq, fresp, timeOut)
+	if err != nil {
+		return err
+	}
+
+	dataResponse.SetStatusCode(200)
+	dataResponse.ReturnCode = "000000"
+	return nil
 }
 
 func (ft *FastTransfer) Close() {

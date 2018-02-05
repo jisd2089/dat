@@ -9,12 +9,8 @@ import (
 	"dat/core/interaction/request"
 	. "dat/core/databox"
 	"fmt"
-	"encoding/json"
-	"bufio"
-	"strings"
-	"io"
-	"dat/dep/management/entity"
 	"os"
+	"path"
 )
 
 func init() {
@@ -24,108 +20,64 @@ func init() {
 var DEMSPLIT = &DataBox{
 	Name:        "demsplit",
 	Description: "demsplit",
-	IsParentBox: true,
 	RuleTree: &RuleTree{
 		Root: func(ctx *Context) {
+			fmt.Println("demsplit root start...")
 
-			fmt.Println("demsplit start...")
+			filePath := ctx.GetDataBox().DataFilePath
 
-			childBox := ctx.GetDataBox().GetChildBoxByName("demchild")
+			dir, err := os.Open(path.Dir(filePath))
 
+			if err != nil {
+				fmt.Println("open file path error: ", err)
+				return
+			}
 
+			names, err := dir.Readdirnames(0)
+			if err != nil {
+				fmt.Println("Readdirnames error: ", err)
+				return
+			}
 
-			ctx.GetDataBox().ChildBoxChan <- childBox.Copy()
-			close(ctx.GetDataBox().ChildBoxChan)
+			fmt.Println(names)
 
-			//dataFile := path.Base(ctx.GetDataBox().GetDataFilePath())
+			// //"-l", "500", filePath, filePath + "_"
+			//cmdParams := []string{"-l", "500", filePath, filePath + "_"}
 			//
-			//f, err := os.Open(dataFile)
-			//defer f.Close()
-			//if err != nil {
-			//	fmt.Println(err.Error())
-			//	return
-			//}
-			//buf := bufio.NewReader(f)
-			//
-			//headerLine := ""
-			//rows := 0
-			//for {
-			//	line, err := buf.ReadString('\n')
-			//	line = strings.TrimSpace(line)
-			//
-			//	if err == io.EOF {
-			//		fmt.Println("file end ###############################")
-			//		break
-			//	}
-			//	if err != nil {
-			//		break
-			//	}
-			//	if rows == 0 { // 返回第一行头记录
-			//		rows ++
-			//		headerLine = line
-			//	} else {
-			//
-			//	}
-			//}
-			//fmt.Println("headerlint", headerLine)
-			//
-			//fmt.Println("NodeAddress: %s", ctx.GetDataBox().GetNodeAddress())
 			//ctx.AddQueue(&request.DataRequest{
-			//	Rule:         "split",
-			//	TransferType: request.DATABOX,
+			//	Rule:          "split",
+			//	TransferType:  request.SHELLTYPE,
+			//	Priority:      1,
+			//	CommandName:   "split",
+			//	Reloadable:    true,
+			//	CommandParams: cmdParams,
 			//})
 		},
 
 		Trunk: map[string]*Rule{
 			"split": {
 				ParseFunc: func(ctx *Context) {
-					fmt.Println("start ...")
-					rows := 0
-					paramBatch := ctx.DataRequest.Bobject.(entity.BatchReqestVo)
-					addressList := ctx.GetDataBox().GetNodeAddress()
+					fmt.Println("split start ...")
 
-					f, err := os.Open(ctx.GetDataBox().GetDataFilePath())
-					defer f.Close()
-					if err != nil {
-						fmt.Println(err.Error())
-						return
-					}
-					buf := bufio.NewReader(f)
+					filePath := ctx.GetDataBox().DataFilePath
 
-					for {
-						line, err := buf.ReadString('\n')
-						line = strings.TrimSpace(line)
+					cmdParams := []string{filePath + "_*"}
 
-						if err == io.EOF {
-							fmt.Println("file end ###############################")
-							break
-						}
-						if err != nil {
-							break
-						}
-						if rows == 0 { // 返回第一行头记录
-							rows ++
-							paramBatch.Header = line
-							paramBatch.ReqType = entity.ReqType_Start
-							paramBatch.DataBoxId = ctx.DataRequest.DataBoxId
-							data, err := json.Marshal(paramBatch)
-							if err != nil {
-								break
-							}
-							for _, addr := range addressList {
-								ctx.AddQueue(&request.DataRequest{
-									Url:          addr.GetUrl(),
-									Rule:         "process",
-									TransferType: request.HTTP,
-									Priority:     1,
-									Bobject:      paramBatch,
-									Reloadable:   true,
-									Parameters:   data,
-								})
-							}
-							break
-						}
-					}
+					ctx.AddQueue(&request.DataRequest{
+						Rule:          "list",
+						TransferType:  request.SHELLTYPE,
+						Priority:      1,
+						CommandName:   "ls",
+						Reloadable:    true,
+						CommandParams: cmdParams,
+					})
+				},
+			},
+			"list": {
+				ParseFunc: func(ctx *Context) {
+					fmt.Println("list start ...")
+
+					fmt.Println("list response: ", ctx.DataResponse.BodyStr)
 				},
 			},
 		},
