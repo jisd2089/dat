@@ -17,12 +17,12 @@ import (
 )
 
 func init() {
-	SUPREC.Register()
+	DEMSENDSUBBOX.Register()
 }
 
-var SUPREC = &DataBox{
-	Name:         "suprec",
-	Description:  "suprec",
+var DEMSENDSUBBOX = &DataBox{
+	Name:         "demsendsubbox",
+	Description:  "demsendsubbox",
 	EnableCookie: false,
 	RuleTree: &RuleTree{
 		Root: func(ctx *Context) {

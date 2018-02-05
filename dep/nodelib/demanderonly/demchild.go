@@ -7,6 +7,8 @@ package demanderonly
 import (
 	. "dat/core/databox"
 	"fmt"
+	"dat/core/interaction/request"
+	"dat/runtime/status"
 )
 
 func init() {
@@ -19,12 +21,22 @@ var DEMCHILD = &DataBox{
 	RuleTree: &RuleTree{
 		Root: func(ctx *Context) {
 			fmt.Println("demchild start...")
+			ctx.GetDataBox().StartWG.Done()
 		},
 		Trunk: map[string]*Rule{
-			"split": {
+			"child": {
 				ParseFunc: func(ctx *Context) {
-					fmt.Println("start ...")
+					fmt.Println("child rule start ...")
+					defer ctx.GetDataBox().SetStatus(status.STOP)
+					defer ctx.GetDataBox().CloseRequestChan()
 
+					parentBox := ctx.GetDataBox().ParentBox
+					ctx.SetDataBox(parentBox).AddChanQueue(&request.DataRequest{
+						Rule:         "parent",
+						TransferType: request.NONETYPE,
+						Priority:     1,
+						Reloadable:   true,
+					})
 				},
 			},
 		},

@@ -50,7 +50,7 @@ var (
 
 //**************************************** 初始化 *******************************************\\
 
-func GetContext(df *DataBox, req *request.DataRequest) *Context {
+func  GetContext(df *DataBox, req *request.DataRequest) *Context {
 	ctx := contextPool.Get().(*Context)
 	ctx.dataBox = df
 	ctx.DataRequest = req
@@ -458,6 +458,12 @@ func (self *Context) GetError() error {
 // 获取DataBox名称。
 func (self *Context) GetDataBox() *DataBox {
 	return self.dataBox
+}
+
+// 获取DataBox名称。
+func (self *Context) SetDataBox(b *DataBox) *Context {
+	self.dataBox = b
+	return self
 }
 
 // 获取响应流。

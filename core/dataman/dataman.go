@@ -94,10 +94,10 @@ func (m *dataMan) Run() {
 	wg.Add(1)
 	go m.run()
 
-	for i := 0; i < 10; i++ {
-		wg.Add(1)
-		go m.runChanRequest()
-	}
+	//for i := 0; i < 1; i++ {
+	wg.Add(1)
+	go m.runChanReq()
+	//}
 
 	//	wg.Wait()
 	//	fmt.Println("Run Close Block chan^^^^^^^^^^^")
@@ -211,9 +211,9 @@ func (m *dataMan) runChanReq() {
 		// 执行请求
 		m.UseOne()
 		go func(req *request.DataRequest) {
-			defer m.FreeOne()
 			//logs.Log.Debug(" *     Start: %v", req.GetUrl())
 			m.Process(req)
+			m.FreeOne()
 		}(req)
 	}
 }
@@ -227,7 +227,7 @@ func (m *dataMan) runChanRequest() {
 			fmt.Println("runChanRequest recover error: ", err)
 		}
 
-		fmt.Println("runChanReq end............")
+		fmt.Println("runChanRequest end............")
 
 		// 完成
 		m.runWG.Done()
@@ -333,7 +333,6 @@ func (m *dataMan) Process(req *request.DataRequest) {
 	}()
 
 	// TODO execute http、kafka、protocolbuffer... communication
-	fmt.Println("Carrier handle: ", req.PostData)
 	var ctx = m.Carrier.Handle(b, req)
 	//var ctx = self.Downloader.Download(sp, req) // download page
 

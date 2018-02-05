@@ -96,7 +96,7 @@ func getNewNodeEntity() *NodeEntity {
 			TaskBase:         distribute.NewTaskBase(),
 			DataBoxQueue:     dataman.NewDataBoxQueue(),
 			DataManPool:      dataman.NewDataManPool(),
-			CarrierPool:      dataman.NewCarrierPool(),
+			//CarrierPool:      dataman.NewCarrierPool(),
 		}
 	})
 	return newNodeEntity
@@ -450,7 +450,7 @@ func (ne *NodeEntity) goRunDataBox(b *databox.DataBox) {
 	m := ne.DataManPool.Use()
 	if m != nil {
 		// 执行并返回结果消息
-		m.Init(b).Obtain(ne.CarrierPool).Run()
+		m.Init(b).Run()
 		// 任务结束后回收该信使
 		ne.RWMutex.RLock()
 		if ne.status != status.STOP {

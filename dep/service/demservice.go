@@ -41,7 +41,8 @@ func (d *DemService) SendDemReqToSup(ctx *fasthttp.RequestCtx) {
 	b.SetDataFilePath(filePath)
 
 	addrs := []*request.NodeAddress{}
-	addrs = append(addrs, &request.NodeAddress{MemberId: "000079", IP: "10.101.12.44", Host: "8989", URL: "/api/sup/rec", Priority: 0})
+	//addrs = append(addrs, &request.NodeAddress{MemberId: "000079", IP: "10.101.12.44", Host: "8989", URL: "/api/sup/rec", Priority: 0})
+	addrs = append(addrs, &request.NodeAddress{MemberId: "000079", IP: "127.0.0.1", Host: "8989", URL: "/api/sup/rec", Priority: 0})
 	//addrs = append(addrs, &request.NodeAddress{MemberId: "000108", IP: "127.0.0.1", Host: "8082", URL: "/api/sup/rec", Priority: 1})
 	//addrs = append(addrs, &request.NodeAddress{MemberId: "000109", IP: "127.0.0.1", Host: "8083", URL: "/api/sup/rec", Priority: 2})
 	//addrs = append(addrs, &request.NodeAddress{MemberId: "000115", IP: "127.0.0.1", Host: "8084", URL: "/api/sup/rec", Priority: 3})
@@ -134,6 +135,16 @@ func (d *DemService) ReadFile(ctx *fasthttp.RequestCtx) {
 		fmt.Println("databox is nil!")
 	}
 	b.SetDataFilePath(filePath)
+
+	setDataBoxQueue(b)
+}
+
+
+func (d *DemService) RunParentAndChild(ctx *fasthttp.RequestCtx) {
+	b := assetnode.AssetNodeEntity.GetDataBoxByName("demsub")
+	if b == nil {
+		fmt.Println("databox is nil!")
+	}
 
 	setDataBoxQueue(b)
 }

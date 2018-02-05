@@ -25,40 +25,40 @@ import (
 )
 
 func init() {
-	DEMSEND.Register()
+	DEMSENDSUB.Register()
 }
 
-var DEMSEND = &DataBox{
-	Name:        "demsend",
-	Description: "demsend",
+var DEMSENDSUB = &DataBox{
+	Name:        "demsendsub",
+	Description: "demsendsub",
 	RuleTree: &RuleTree{
-		Root: demsendRootFunc,
+		Root: demsendSubRootFunc,
 
 		Trunk: map[string]*Rule{
 			"start": {
-				ParseFunc: startFunc,
+				ParseFunc: startSubFunc,
 			},
 			"process": {
-				ParseFunc: processFunc,
+				ParseFunc: processSubFunc,
 			},
 			"normal": {
-				ParseFunc: normalFunc,
+				ParseFunc: normalSubFunc,
 			},
 			"collision": {
-				ParseFunc: collisionFunc,
+				ParseFunc: collisionSubFunc,
 			},
 			"end": {
-				ParseFunc: endFunc,
+				ParseFunc: endSubFunc,
 			},
 			"endreslt": {
-				ParseFunc: endresltFunc,
+				ParseFunc: endResltSubFunc,
 			},
 		},
 	},
 }
 
-func demsendRootFunc(ctx *Context) {
-	fmt.Println("demsend Root ...")
+func demsendSubRootFunc(ctx *Context) {
+	fmt.Println("demsendsub Root ...")
 
 	memId := "000001"
 	filePath := ctx.GetDataBox().GetDataFilePath()
@@ -110,7 +110,7 @@ func demsendRootFunc(ctx *Context) {
 	})
 }
 
-func startFunc(ctx *Context) {
+func startSubFunc(ctx *Context) {
 	fmt.Println("start rule...")
 	rows := 0
 	paramBatch := ctx.DataRequest.Bobject.(entity.BatchReqestVo)
@@ -161,7 +161,7 @@ func startFunc(ctx *Context) {
 	}
 }
 
-func processFunc(ctx *Context) {
+func processSubFunc(ctx *Context) {
 	fmt.Println("process ...")
 	addressList := ctx.GetDataBox().GetNodeAddress()
 
@@ -183,6 +183,19 @@ func processFunc(ctx *Context) {
 	}
 
 	if continueFlag {
+
+		childBox := ctx.GetDataBox().GetChildBoxByName("demsendsubbox")
+		ctx.GetDataBox().ChildBoxChan <- childBox.Copy()
+
+		ctx.SetDataBox(childBox).AddChanQueue(&request.DataRequest{
+			Rule:         "normal",
+			TransferType: request.NONETYPE,
+			Priority:     1,
+			Bobject:      ctx.DataRequest.Bobject,
+			Reloadable:   true,
+		})
+
+
 		//fmt.Println("normaltype pending...")
 		ctx.AddQueue(&request.DataRequest{
 			Rule:         "normal",
@@ -194,7 +207,7 @@ func processFunc(ctx *Context) {
 	}
 }
 
-func normalFunc(ctx *Context) {
+func normalSubFunc(ctx *Context) {
 	fmt.Println("normaltype ...")
 
 	defer func() {
@@ -253,7 +266,7 @@ func normalFunc(ctx *Context) {
 	}
 }
 
-func collisionFunc(ctx *Context) {
+func collisionSubFunc(ctx *Context) {
 	//fmt.Println("collision start.................")
 	//fmt.Println("detail count ", ctx.GetDataBox().DetailCount)
 	//fmt.Println("collision response.................", ctx.DataResponse.StatusCode, ctx.DataResponse.ReturnCode)
@@ -322,7 +335,7 @@ func collisionFunc(ctx *Context) {
 	}
 }
 
-func endFunc(ctx *Context) {
+func endSubFunc(ctx *Context) {
 	fmt.Println("end start ...")
 
 	defer ctx.GetDataBox().SetStatus(status.STOP)
@@ -349,7 +362,7 @@ func endFunc(ctx *Context) {
 	}
 }
 
-func endresltFunc(ctx *Context) {
+func endResltSubFunc(ctx *Context) {
 	fmt.Println("end reslt start ...")
 
 }

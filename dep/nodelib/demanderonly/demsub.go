@@ -9,12 +9,8 @@ import (
 	"dat/core/interaction/request"
 	. "dat/core/databox"
 	"fmt"
-	"encoding/json"
-	"bufio"
-	"strings"
-	"io"
-	"dat/dep/management/entity"
-	"os"
+	"sync"
+	"dat/runtime/status"
 )
 
 func init() {
@@ -28,104 +24,33 @@ var DEMSUB = &DataBox{
 	RuleTree: &RuleTree{
 		Root: func(ctx *Context) {
 
-			fmt.Println("demsplit start...")
+			fmt.Println("dem parent start...")
 
 			childBox := ctx.GetDataBox().GetChildBoxByName("demchild")
+			childBoxAct := childBox.Copy()
+			wg := &sync.WaitGroup{}
+			childBoxAct.ParentBox = ctx.GetDataBox()
+			childBoxAct.StartWG = wg
 
-
-
-			ctx.GetDataBox().ChildBoxChan <- childBox.Copy()
+			wg.Add(1)
+			ctx.GetDataBox().ChildBoxChan <- childBoxAct
 			close(ctx.GetDataBox().ChildBoxChan)
+			wg.Wait()
 
-			//dataFile := path.Base(ctx.GetDataBox().GetDataFilePath())
-			//
-			//f, err := os.Open(dataFile)
-			//defer f.Close()
-			//if err != nil {
-			//	fmt.Println(err.Error())
-			//	return
-			//}
-			//buf := bufio.NewReader(f)
-			//
-			//headerLine := ""
-			//rows := 0
-			//for {
-			//	line, err := buf.ReadString('\n')
-			//	line = strings.TrimSpace(line)
-			//
-			//	if err == io.EOF {
-			//		fmt.Println("file end ###############################")
-			//		break
-			//	}
-			//	if err != nil {
-			//		break
-			//	}
-			//	if rows == 0 { // 返回第一行头记录
-			//		rows ++
-			//		headerLine = line
-			//	} else {
-			//
-			//	}
-			//}
-			//fmt.Println("headerlint", headerLine)
-			//
-			//fmt.Println("NodeAddress: %s", ctx.GetDataBox().GetNodeAddress())
-			//ctx.AddQueue(&request.DataRequest{
-			//	Rule:         "split",
-			//	TransferType: request.DATABOX,
-			//})
+			ctx.SetDataBox(childBoxAct).AddChanQueue(&request.DataRequest{
+				Rule:         "child",
+				TransferType: request.NONETYPE,
+				Priority:     1,
+				Reloadable:   true,
+			})
 		},
 
 		Trunk: map[string]*Rule{
-			"split": {
+			"parent": {
 				ParseFunc: func(ctx *Context) {
-					fmt.Println("start ...")
-					rows := 0
-					paramBatch := ctx.DataRequest.Bobject.(entity.BatchReqestVo)
-					addressList := ctx.GetDataBox().GetNodeAddress()
-
-					f, err := os.Open(ctx.GetDataBox().GetDataFilePath())
-					defer f.Close()
-					if err != nil {
-						fmt.Println(err.Error())
-						return
-					}
-					buf := bufio.NewReader(f)
-
-					for {
-						line, err := buf.ReadString('\n')
-						line = strings.TrimSpace(line)
-
-						if err == io.EOF {
-							fmt.Println("file end ###############################")
-							break
-						}
-						if err != nil {
-							break
-						}
-						if rows == 0 { // 返回第一行头记录
-							rows ++
-							paramBatch.Header = line
-							paramBatch.ReqType = entity.ReqType_Start
-							paramBatch.DataBoxId = ctx.DataRequest.DataBoxId
-							data, err := json.Marshal(paramBatch)
-							if err != nil {
-								break
-							}
-							for _, addr := range addressList {
-								ctx.AddQueue(&request.DataRequest{
-									Url:          addr.GetUrl(),
-									Rule:         "process",
-									TransferType: request.HTTP,
-									Priority:     1,
-									Bobject:      paramBatch,
-									Reloadable:   true,
-									Parameters:   data,
-								})
-							}
-							break
-						}
-					}
+					fmt.Println("parent rule start ...")
+					defer ctx.GetDataBox().SetStatus(status.STOP)
+					defer ctx.GetDataBox().CloseRequestChan()
 				},
 			},
 		},

@@ -26,29 +26,31 @@ const (
 type (
 	DataBox struct {
 		// 以下字段由用户定义
-		Name            string                                                      // 名称（应保证唯一性）
-		Description     string                                                      // 描述
-		DataFilePath    string                                                      // 数据文件地址
-		DataFile        *multipart.FileHeader                                       // 数据文件内容
-		NodeAddress     []*request.NodeAddress                                      // 交互节点地址
-		Pausetime       int64                                                       // 随机暂停区间(50%~200%)，若规则中直接定义，则不被界面传参覆盖
-		Limit           int64                                                       // 默认限制请求数，0为不限；若规则中定义为LIMIT，则采用规则的自定义限制方案
-		Keyin           string                                                      // 自定义输入的配置信息，使用前须在规则中设置初始值为KEYIN
-		EnableCookie    bool                                                        // 所有请求是否使用cookie记录
-		NotDefaultField bool                                                        // 是否禁止输出结果中的默认字段 Url/ParentUrl/DownloadTime
-		Namespace       func(self *DataBox) string                                  // 命名空间，用于输出文件、路径的命名
-		SubNamespace    func(self *DataBox, dataCell map[string]interface{}) string // 次级命名，用于输出文件、路径的命名，可依赖具体数据内容
-		DetailCount     int                                                         // 明细条数
-		TsfSuccCount    int                                                         // 流通成功明细条数
-		BlockChan       chan bool                                                   // 用于ActiveDataBox阻塞，持续活跃
-		StartWG         *sync.WaitGroup                                             // 启动成功通知
-		RuleTree        *RuleTree                                                   // 定义具体的配送规则树
-		OrigDataManId   int                                                         // 原始dataman id
-		PairDataBoxId   int                                                         // 对接的databox id
-		ActiveWG        *sync.WaitGroup                                             // 等待所有活动结束
-		ChildBoxChan    chan *DataBox                                               // 子盒子通道
-		IsParentBox     bool                                                        // 是否父databox
-		//interaction.Carrier //全局公用的信息交互载体，使DataBox具有同步处理DataRequest请求能力
+		Name               string                                                      // 名称（应保证唯一性）
+		Description        string                                                      // 描述
+		DataFilePath       string                                                      // 数据文件地址
+		DataFile           *multipart.FileHeader                                       // 数据文件内容
+		NodeAddress        []*request.NodeAddress                                      // 交互节点地址
+		Pausetime          int64                                                       // 随机暂停区间(50%~200%)，若规则中直接定义，则不被界面传参覆盖
+		Limit              int64                                                       // 默认限制请求数，0为不限；若规则中定义为LIMIT，则采用规则的自定义限制方案
+		Keyin              string                                                      // 自定义输入的配置信息，使用前须在规则中设置初始值为KEYIN
+		EnableCookie       bool                                                        // 所有请求是否使用cookie记录
+		NotDefaultField    bool                                                        // 是否禁止输出结果中的默认字段 Url/ParentUrl/DownloadTime
+		Namespace          func(self *DataBox) string                                  // 命名空间，用于输出文件、路径的命名
+		SubNamespace       func(self *DataBox, dataCell map[string]interface{}) string // 次级命名，用于输出文件、路径的命名，可依赖具体数据内容
+		DetailCount        int                                                         // 明细条数
+		TsfSuccCount       int                                                         // 流通成功明细条数
+		BlockChan          chan bool                                                   // 用于ActiveDataBox阻塞，持续活跃
+		StartWG            *sync.WaitGroup                                             // 启动成功通知
+		RuleTree           *RuleTree                                                   // 定义具体的配送规则树
+		OrigDataManId      int                                                         // 原始dataman id
+		PairDataBoxId      int                                                         // 对接的databox id
+		ActiveWG           *sync.WaitGroup                                             // 等待所有活动结束
+		ChildBoxChan       chan *DataBox                                               // 子盒子通道
+		ChildActiveBoxChan chan *DataBox                                               // 持续活跃子盒子通道
+		IsParentBox        bool                                                        // 是否父databox
+		ChildBox           *DataBox                                                    // child box
+		ParentBox          *DataBox                                                    // parent box
 
 		// 以下字段系统自动赋值
 		id        int               // 自动分配的DataBoxQueue中的索引
@@ -374,6 +376,8 @@ func (self *DataBox) Copy() *DataBox {
 	ghost.StartWG = self.StartWG
 	ghost.PairDataBoxId = self.PairDataBoxId
 	ghost.IsParentBox = self.IsParentBox
+	ghost.ChildBoxChan = self.ChildBoxChan
+	ghost.ChildActiveBoxChan = self.ChildActiveBoxChan
 
 	return ghost
 }
