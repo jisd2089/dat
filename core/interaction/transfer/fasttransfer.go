@@ -7,11 +7,12 @@ import (
 	. "dat/core/interaction/response"
 	"time"
 	"path"
-	"mime/multipart"
 	"os"
-	"io"
-	"bytes"
 	"fmt"
+	"io"
+	"bufio"
+	"mime/multipart"
+	"bytes"
 )
 
 /**
@@ -19,7 +20,7 @@ import (
     Created: 2017-12-28 15:41:49
 */
 
-type FastTransfer struct {}
+type FastTransfer struct{}
 
 func NewFastTransfer() Transfer {
 	return &FastTransfer{}
@@ -36,15 +37,17 @@ func (ft *FastTransfer) ExecuteMethod(req Request) Response {
 	case "POST":
 		execPost(req, dataResponse)
 	case "POSTFILE":
-		execPostFile(req, dataResponse)
+		execPostFileStream(req, dataResponse)
+	case "FILESTREAM":
+		execPostFileStream(req, dataResponse)
 	}
 
 	return dataResponse
 }
 
-func execPost(req Request, dataResponse *DataResponse)  {
+func execPost(req Request, dataResponse *DataResponse) {
 
-	timeout := 30*1000
+	timeout := 30 * 1000
 
 	freq := fasthttp.AcquireRequest()
 	fresp := fasthttp.AcquireResponse()
@@ -117,6 +120,94 @@ func execPostFile(req Request, dataResponse *DataResponse) error {
 	freq.Header.SetMethod("POST")
 	freq.SetRequestURI(targetUrl)
 	freq.SetBody(bodyBuf.Bytes())
+
+	err = fasthttp.DoTimeout(freq, fresp, timeOut)
+	if err != nil {
+		return err
+	}
+
+	dataResponse.SetStatusCode(200)
+	dataResponse.ReturnCode = "000000"
+	return nil
+}
+
+func execPostFileStream(req Request, dataResponse *DataResponse) error {
+	fileName := req.GetPostData()
+	targetUrl := req.GetUrl()
+
+	timeOut := time.Duration(50) * time.Minute
+
+	//打开文件句柄操作
+	//filePath := path.Join("/home/ddsdev/data/test/sup/send", fileName)
+	filePath := path.Join("D:/dds_send/tmp", fileName)
+
+	fh, err := os.Open(filePath)
+	defer fh.Close()
+	if err != nil {
+		fmt.Println("error opening file")
+		return err
+	}
+
+	freq := fasthttp.AcquireRequest()
+	fresp := fasthttp.AcquireResponse()
+	defer fasthttp.ReleaseRequest(freq)
+	defer fasthttp.ReleaseResponse(fresp)
+
+	freq.Header.SetMethod("POST")
+	freq.SetRequestURI(targetUrl)
+
+	freq.SetBodyStreamWriter(func(w *bufio.Writer) {
+		buf := bufio.NewReader(fh)
+		//rows := 0
+		//lineCnt := ""
+
+		bufCnt := make([]byte, 104857600)
+		//
+		//buf.Read(bufCnt)
+		//fmt.Fprintf(w, string(bufCnt))
+		//// Do not forget flushing streamed data to the client.
+		//if err := w.Flush(); err != nil {
+		//	return
+		//}
+
+		for {
+			//line, err := buf.ReadString('\n')
+			nr, err := buf.Read(bufCnt)
+			//line, _, err := buf.ReadLine()
+			//lineStr := string(line) + "\n"
+			if err == io.EOF || err != nil {
+				//fmt.Println("file end ###############################")
+				break
+			}
+			if nr > 0 {
+
+				//rows ++
+				//fmt.Println(rows)
+				//
+				//lineCnt += lineStr
+				//
+				//if rows % 1000 == 0 {
+				fmt.Fprintf(w, string(bufCnt))
+				//lineCnt = ""
+				// Do not forget flushing streamed data to the client.
+				if err := w.Flush(); err != nil {
+					return
+				}
+				//time.Sleep(10 * time.Millisecond)
+				//}
+			}
+		}
+
+		//for i := 0; i < 10; i++ {
+		//	fmt.Fprintf(w, "this is a message number %d", i)
+		//
+		//	// Do not forget flushing streamed data to the client.
+		//	if err := w.Flush(); err != nil {
+		//		return
+		//	}
+		//	time.Sleep(time.Second)
+		//}
+	})
 
 	err = fasthttp.DoTimeout(freq, fresp, timeOut)
 	if err != nil {

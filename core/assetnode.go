@@ -35,7 +35,7 @@ type (
 		PushActiveDataBox(original *databox.DataBox) *databox.DataBox            // 将DataBox放入active channel
 		Run()                                                                    // 阻塞式运行直至任务完成（须在所有应当配置项配置完成后调用）
 		SyncRun()                                                                // 同步运行ActiveBox
-		RunActiveBox(b *databox.DataBox, obj interface{}) *response.DataResponse // 执行ActiveBox请求，同步返回
+		RunActiveBox(b *databox.DataBox, obj interface{}) response.DataResponse // 执行ActiveBox请求，同步返回
 		StopActiveBox(b *databox.DataBox)                                        // 停止Active DataBox
 		Stop()                                                                   // Offline 模式下中途终止任务（对外为阻塞式运行直至当前任务终止）
 		IsRunning() bool                                                         // 检查任务是否正在运行
@@ -568,9 +568,9 @@ func (ne *NodeEntity) goManRunBox(b *databox.DataBox) {
 }
 
 // 执行ActiveBox请求，同步返回
-func (ne *NodeEntity) RunActiveBox(b *databox.DataBox, obj interface{}) *response.DataResponse {
+func (ne *NodeEntity) RunActiveBox(b *databox.DataBox, obj interface{}) response.DataResponse {
 	var context *databox.Context
-	var dataResp *response.DataResponse
+	var dataResp response.DataResponse
 
 	m := ne.DataManPool.Use()
 	if m != nil {
@@ -578,7 +578,7 @@ func (ne *NodeEntity) RunActiveBox(b *databox.DataBox, obj interface{}) *respons
 		ne.RWMutex.RLock()
 		context = m.MiniInit(b).RunRequest(obj)
 
-		dataResp = context.DataResponse
+		dataResp = *context.DataResponse
 		defer databox.PutContext(context)
 
 		// 该条请求文件结果存入pipeline

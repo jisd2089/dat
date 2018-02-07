@@ -11,6 +11,7 @@ import (
 	"dat/common/sftp"
 	"time"
 	"path"
+	"dat/runtime/status"
 )
 
 func init() {
@@ -75,8 +76,8 @@ func pushFileNotSplitFunc(ctx *Context) {
 	fileName := fileCatalog.LocalFileName
 
 	ctx.AddChanQueue(&request.DataRequest{
-		//Url:          `http://127.0.0.1:8899/api/dem/rec`,
-		Url:          `http://10.101.12.17:8899/api/dem/rec`,
+		Url:          `http://127.0.0.1:8899/api/dem/rec`,
+		//Url:          `http://10.101.12.17:8899/api/dem/rec`,
 		Rule:         "notifydem",
 		TransferType: request.FASTHTTP,
 		Method:       "PostFile",
@@ -87,6 +88,9 @@ func pushFileNotSplitFunc(ctx *Context) {
 
 func notifyDemNotSplitFunc(ctx *Context) {
 	fmt.Println("notifydem start ...")
+
+	defer ctx.GetDataBox().SetStatus(status.STOP)
+	defer ctx.GetDataBox().CloseRequestChan()
 	// 3. 通知dem节点服务器，继续往下执行
 	//ctx.AddQueue(&request.DataRequest{
 	//	Url:          "",

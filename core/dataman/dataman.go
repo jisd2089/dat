@@ -123,6 +123,12 @@ func (m *dataMan) SyncRun() {
 
 	m.DataBox.BlockChan = make(chan bool)
 
+	var wg sync.WaitGroup
+	m.runWG = &wg
+
+	wg.Add(1)
+	go m.runChanReq()
+
 	// 启动任务
 	m.DataBox.Start()
 
@@ -135,7 +141,7 @@ func (m *dataMan) SyncRun() {
 	m.DataBox.StartWG.Done()
 
 	<-m.DataBox.BlockChan // 等待处理协程退出
-
+	m.runWG.Wait()
 	//dataResp := m.syncRun()
 
 	// 停止数据拆包/核验管道
@@ -206,15 +212,15 @@ func (m *dataMan) runChanReq() {
 
 	// 队列中取出一条请求并处理
 	for req := range m.GetRequestChan() {
-		fmt.Println("run chan request: ", req.PostData)
+		fmt.Println("run chan request: ", req.GetDataBoxName())
 
 		// 执行请求
 		m.UseOne()
-		go func(req *request.DataRequest) {
+		//go func(req *request.DataRequest) {
 			//logs.Log.Debug(" *     Start: %v", req.GetUrl())
 			m.Process(req)
 			m.FreeOne()
-		}(req)
+		//}(req)
 	}
 }
 

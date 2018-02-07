@@ -80,7 +80,7 @@ var SUPREC = &DataBox{
 
 						ctx.ExecDataReq(&request.DataRequest{TransferType: request.REDIS, Rule: "process",})
 
-						//fmt.Println("write content$$$$$$$$$: ", content)
+						fmt.Println("write content$$$$$$$$$: ", content)
 						ctx.GetDataBox().ActiveWG.Add(1)
 						// 碰撞成功输出
 						ctx.Output(map[string]interface{}{

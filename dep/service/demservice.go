@@ -6,9 +6,9 @@ import (
 	"dat/core"
 	"dat/core/databox"
 	"dat/core/interaction/request"
+	"os"
 	"path"
 	"io"
-	"os"
 )
 
 /**
@@ -67,16 +67,19 @@ func setDataBoxQueue(box *databox.DataBox) {
   */
 func (d *DemService) RecSupRespAndPushToDem(ctx *fasthttp.RequestCtx) {
 
+	//fmt.Println(string(ctx.Request.Body()))
+
 	dataFile, err := ctx.FormFile("file")
 	if err != nil {
 		fmt.Println("filePath err:", err)
 	}
 	fmt.Println("filePath***********: ", dataFile.Filename)
 
-	//targetFileDir := "D:/dds_receive/tmp"
-	targetFileDir := "/home/ddsdev/data/test/dem/rec"
-	targetFilePath := path.Join(targetFileDir, dataFile.Filename)
 
+	targetFileDir := "D:/dds_receive/tmp"
+	//targetFileDir := "/home/ddsdev/data/test/dem/rec"
+	targetFilePath := path.Join(targetFileDir, "JON20171102000000276_ID010201_20171213175701_00011.TARGET")
+	//
 	targetFile, err := os.OpenFile(targetFilePath, os.O_WRONLY|os.O_CREATE, 0644)
 	defer targetFile.Close()
 	if err != nil {
@@ -88,6 +91,8 @@ func (d *DemService) RecSupRespAndPushToDem(ctx *fasthttp.RequestCtx) {
 	if err != nil {
 
 	}
+
+	//io.Copy(targetFile, bytes.NewReader(ctx.Request.Body()))
 
 	io.Copy(targetFile, dataFileContent)
 
@@ -141,10 +146,20 @@ func (d *DemService) ReadFile(ctx *fasthttp.RequestCtx) {
 
 
 func (d *DemService) RunParentAndChild(ctx *fasthttp.RequestCtx) {
-	b := assetnode.AssetNodeEntity.GetDataBoxByName("demsub")
+
+	filePath := string(ctx.FormValue("filePath"))
+
+	b := assetnode.AssetNodeEntity.GetDataBoxByName("demsendsub")
 	if b == nil {
 		fmt.Println("databox is nil!")
 	}
+
+	b.SetDataFilePath(filePath)
+
+	addrs := []*request.NodeAddress{}
+	addrs = append(addrs, &request.NodeAddress{MemberId: "000079", IP: "127.0.0.1", Host: "8989", URL: "/api/sup/rec", Priority: 0})
+
+	b.SetNodeAddress(addrs)
 
 	setDataBoxQueue(b)
 }

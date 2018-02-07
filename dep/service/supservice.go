@@ -75,13 +75,15 @@ func (s *SupService) RecDemReqAndPushToSup(ctx *fasthttp.RequestCtx) {
 		//fmt.Println("dataResp:", dataResp)
 		ctx.SetStatusCode(dataResp.StatusCode)
 	case constant.ReqType_Normal:
-		ab := assetnode.AssetNodeEntity.GetActiveDataBoxByName(activeDataBoxName)
+		fmt.Println("rec ReqType_Normal req")
+		//ab := assetnode.AssetNodeEntity.GetActiveDataBoxByName(activeDataBoxName)
 		//fmt.Println("activeDataBoxName: ***************", activeDataBoxName)
 		//fmt.Println("active databox name", ab.Name)
-		dataResp := assetnode.AssetNodeEntity.RunActiveBox(ab, batchReqestVo)
+		//dataResp := assetnode.AssetNodeEntity.RunActiveBox(ab, batchReqestVo)
 		//fmt.Println("dataResp:", dataResp)
 
-		ctx.SetStatusCode(dataResp.StatusCode)
+		//ctx.SetStatusCode(dataResp.StatusCode)
+		ctx.SetStatusCode(200)
 
 	case constant.ReqType_End:
 		fmt.Println("end activeDataBoxName: ***************", activeDataBoxName)

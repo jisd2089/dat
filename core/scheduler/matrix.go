@@ -40,7 +40,7 @@ func newMatrix(dataBoxName, dataBoxSubName string, maxPage int64) *Matrix {
 		addpriors:   []int{},
 		reqs:        make(map[int][]*request.DataRequest),
 		priorities:  []int{},
-		reqChan:     make(chan *request.DataRequest, 100000),
+		reqChan:     make(chan *request.DataRequest, 100000000),
 		history:     history.New(dataBoxName, dataBoxSubName),
 		tempHistory: make(map[string]bool),
 		failures:    make(map[string]*request.DataRequest),

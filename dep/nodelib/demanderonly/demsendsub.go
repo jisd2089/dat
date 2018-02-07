@@ -22,6 +22,7 @@ import (
 	"dat/runtime/output"
 	"dat/runtime/status"
 	"time"
+	"sync"
 )
 
 func init() {
@@ -31,6 +32,7 @@ func init() {
 var DEMSENDSUB = &DataBox{
 	Name:        "demsendsub",
 	Description: "demsendsub",
+	IsParentBox: true,
 	RuleTree: &RuleTree{
 		Root: demsendSubRootFunc,
 
@@ -44,7 +46,7 @@ var DEMSENDSUB = &DataBox{
 			"normal": {
 				ParseFunc: normalSubFunc,
 			},
-			"collision": {
+			"collisionrslt": {
 				ParseFunc: collisionSubFunc,
 			},
 			"end": {
@@ -103,7 +105,7 @@ func demsendSubRootFunc(ctx *Context) {
 	ctx.AddQueue(&request.DataRequest{
 		Rule:         "start",
 		Method:       "GET",
-		TransferType: request.SFTP,
+		TransferType: request.NONETYPE,
 		FileCatalog:  fileCatalog,
 		Bobject:      paramBatch,
 		Reloadable:   true,
@@ -184,18 +186,6 @@ func processSubFunc(ctx *Context) {
 
 	if continueFlag {
 
-		childBox := ctx.GetDataBox().GetChildBoxByName("demsendsubbox")
-		ctx.GetDataBox().ChildBoxChan <- childBox.Copy()
-
-		ctx.SetDataBox(childBox).AddChanQueue(&request.DataRequest{
-			Rule:         "normal",
-			TransferType: request.NONETYPE,
-			Priority:     1,
-			Bobject:      ctx.DataRequest.Bobject,
-			Reloadable:   true,
-		})
-
-
 		//fmt.Println("normaltype pending...")
 		ctx.AddQueue(&request.DataRequest{
 			Rule:         "normal",
@@ -217,9 +207,25 @@ func normalSubFunc(ctx *Context) {
 			ctx.GetDataBox().CloseRequestChan()
 		}
 	}()
+
+	childBox := ctx.GetDataBox().GetChildBoxByName("demsendsubbox")
+
+	childBoxAct := childBox.Copy()
+	wg := &sync.WaitGroup{}
+	childBoxAct.ParentBox = ctx.GetDataBox()
+	childBoxAct.StartWG = wg
+
+	wg.Add(1)
+	ctx.GetDataBox().ChildActiveBoxChan <- childBoxAct
+	close(ctx.GetDataBox().ChildBoxChan)
+
+	wg.Wait()
+
 	rows := 0
 	paramBatch := ctx.DataRequest.Bobject.(entity.BatchReqestVo)
 	addressList := ctx.GetDataBox().GetNodeAddress()
+
+	ctx.GetDataBox().ChildBox = childBoxAct
 
 	f, err := os.Open(ctx.GetDataBox().GetDataFilePath())
 	defer f.Close()
@@ -233,13 +239,11 @@ func normalSubFunc(ctx *Context) {
 		line, err := buf.ReadString('\n')
 		line = strings.TrimSpace(line)
 
-		if err == io.EOF {
-			ctx.GetDataBox().DetailCount = rows
+		if err == io.EOF || err != nil {
+
+			ctx.GetDataBox().ParentBox.DetailCount = rows
 			defer ctx.GetDataBox().CloseRequestChan()
 			//fmt.Println("file end ###############################", rows, line)
-			break
-		}
-		if err != nil {
 			break
 		}
 		rows ++
@@ -252,13 +256,23 @@ func normalSubFunc(ctx *Context) {
 			if err != nil {
 				break
 			}
-			ctx.AddChanQueue(&request.DataRequest{
+			//ctx.AddChanQueue(&request.DataRequest{
+			//	Url:          addressList[0].GetUrl(),
+			//	Method:       "POST",
+			//	Parameters:   data,
+			//	Rule:         "collision",
+			//	TransferType: request.FASTHTTP,
+			//	Priority:     0,
+			//	Bobject:      paramBatch,
+			//	Reloadable:   true,
+			//})
+			ctx.SetDataBox(childBoxAct).AddChanQueue(&request.DataRequest{
 				Url:          addressList[0].GetUrl(),
 				Method:       "POST",
 				Parameters:   data,
-				Rule:         "collision",
-				TransferType: request.FASTHTTP,
-				Priority:     0,
+				Rule:         "runcollision",
+				TransferType: request.NONETYPE,
+				Priority:     1,
 				Bobject:      paramBatch,
 				Reloadable:   true,
 			})
@@ -267,16 +281,10 @@ func normalSubFunc(ctx *Context) {
 }
 
 func collisionSubFunc(ctx *Context) {
-	//fmt.Println("collision start.................")
-	//fmt.Println("detail count ", ctx.GetDataBox().DetailCount)
-	//fmt.Println("collision response.................", ctx.DataResponse.StatusCode, ctx.DataResponse.ReturnCode)
+	fmt.Println("collision result start.................")
 
 	addressList := ctx.GetDataBox().GetNodeAddress()
 	currentUrl := ctx.DataRequest.GetUrl()
-
-	//fmt.Println(addressList)
-	//fmt.Println(currentUrl)
-	//fmt.Println(ctx.DataResponse.ReturnCode)
 
 	if ctx.DataResponse.StatusCode == 200 {
 
@@ -293,7 +301,7 @@ func collisionSubFunc(ctx *Context) {
 					nextUrl := addressList[i+1].GetUrl()
 					ctx.AddQueue(&request.DataRequest{
 						Url:          nextUrl,
-						Rule:         "collision",
+						Rule:         "collisionrslt",
 						Method:       "POST",
 						TransferType: request.FASTHTTP,
 						Priority:     0,
@@ -338,7 +346,7 @@ func collisionSubFunc(ctx *Context) {
 func endSubFunc(ctx *Context) {
 	fmt.Println("end start ...")
 
-	defer ctx.GetDataBox().SetStatus(status.STOP)
+	ctx.GetDataBox().ChildBox.StopActiveBox()
 
 	paramBatch := ctx.DataRequest.Bobject.(entity.BatchReqestVo)
 	addressList := ctx.GetDataBox().GetNodeAddress()
@@ -364,5 +372,6 @@ func endSubFunc(ctx *Context) {
 
 func endResltSubFunc(ctx *Context) {
 	fmt.Println("end reslt start ...")
+	defer ctx.GetDataBox().SetStatus(status.STOP)
 
 }

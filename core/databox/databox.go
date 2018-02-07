@@ -400,7 +400,7 @@ func (b *DataBox) Refresh() *DataBox {
 	b.status = status.RUN
 	b.StartWG = nil
 	b.PairDataBoxId = 0
-	b.IsParentBox = false
+	//b.IsParentBox = false
 	return b
 }
 

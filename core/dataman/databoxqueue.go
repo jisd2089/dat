@@ -65,6 +65,14 @@ func (q *dbq) AddChan(db *DataBox) {
 				q.dataBoxChan <- childBox
 			}
 		}(q, db)
+
+		go func(q *dbq, b *DataBox) {
+			b.ChildActiveBoxChan = make(chan *DataBox)
+			for childBox := range b.ChildActiveBoxChan {
+				childBox.SetId(q.idInc.Id())
+				q.activeDataBoxChan <- childBox
+			}
+		}(q, db)
 	}
 }
 
@@ -73,6 +81,14 @@ func (q *dbq) AddActiveChan(db *DataBox) {
 	q.activeDataBoxChan <- db
 
 	if db.IsParentBox {
+		go func(q *dbq, b *DataBox) {
+			b.ChildBoxChan = make(chan *DataBox)
+			for childBox := range b.ChildBoxChan {
+				childBox.SetId(q.idInc.Id())
+				q.dataBoxChan <- childBox
+			}
+		}(q, db)
+
 		go func(q *dbq, b *DataBox) {
 			b.ChildActiveBoxChan = make(chan *DataBox)
 			for childBox := range b.ChildActiveBoxChan {
