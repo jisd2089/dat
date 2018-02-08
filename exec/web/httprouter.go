@@ -29,4 +29,5 @@ func (r *HttpRouter) Register() {
 	r.Router.POST("/api/sup/rec", NewSupService().RecDemReqAndPushToSup)
 	r.Router.POST("/api/sup/send", NewSupService().SupRespSendToDem)
 	r.Router.POST("/api/sup/sendfull", NewSupService().SupRespWholeSendToDem)
+	r.Router.POST("/api/sup/sendcompress", NewSupService().SupCompressFileSendToDem)
 }

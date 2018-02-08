@@ -108,6 +108,7 @@ func postFile(fileName string, targetUrl string) error {
 		return err
 	}
 
+
 	fmt.Println("fresp :", fresp)
 
 	//resp, err := http.Post(targetUrl, contentType, bodyBuf)

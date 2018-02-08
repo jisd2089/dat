@@ -136,3 +136,19 @@ func (d *SupService) SupRespWholeSendToDem(ctx *fasthttp.RequestCtx) {
 	setDataBoxQueue(b)
 	// 3.3 执行DataBox，通过Sftp传输
 }
+
+func (d *SupService) SupCompressFileSendToDem(ctx *fasthttp.RequestCtx) {
+
+	filePath := string(ctx.FormValue("filePath"))
+
+	// 3.1 匹配相应的DataBox
+	b := assetnode.AssetNodeEntity.GetDataBoxByName("supsendcompress")
+	if b == nil {
+		fmt.Println("databox is nil!")
+	}
+	b.DataFilePath = filePath
+
+	// 3.2 setDataBoxQueue
+	setDataBoxQueue(b)
+	// 3.3 执行DataBox，通过Sftp传输
+}
