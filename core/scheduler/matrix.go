@@ -16,6 +16,7 @@ import (
 
 // 一个DataBox实例的请求矩阵
 type Matrix struct {
+	matrixId        int32                           // 请求矩阵id
 	maxPage         int64                           // 最大采集页数，以负数形式表示
 	resCount        int32                           // 资源使用情况计数
 	dataBoxName     string                          // 所属DataBox
@@ -40,7 +41,7 @@ func newMatrix(dataBoxName, dataBoxSubName string, maxPage int64) *Matrix {
 		addpriors:   []int{},
 		reqs:        make(map[int][]*request.DataRequest),
 		priorities:  []int{},
-		reqChan:     make(chan *request.DataRequest, 100000000),
+		reqChan:     make(chan *request.DataRequest, 1),
 		history:     history.New(dataBoxName, dataBoxSubName),
 		tempHistory: make(map[string]bool),
 		failures:    make(map[string]*request.DataRequest),
@@ -145,7 +146,7 @@ func (self *Matrix) PushChan(req *request.DataRequest) {
 
 // 从队列取出请求，不存在时返回nil，并发不安全
 func (self *Matrix) PullChan() (req *request.DataRequest) {
-	return <- self.reqChan
+	return <-self.reqChan
 }
 
 func (self *Matrix) RequestChan() chan *request.DataRequest {
@@ -210,13 +211,17 @@ func (self *Matrix) Use() {
 	defer func() {
 		recover()
 	}()
-	sdl.count <- true
+	//sdl.count <- true
 	atomic.AddInt32(&self.resCount, 1)
 }
 
 func (self *Matrix) Free() {
-	<-sdl.count
+	//<-sdl.count
 	atomic.AddInt32(&self.resCount, -1)
+}
+
+func (m *Matrix) Count() int {
+	return int(m.resCount)
 }
 
 // 返回是否作为新的失败请求被添加至队列尾部

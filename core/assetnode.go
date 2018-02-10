@@ -316,7 +316,7 @@ func (ne *NodeEntity) exec() {
 
 	// 设置数据信使队列
 	//dataManCap := ne.DataManPool.Reset(count)
-	dataManCap := ne.DataManPool.Reset(1000)
+	dataManCap := ne.DataManPool.Reset(10)
 	//ne.CarrierPool.Reset(5)
 
 	fmt.Println(" *     DataManPool池容量为 %v\n", dataManCap)
@@ -325,7 +325,9 @@ func (ne *NodeEntity) exec() {
 	cache.StartTime = time.Now()
 
 	//TODO 根据节点支持业务类型启动 两类DataBox
+	// goroutine 1
 	go ne.runDataBox()
+	// goroutine 2
 	go ne.goSyncRun()
 }
 

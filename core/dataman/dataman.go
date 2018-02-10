@@ -82,6 +82,7 @@ func (m *dataMan) MiniInit(b *databox.DataBox) DataMan {
 // 任务执行入口
 func (m *dataMan) Run() {
 	m.Lock()
+	cache.StartTime = time.Now()
 
 	// 预先启动数据拆包/核验管道
 	m.Pipeline.Start()
@@ -114,6 +115,8 @@ func (m *dataMan) Run() {
 	fmt.Println("m.Pipeline.Stop()", m.id)
 	// 停止数据拆包/核验管道
 	m.Pipeline.Stop()
+
+	fmt.Println("box run time: ", time.Since(cache.StartTime))
 }
 
 // 任务同步执行入口
@@ -146,7 +149,7 @@ func (m *dataMan) SyncRun() {
 
 	// 停止数据拆包/核验管道
 	m.Pipeline.Stop()
-	fmt.Println("SyncRun stop ...")
+	fmt.Println("SyncRun stop ...", m.DataBox.GetMatrixCnt())
 }
 
 func (m *dataMan) run() {
@@ -196,7 +199,7 @@ func (m *dataMan) run() {
 	// 等待处理中的任务完成
 	m.DataBox.Defer()
 
-	fmt.Println("dataMan run end......")
+	fmt.Println("dataMan run end......", m.DataBox.GetMatrixCnt())
 }
 
 func (m *dataMan) runChanReq() {
@@ -212,15 +215,31 @@ func (m *dataMan) runChanReq() {
 
 	// 队列中取出一条请求并处理
 	for req := range m.GetRequestChan() {
+
+		err := req.
+			SetDataBoxName(m.DataBox.GetName()).
+			SetEnableCookie(m.DataBox.GetEnableCookie()).
+			Prepare()
+
+		if err != nil {
+			//logs.Log.Error(err.Error())
+			continue
+		}
 		fmt.Println("run chan request: ", req.GetDataBoxName())
+
+		// 自动设置Referer
+		//if req.GetReferer() == "" && self.DataResponse != nil {
+		//	req.SetReferer(self.GetUrl())
+		//}
 
 		// 执行请求
 		m.UseOne()
-		//go func(req *request.DataRequest) {
+		go func(req *request.DataRequest) {
+			fmt.Println("go run request: ", req.GetDataBoxName())
 			//logs.Log.Debug(" *     Start: %v", req.GetUrl())
 			m.Process(req)
 			m.FreeOne()
-		//}(req)
+		}(req)
 	}
 }
 
@@ -241,6 +260,16 @@ func (m *dataMan) runChanRequest() {
 
 	// 队列中取出一条请求并处理
 	for req := range m.GetRequestChan() {
+		err := req.
+			SetDataBoxName(m.DataBox.GetName()).
+			SetEnableCookie(m.DataBox.GetEnableCookie()).
+			Prepare()
+
+		if err != nil {
+			//logs.Log.Error(err.Error())
+			continue
+		}
+
 		go func(req *request.DataRequest) {
 			carrier := m.CarrierPool.Use()
 			if carrier != nil {
@@ -304,8 +333,6 @@ func (m *dataMan) Stop() {
 
 // core processer
 func (m *dataMan) Process(req *request.DataRequest) {
-	m.Lock()
-	defer m.Unlock()
 	var (
 		//downUrl = req.GetUrl()
 		b = m.DataBox

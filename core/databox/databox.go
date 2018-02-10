@@ -472,6 +472,10 @@ func (self *DataBox) RequestLen() int {
 	return self.reqMatrix.Len()
 }
 
+func(db *DataBox) GetMatrixCnt() int {
+	return db.reqMatrix.Count()
+}
+
 func (self *DataBox) TryFlushSuccess() {
 	self.reqMatrix.TryFlushSuccess()
 }

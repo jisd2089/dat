@@ -30,12 +30,13 @@ var DEMSENDSUBBOX = &DataBox{
 					fmt.Println("runcollision start ...")
 
 					parentBox := ctx.GetDataBox().ParentBox
+
 					ctx.SetDataBox(parentBox).AddChanQueue(&request.DataRequest{
 						Url:          ctx.DataRequest.Url,
 						Method:       "POST",
 						Parameters:   ctx.DataRequest.Parameters,
 						Rule:         "collisionrslt",
-						TransferType: request.FASTHTTP,
+						TransferType: request.NONETYPE,
 						Priority:     0,
 						Bobject:      ctx.DataRequest.Bobject,
 						Reloadable:   true,

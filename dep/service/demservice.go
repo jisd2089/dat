@@ -110,6 +110,7 @@ func (d *DemService) RecSupRespAndPushToDem(ctx *fasthttp.RequestCtx) {
 	// 1.3 执行DataBox，sftp推送文件，核验
 }
 
+
 /**********************************************************************************************
 	test
  */
@@ -162,4 +163,50 @@ func (d *DemService) RunParentAndChild(ctx *fasthttp.RequestCtx) {
 	b.SetNodeAddress(addrs)
 
 	setDataBoxQueue(b)
+}
+
+
+
+func (d *DemService) RecSupRespUncompressAndPushToDem(ctx *fasthttp.RequestCtx) {
+
+	//fmt.Println(string(ctx.Request.Body()))
+
+	dataFile, err := ctx.FormFile("file")
+	if err != nil {
+		fmt.Println("filePath err:", err)
+	}
+	fmt.Println("filePath***********: ", dataFile.Filename)
+
+	targetFileDir := "D:/dds_receive/tmp"
+	//targetFileDir := "/home/ddsdev/data/test/dem/rec"
+	targetFilePath := path.Join(targetFileDir, "JON20171102000000276_ID010201_20171213175701_00011.TARGET")
+	//
+	targetFile, err := os.OpenFile(targetFilePath, os.O_WRONLY|os.O_CREATE, 0644)
+	defer targetFile.Close()
+	if err != nil {
+
+	}
+
+	dataFileContent, err := dataFile.Open()
+	defer dataFileContent.Close()
+	if err != nil {
+
+	}
+
+	//io.Copy(targetFile, bytes.NewReader(ctx.Request.Body()))
+
+	io.Copy(targetFile, dataFileContent)
+
+	// 1.1 匹配相应的DataBox
+	//b := assetnode.AssetNodeEntity.GetDataBoxByName("demrec")
+	b := assetnode.AssetNodeEntity.GetDataBoxByName("demrecbig")
+
+	if b == nil {
+		fmt.Println("databox is nil!")
+	}
+	b.DataFilePath = targetFilePath
+
+	// 1.2 setDataBoxQueue
+	setDataBoxQueue(b)
+	// 1.3 执行DataBox，sftp推送文件，核验
 }

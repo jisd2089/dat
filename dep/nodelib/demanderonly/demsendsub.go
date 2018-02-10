@@ -151,7 +151,7 @@ func startSubFunc(ctx *Context) {
 					Url:          addr.GetUrl(),
 					Rule:         "process",
 					Method:       "POST",
-					TransferType: request.FASTHTTP,
+					TransferType: request.NONETYPE,
 					Priority:     1,
 					Bobject:      paramBatch,
 					Reloadable:   true,
@@ -235,9 +235,13 @@ func normalSubFunc(ctx *Context) {
 	}
 	buf := bufio.NewReader(f)
 
+	lineBuf := make([]byte, 10485760)
+
 	for {
-		line, err := buf.ReadString('\n')
-		line = strings.TrimSpace(line)
+		_, err := buf.Read(lineBuf)
+		line := string(lineBuf)
+		//line, err := buf.ReadString('\n')
+		//line = strings.TrimSpace(line)
 
 		if err == io.EOF || err != nil {
 
@@ -261,7 +265,7 @@ func normalSubFunc(ctx *Context) {
 			//	Method:       "POST",
 			//	Parameters:   data,
 			//	Rule:         "collision",
-			//	TransferType: request.FASTHTTP,
+			//	TransferType: request.NONETYPE,
 			//	Priority:     0,
 			//	Bobject:      paramBatch,
 			//	Reloadable:   true,
@@ -303,7 +307,7 @@ func collisionSubFunc(ctx *Context) {
 						Url:          nextUrl,
 						Rule:         "collisionrslt",
 						Method:       "POST",
-						TransferType: request.FASTHTTP,
+						TransferType: request.NONETYPE,
 						Priority:     0,
 						Bobject:      ctx.DataRequest.Bobject,
 						Reloadable:   true,
@@ -361,7 +365,7 @@ func endSubFunc(ctx *Context) {
 		ctx.AddQueue(&request.DataRequest{
 			Url:          addr.GetUrl(),
 			Method:       "POST",
-			TransferType: request.FASTHTTP,
+			TransferType: request.NONETYPE,
 			Rule:         "endreslt",
 			Priority:     1,
 			Reloadable:   true,
@@ -373,5 +377,6 @@ func endSubFunc(ctx *Context) {
 func endResltSubFunc(ctx *Context) {
 	fmt.Println("end reslt start ...")
 	defer ctx.GetDataBox().SetStatus(status.STOP)
+	defer ctx.GetDataBox().CloseRequestChan()
 
 }

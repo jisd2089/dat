@@ -27,6 +27,8 @@ func (ft *FileTransfer) ExecuteMethod(req Request) Response {
 		writeFile(req)
 	case "COMPRESS":
 		compressFile(req)
+	case "UNCOMPRESS":
+		uncompressFile(req)
 	}
 
 	return &response.DataResponse{
@@ -72,6 +74,10 @@ func compressFile(req Request) {
 	if err != nil {
 
 	}
+
+}
+
+func uncompressFile(req Request) {
 
 }
 
