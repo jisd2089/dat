@@ -10,8 +10,8 @@ import (
 	"sync"
 	"time"
 
-	"dat/common/util"
-	"dat/common/sftp"
+	"drcs/common/util"
+	"drcs/common/sftp"
 	"mime/multipart"
 	"gopkg.in/redis.v5"
 )
@@ -47,6 +47,7 @@ type DataRequest struct {
 	//0为Surf高并发下载器，各种控制功能齐全
 	//1为PhantomJS下载器，特点破防力强，速度慢，低并发
 	DownloaderID int
+	TimeOutCh    chan string // 超时channel
 
 	proxy  string //当用户界面设置可使用代理IP时，自动设置代理
 	unique string //ID

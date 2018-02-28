@@ -5,7 +5,7 @@ package web
 //	"sync"
 //	"sync/atomic"
 //
-//	ws "dat/common/websocket"
+//	ws "drcs/common/websocket"
 //	"github.com/henrylee2cn/pholcus/logs"
 //)
 //

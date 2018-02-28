@@ -8,8 +8,8 @@ import (
 	"sync"
 	"time"
 
-	"dat/runtime/status"
-	"dat/config"
+	"drcs/runtime/status"
+	"drcs/config"
 )
 
 type (

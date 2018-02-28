@@ -6,8 +6,8 @@ package dataman
 */
 import (
 	"sync"
-	"dat/runtime/status"
-	"dat/core/interaction"
+	"drcs/runtime/status"
+	"drcs/core/interaction"
 	"time"
 )
 

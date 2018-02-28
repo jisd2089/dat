@@ -6,8 +6,8 @@ package interaction
 */
 
 import (
-	"dat/core/databox"
-	"dat/core/interaction/request"
+	"drcs/core/databox"
+	"drcs/core/interaction/request"
 )
 
 // The Handler interface.

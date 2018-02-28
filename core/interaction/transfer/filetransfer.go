@@ -1,10 +1,10 @@
 package transfer
 
 import (
-	"dat/core/interaction/response"
+	"drcs/core/interaction/response"
 	"os"
 	"io"
-	cf "dat/common/compress"
+	cf "drcs/common/compress"
 	"path"
 )
 

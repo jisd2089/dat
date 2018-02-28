@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<member_info>
+	<member_dtl_list>
+		<mem_dtl_info>
+			<memId>0000109</memId>
+			<pubKey>03A0D865B3C7FC4EA11A78AD15F92F90B11D251DF5D2418CD8F211109A9CCDC481</pubKey>
+			<svrURL></svrURL>
+			<status>01</status>
+			<totLmt>1000.00</totLmt>
+			<settFlag>1</settFlag>
+			<settPoint></settPoint>
+			<threshold>0.0</threshold>
+		</mem_dtl_info>
+		<mem_dtl_info>
+			<memId>0000101</memId>
+			<pubKey>02EC5BC4A37D09711AAE51742D91D8DF4A47D24A9C486544CF7BF99B9EEDCC1FA3</pubKey>
+			<svrURL>http://sup.docker.com/api/d/qryData/</svrURL>
+			<status>01</status>
+			<totLmt>0</totLmt>
+			<settFlag></settFlag>
+			<settPoint></settPoint>
+			<threshold></threshold>
+		</mem_dtl_info>
+		<mem_dtl_info>
+			<memId>0000099</memId>
+			<pubKey>026DF59FD7C1A98B123C472D4FFC9A9D01E0DAFA40F8892251D5E635C3DE741F68</pubKey>
+			<svrURL>http://sup.docker.com/api/d/qryData/</svrURL>
+			<status>01</status>
+			<totLmt>0</totLmt>
+			<settFlag></settFlag>
+			<settPoint></settPoint>
+			<threshold></threshold>
+		</mem_dtl_info>
+	</member_dtl_list>
+</member_info>

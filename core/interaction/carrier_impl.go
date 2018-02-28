@@ -5,10 +5,10 @@ package interaction
     Created: 2017-12-28 14:20:45
 */
 import (
-	"dat/core/databox"
-	"dat/core/interaction/request"
-	"dat/core/interaction/transfer"
-	"dat/core/interaction/response"
+	"drcs/core/databox"
+	"drcs/core/interaction/request"
+	"drcs/core/interaction/transfer"
+	"drcs/core/interaction/response"
 	"sync"
 )
 

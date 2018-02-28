@@ -9,15 +9,15 @@ import (
 	"bytes"
 	"math/rand"
 
-	"dat/core/databox"
-	"dat/core/interaction/request"
-	"dat/core/interaction"
-	"dat/runtime/cache"
-	"dat/core/pipeline"
+	"drcs/core/databox"
+	"drcs/core/interaction/request"
+	"drcs/core/interaction"
+	"drcs/runtime/cache"
+	"drcs/core/pipeline"
 	"time"
 
 	"fmt"
-	"dat/runtime/status"
+	"drcs/runtime/status"
 	"sync"
 )
 
@@ -183,14 +183,15 @@ func (m *dataMan) run() {
 		}
 
 		// 执行请求
-		m.UseOne()
-		go func() {
-			defer func() {
-				m.FreeOne()
-			}()
-			//logs.Log.Debug(" *     Start: %v", req.GetUrl())
-			m.Process(req)
-		}()
+		m.execProcess(req)
+		//m.UseOne()
+		//go func() {
+		//	defer func() {
+		//		m.FreeOne()
+		//	}()
+		//	//logs.Log.Debug(" *     Start: %v", req.GetUrl())
+		//	m.Process(req)
+		//}()
 
 		// 随机等待
 		//m.sleep()
@@ -233,13 +234,34 @@ func (m *dataMan) runChanReq() {
 		//}
 
 		// 执行请求
-		m.UseOne()
-		go func(req *request.DataRequest) {
-			fmt.Println("go run request: ", req.GetDataBoxName())
-			//logs.Log.Debug(" *     Start: %v", req.GetUrl())
-			m.Process(req)
-			m.FreeOne()
-		}(req)
+		m.execProcess(req)
+		//m.UseOne()
+		//go func(req *request.DataRequest) {
+		//	fmt.Println("go run request: ", req.GetDataBoxName())
+		//	//logs.Log.Debug(" *     Start: %v", req.GetUrl())
+		//	m.Process(req)
+		//	m.FreeOne()
+		//}(req)
+	}
+}
+
+// 超时控制
+func (m *dataMan) execProcess(req *request.DataRequest) {
+
+	m.UseOne()
+	req.TimeOutCh = make(chan string)
+
+	go m.Process(req)
+
+	select {
+	case ret := <-req.TimeOutCh:
+		fmt.Println(ret)
+		m.FreeOne()
+		break
+	case <-time.After(time.Duration(60) * time.Second):
+		fmt.Println("exec process timeout~")
+		m.FreeOne()
+		break
 	}
 }
 
@@ -334,7 +356,6 @@ func (m *dataMan) Stop() {
 // core processer
 func (m *dataMan) Process(req *request.DataRequest) {
 	var (
-		//downUrl = req.GetUrl()
 		b = m.DataBox
 	)
 	defer func() {
@@ -367,7 +388,6 @@ func (m *dataMan) Process(req *request.DataRequest) {
 
 	// TODO execute http、kafka、protocolbuffer... communication
 	var ctx = m.Carrier.Handle(b, req)
-	//var ctx = self.Downloader.Download(sp, req) // download page
 
 	if err := ctx.GetError(); err != nil {
 		// 返回是否作为新的失败请求被添加至队列尾部
@@ -407,6 +427,8 @@ func (m *dataMan) Process(req *request.DataRequest) {
 
 	// 释放ctx准备复用
 	databox.PutContext(ctx)
+
+	req.TimeOutCh <- fmt.Sprintf("process data request success")
 }
 
 // core processer

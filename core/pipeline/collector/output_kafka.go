@@ -5,8 +5,8 @@ import (
 	"regexp"
 	"sync"
 
-	"dat/common/kafka"
-	"dat/common/util"
+	"drcs/common/kafka"
+	"drcs/common/util"
 
 )
 

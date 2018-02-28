@@ -7,9 +7,9 @@ import (
 	"sync/atomic"
 	"time"
 
-	"dat/core/pipeline/collector/data"
-	"dat/runtime/cache"
-	"dat/core/databox"
+	"drcs/core/pipeline/collector/data"
+	"drcs/runtime/cache"
+	"drcs/core/databox"
 )
 
 // 结果收集与输出

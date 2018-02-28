@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"sync"
 
-	"dat/common/mysql"
-	"dat/common/util"
+	"drcs/common/mysql"
+	"drcs/common/util"
 
 )
 

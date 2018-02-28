@@ -5,7 +5,7 @@ package transfer
     Created: 2018-01-10 19:34:32
 */
 import (
-	. "dat/core/interaction/response"
+	. "drcs/core/interaction/response"
 	"sync"
 )
 

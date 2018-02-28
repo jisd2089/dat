@@ -7,11 +7,11 @@ package transfer
 import (
 	"net"
 	"fmt"
-	SSH "dat/common/ssh"
-	"dat/common/sftp"
+	SSH "drcs/common/ssh"
+	"drcs/common/sftp"
 	"golang.org/x/crypto/ssh"
 	"time"
-	"dat/core/interaction/response"
+	"drcs/core/interaction/response"
 	"sync"
 )
 

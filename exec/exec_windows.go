@@ -6,12 +6,12 @@ import (
 	//"os/exec"
 	//"os/signal"
 
-	//"dat/config"
-	//"dat/exec/cmd"
+	//"drcs/config"
+	//"drcs/exec/cmd"
 
 	//"github.com/henrylee2cn/pholcus/gui" // gui版
 	//"github.com/henrylee2cn/pholcus/web" // web版
-	"dat/exec/web"
+	"drcs/exec/web"
 )
 
 //func run(which string) {
@@ -37,4 +37,13 @@ import (
 
 func run(port int) {
 	web.Run(port)
+}
+
+func runNode(role string) {
+	switch role {
+	case "dem":
+		web.RunDem()
+	case "sup":
+		web.RunSup()
+	}
 }

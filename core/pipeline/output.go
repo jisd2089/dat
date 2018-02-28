@@ -3,12 +3,12 @@ package pipeline
 import (
 	"sort"
 
-	"dat/core/pipeline/collector"
+	"drcs/core/pipeline/collector"
 
-	"dat/common/kafka"
-	"dat/common/mgo"
-	"dat/common/mysql"
-	"dat/runtime/cache"
+	"drcs/common/kafka"
+	"drcs/common/mgo"
+	"drcs/common/mysql"
+	"drcs/runtime/cache"
 )
 
 // 初始化输出方式列表collector.DataOutputLib

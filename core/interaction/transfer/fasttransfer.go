@@ -4,7 +4,7 @@ import (
 	"github.com/valyala/fasthttp"
 	"sync"
 	neturl "net/url"
-	. "dat/core/interaction/response"
+	. "drcs/core/interaction/response"
 	"time"
 	"path"
 	"os"

@@ -6,11 +6,11 @@ package demanderonly
 */
 import (
 	//"path"
-	"dat/core/interaction/request"
-	. "dat/core/databox"
+	"drcs/core/interaction/request"
+	. "drcs/core/databox"
 	"fmt"
 	"sync"
-	"dat/runtime/status"
+	"drcs/runtime/status"
 )
 
 func init() {

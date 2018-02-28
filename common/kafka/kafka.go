@@ -4,8 +4,8 @@ import (
 	"strings"
 	"sync"
 
-	"dat/common/util"
-	"dat/config"
+	"drcs/common/util"
+	"drcs/config"
 
 
 	"github.com/Shopify/sarama"

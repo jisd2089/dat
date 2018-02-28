@@ -1,7 +1,7 @@
 package exec
 
 import (
-	"dat/exec/web" // web版
+	"drcs/exec/web" // web版
 )
 
 func run(port int) {
@@ -21,4 +21,13 @@ func run(port int) {
 	//	<-ctrl
 	//}
 	web.Run(port)
+}
+
+func runNode(role string) {
+	switch role {
+	case "dem":
+		web.RunDem()
+	case "sup":
+		web.RunSup()
+	}
 }

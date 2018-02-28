@@ -6,8 +6,9 @@ package web
 */
 import (
 	"github.com/buaazp/fasthttprouter"
-	."dat/dep/service"
+	."drcs/dep/handler"
 )
+
 type HttpRouter struct {
 	Router *fasthttprouter.Router
 }
@@ -19,15 +20,29 @@ func NewHttpRouter() *HttpRouter {
 }
 
 func (r *HttpRouter) Register() {
-	r.Router.POST("/api/dem/read/", NewDemService().ReadFile)
-	r.Router.POST("/api/dem/split/", NewDemService().SplitFile)
-	r.Router.POST("/api/dem/send", NewDemService().SendDemReqToSup)
-	r.Router.POST("/api/dem/rec", NewDemService().RecSupRespAndPushToDem)
-	r.Router.POST("/api/dem/subbox", NewDemService().RunParentAndChild)
+	r.Router.POST("/api/dem/read/", NewDemHandler().ReadFile)
+	r.Router.POST("/api/dem/split/", NewDemHandler().SplitFile)
+	r.Router.POST("/api/dem/send", NewDemHandler().SendDemReqToSup)
+	r.Router.POST("/api/dem/rec", NewDemHandler().RecSupRespAndPushToDem)
+	r.Router.POST("/api/dem/subbox", NewDemHandler().RunParentAndChild)
 
 
-	r.Router.POST("/api/sup/rec", NewSupService().RecDemReqAndPushToSup)
-	r.Router.POST("/api/sup/send", NewSupService().SupRespSendToDem)
-	r.Router.POST("/api/sup/sendfull", NewSupService().SupRespWholeSendToDem)
-	r.Router.POST("/api/sup/sendcompress", NewSupService().SupCompressFileSendToDem)
+	r.Router.POST("/api/sup/rec", NewSupHandler().RecDemReqAndPushToSup)
+	r.Router.POST("/api/sup/send", NewSupHandler().SupRespSendToDem)
+	r.Router.POST("/api/sup/sendfull", NewSupHandler().SupRespWholeSendToDem)
+	r.Router.POST("/api/sup/sendcompress", NewSupHandler().SupCompressFileSendToDem)
+	
+	// 生产业务流程
+	//r.Router.POST("/api/dmp/orderRouteQry/", demander.HTTPService{}.DoService)
+	//r.Router.POST("/api/p/pushFile/", common.CommonSvc.PlatPushFile)
+	//r.Router.POST("/api/p/genKey", common.CommonSvc.GenKeys)
+	//r.Router.POST("/api/p/initSafeConfig/", common.CommonSvc.InitSafeConfig)
+	//r.Router.POST("/api/p/batchfile/", common.CommonSvc.AcceptBatchFile)
+	//
+	//r.Router.POST("/api/d/qryData/", singleQuery)
+	//r.Router.POST("/api/p/pushFile/", common.CommonSvc.PlatPushFile)
+	//r.Router.POST("/api/p/genKey", common.CommonSvc.GenKeys)
+	//r.Router.POST("/api/p/initSafeConfig/", common.CommonSvc.InitSafeConfig)
+	//r.Router.POST("/api/p/batchfile/", common.CommonSvc.AcceptBatchFile)
+	//r.Router.POST("/api/p/batchmode/", supplier.BatchSvc.Serve)
 }

@@ -5,8 +5,8 @@ package dataman
     Created: 2017-12-27 14:36:53
 */
 import (
-	. "dat/core/databox"
-	"dat/common/util"
+	. "drcs/core/databox"
+	"drcs/common/util"
 )
 
 type (

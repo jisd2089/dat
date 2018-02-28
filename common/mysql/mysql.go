@@ -8,8 +8,8 @@ import (
 
 	_ "github.com/go-sql-driver/mysql"
 
-	"dat/common/util"
-	"dat/config"
+	"drcs/common/util"
+	"drcs/config"
 
 )
 

@@ -5,10 +5,10 @@ package demanderonly
     Created: 2018-01-16 15:37:57
 */
 import (
-	. "dat/core/databox"
+	. "drcs/core/databox"
 	"fmt"
-	"dat/core/interaction/request"
-	"dat/runtime/status"
+	"drcs/core/interaction/request"
+	"drcs/runtime/status"
 )
 
 func init() {

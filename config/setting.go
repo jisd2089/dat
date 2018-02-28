@@ -6,8 +6,8 @@ import (
 	//"path/filepath"
 	"strconv"
 
-	"dat/runtime/status"
-	"dat/common/config"
+	"drcs/runtime/status"
+	"drcs/common/config"
 	"path/filepath"
 )
 

@@ -5,10 +5,10 @@ import (
 
 	mgov2 "gopkg.in/mgo.v2"
 
-	"dat/common/mgo"
-	"dat/common/pool"
-	"dat/common/util"
-	"dat/config"
+	"drcs/common/mgo"
+	"drcs/common/pool"
+	"drcs/common/util"
+	"drcs/config"
 	//
 )
 

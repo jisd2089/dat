@@ -1,0 +1,71 @@
+Root:
+    # Appender: app
+    # Hooks: [syslog]
+    Formatter: root_format
+    Level: INFO
+
+Loggers:
+    app:
+        Appender: busilog
+        # Hooks: [slack]
+        Formatter: root_format
+        Level: DEBUG
+
+    # busilog:
+        # Appender: busilog
+        # Hooks: [slack]
+        # Formatter: app
+        # Level: INFO
+
+Appenders:
+    #app:
+    #    Type: NormalFile
+    #    Options:
+    #        Path: app.log
+
+    busilog:
+        Type: RotationFile
+        Options:
+            Name: app.log
+            Dir:  ./
+            # h: per hour
+            # d: per day
+            # m: per month
+            Rotate: h
+
+#    busilog:
+#       Type: RollingFile
+#       Options:
+#           Name: app.log
+#           Dir:  D:\\busilog\\ # /var/log/
+#           Size: 1  #KB
+
+Formatters:
+    root_format:
+        Type: PatternLayout
+        Options:
+            Pattern: "%d{2006-01-02 15:04:05}[%5p] %m #%M.%l (%F)\n"
+
+
+    # busilog:
+        # Type: json
+    # Options:
+        # name: app.log
+
+# Hooks:
+    # syslog:
+        # Type: syslog
+        # Options:
+            # network: "udp"
+            # address: "localhost:514"
+            # priority: "LOG_ERR"
+            # tag: ""
+
+    # slack:
+        # Type: slack
+        # Options:
+            # url      : ""
+            # levels   : ["debug", "error", "info"]
+            # channel  : ""
+            # emoji    : ":rag:"
+            # username : "logrus_mate"

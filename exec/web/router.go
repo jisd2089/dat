@@ -4,7 +4,7 @@ package web
 //	"mime"
 //	"net/http"
 //
-//	ws "dat/common/websocket"
+//	ws "drcs/common/websocket"
 //)
 //
 //func init() {

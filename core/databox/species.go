@@ -3,7 +3,7 @@ package databox
 import (
 	"fmt"
 
-	"dat/common/pinyin"
+	"drcs/common/pinyin"
 )
 
 // 数据流产品种类列表

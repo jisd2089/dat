@@ -5,11 +5,11 @@ import (
 	"text/template"
 	"encoding/json"
 
-	"dat/core"
-	"dat/common/session"
-	"dat/config"
+	"drcs/core"
+	"drcs/common/session"
+	"drcs/config"
 
-	"dat/runtime/status"
+	"drcs/runtime/status"
 )
 
 var globalSessions *session.Manager

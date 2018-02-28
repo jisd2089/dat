@@ -6,12 +6,18 @@ import (
 	"strconv"
 	"strings"
 
-	"dat/core"
-	"dat/runtime/cache"
-	"dat/runtime/status"
+	"drcs/core"
+	"drcs/runtime/cache"
+	"drcs/runtime/status"
+	"drcs/log"
+	"drcs/settings"
+	"os"
 )
 
 var (
+	demConfDir *string // TODO
+	roleflag   *string // 节点角色
+
 	uiflag             *string
 	modeflag           *int
 	portflag           *int
@@ -49,7 +55,17 @@ func init() {
 //}
 
 func DefaultRun(port int) {
-	run(port)
+
+	if err := settings.LoadCommonSettings(*demConfDir); err != nil {
+		os.Exit(2)
+	}
+
+	// 初始化日志
+	log.Initialize()
+
+	//run(port)
+
+	runNode(*roleflag)
 }
 
 func flagCommon() {

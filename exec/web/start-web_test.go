@@ -8,10 +8,11 @@ import (
 	"testing"
 	"encoding/json"
 
-	_ "dat/dep/nodelib/demanderonly"
+	_ "drcs/dep/nodelib/demanderonly"
 	"fmt"
 	"strconv"
 	"reflect"
+	"time"
 )
 
 //func init() {
@@ -110,4 +111,15 @@ func crpReqParamsConvertStr(crpReqParams map[string]map[string]interface{}) map[
 	}
 
 	return crp
+}
+
+func TestDate(t *testing.T) {
+	tm := time.Now()
+
+	s := tm.Format("20060102")
+
+	loc, _ := time.LoadLocation("Asia/Chongqing")
+	locTime, _ := time.ParseInLocation("20060102", s, loc)
+	locTimeStr := locTime.Format("20060102")
+	fmt.Println(locTimeStr)
 }

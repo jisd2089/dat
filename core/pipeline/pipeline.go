@@ -2,9 +2,9 @@
 package pipeline
 
 import (
-	"dat/core/pipeline/collector/data"
-	"dat/core/pipeline/collector"
-	"dat/core/databox"
+	"drcs/core/pipeline/collector/data"
+	"drcs/core/pipeline/collector"
+	"drcs/core/databox"
 )
 
 // 数据拆包/核验管道

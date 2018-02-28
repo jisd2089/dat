@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<route_info>
+	<head>
+
+                <routeMethod>1</routeMethod>
+		<!-- 服务超时时间 ms单位 -->
+		<svcTimeOut>1000</svcTimeOut>
+		<!-- 预超时时间 ms单位，超过该时间,需方进行缓存 -->
+		<preTimeOut>0</preTimeOut>
+		<!-- 调度结束标志 1-成功即止，2-全部轮询 -->
+		<stopFlag>1</stopFlag>
+                <!-- 缓存标志 0-不缓存，1-缓存-->
+		<needCache>0</needCache>
+		<needKafka>0</needKafka>
+		<!-- 缓存时间 s单位 -->
+		<cacheCodeList>
+			<code time="2592000">000000</code>
+			<code time="43200">032003</code>
+			<code time="43200">030002</code>
+		</cacheCodeList>
+		<cacheTime>2592000</cacheTime>
+		<!-- 同异步标志 0-同步，1-异步 -->
+		<syncFlag>0</syncFlag>
+	</head>
+	<svc_list>
+		<svc_info>
+		<!--<memId>0000140</memId> -->
+			<!-- 订单互联对象编号 -->
+			<memId>0000109</memId>	
+			<taskIdList>
+				<taskId keyQryType="00">CTN20170802000010900000790001316</taskId>
+			</taskIdList>
+		</svc_info>
+	</svc_list>
+	<single_policy>
+		<!-- 单一路由策略 -->
+		<!-- 会员编号 -->
+		<memId>0000109</memId>
+	</single_policy>
+	<static_policy>
+		<!-- 静态路由策略 -->
+		<call_list>
+			<memId>0000109</memId>
+		</call_list>
+	</static_policy>
+	<dynamic_policy>
+		<!-- 动态路由策略 -->
+		<!-- 策略类型 0-随机选择，1-低价优先，2-质高优先-->
+		<policyType>1</policyType>
+	</dynamic_policy>
+	<broadcast_policy>
+		<!-- 广播路由策略 -->
+		<call_list>
+			<memId>0000109</memId>
+		</call_list>
+	</broadcast_policy>
+</route_info>

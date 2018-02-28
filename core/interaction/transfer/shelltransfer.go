@@ -1,7 +1,7 @@
 package transfer
 
 import (
-	"dat/core/interaction/response"
+	"drcs/core/interaction/response"
 	"os/exec"
 	"bytes"
 	"fmt"

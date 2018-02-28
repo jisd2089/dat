@@ -5,10 +5,10 @@ package demanderonly
     Created: 2017-12-28 17:22:00
 */
 import (
-	"dat/core/interaction/request"
-	. "dat/core/databox"
+	"drcs/core/interaction/request"
+	. "drcs/core/databox"
 	"fmt"
-	"dat/common/sftp"
+	"drcs/common/sftp"
 	"path"
 	"time"
 )

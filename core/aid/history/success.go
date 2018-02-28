@@ -6,9 +6,9 @@ import (
 	"os"
 	"sync"
 
-	"dat/common/mgo"
-	"dat/common/mysql"
-	"dat/config"
+	"drcs/common/mgo"
+	"drcs/common/mysql"
+	"drcs/config"
 )
 
 type Success struct {

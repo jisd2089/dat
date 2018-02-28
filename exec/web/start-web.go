@@ -2,16 +2,9 @@ package web
 
 import (
 	"flag"
-	"dat/core"
-	//"log"
-	//"net/http"
-	//"os"
-	//"os/exec"
-	//"runtime"
-	//"strconv"
-	//"time"
-	//
+	"drcs/core"
 
+	"drcs/dep/job"
 )
 
 var (
@@ -31,7 +24,7 @@ func Flag() {
 
 // 执行入口
 func Run(port int) {
-	//assetnode.AssetNodeEntity.Init()
+	assetnode.AssetNodeEntity.Init()
 
 	assetnode.AssetNodeEntity.Run()
 
@@ -49,4 +42,22 @@ func appInit() {
 		}
 		return dfmenu
 	}()
+}
+
+/**
+ **********************************************************************************************************
+ */
+
+func RunDem() {
+
+	jobs.InitDem()
+
+	Run(8899)
+}
+
+func RunSup() {
+
+	jobs.InitSup()
+
+	Run(8989)
 }

@@ -3,13 +3,13 @@ package web
 import (
 	"sync"
 
-	"dat/core"
-	"dat/core/databox"
-	"dat/common/util"
-	ws "dat/common/websocket"
-	"dat/config"
+	"drcs/core"
+	"drcs/core/databox"
+	"drcs/common/util"
+	ws "drcs/common/websocket"
+	"drcs/config"
 
-	"dat/runtime/status"
+	"drcs/runtime/status"
 )
 
 type SocketController struct {

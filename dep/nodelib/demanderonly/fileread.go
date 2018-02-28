@@ -5,13 +5,13 @@ package demanderonly
     Created: 2018-02-02 13:27:36
 */
 import (
-	. "dat/core/databox"
+	. "drcs/core/databox"
 	"fmt"
 	"os"
 	"io"
 	"bufio"
 	"strings"
-	"dat/core/interaction/request"
+	"drcs/core/interaction/request"
 )
 
 func init() {

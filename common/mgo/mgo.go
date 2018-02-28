@@ -5,8 +5,8 @@ import (
 
 	mgo "gopkg.in/mgo.v2"
 
-	"dat/common/pool"
-	"dat/config"
+	"drcs/common/pool"
+	"drcs/config"
 
 )
 

@@ -11,13 +11,13 @@ import (
 	"strconv"
 	"flag"
 
-	"dat/core"
-	"dat/runtime/cache"
-	"dat/runtime/status"
-	"dat/core/databox"
-	"dat/config"
+	"drcs/core"
+	"drcs/runtime/cache"
+	"drcs/runtime/status"
+	"drcs/core/databox"
+	"drcs/config"
 	"fmt"
-	_ "dat/dep/nodelib/demanderonly"
+	_ "drcs/dep/nodelib/demanderonly"
 )
 
 var (

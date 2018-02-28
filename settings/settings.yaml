@@ -1,0 +1,16 @@
+a: Easy
+b: 1
+c: -1
+d: 11.1
+f: -11.1
+g: [1, 2, 3]
+h:
+    i:
+        k: 3
+    j: 2
+
+service:
+    protocol: http
+    listenIp: 0.0.0.0
+    listenPort: 80
+    serviceUrl: http://das.chinadep.com

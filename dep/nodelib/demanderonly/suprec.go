@@ -5,15 +5,15 @@ package demanderonly
     Created: 2017-12-28 17:22:00
 */
 import (
-	"dat/core/interaction/request"
-	. "dat/core/databox"
+	"drcs/core/interaction/request"
+	. "drcs/core/databox"
 	"fmt"
-	"dat/common/sftp"
-	"dat/runtime/output"
-	"dat/dep/management/entity"
-	"dat/dep/management/constant"
+	"drcs/common/sftp"
+	"drcs/runtime/output"
+	"drcs/dep/management/entity"
+	"drcs/dep/management/constant"
 	"time"
-	"dat/core/interaction/response"
+	"drcs/core/interaction/response"
 )
 
 func init() {

@@ -2,7 +2,7 @@ package databox
 
 import (
 	"fmt"
-	"dat/common/pinyin"
+	"drcs/common/pinyin"
 	"strconv"
 	"sync"
 )
