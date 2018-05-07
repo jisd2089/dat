@@ -4,10 +4,10 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/sha256"
-	"dds/cncrypt"
-	"dds/errors"
-	yagrusLog "dds/log"
-	"dds/settings"
+	"drcs/dep/cncrypt"
+	"drcs/dep/errors"
+	logger "drcs/log"
+	"drcs/settings"
 	"encoding/hex"
 	"encoding/xml"
 	"fmt"
@@ -49,7 +49,7 @@ func Initialize() error {
 	if err != nil {
 		return err
 	}
-	yagrusLog.Info("security init pkey:%s", key)
+	logger.Info("security init pkey:%s", key)
 	_privateKey = key
 	fmt.Printf("_privateKey is %s \n", _privateKey)
 	// 调用国密模块的初始化方法

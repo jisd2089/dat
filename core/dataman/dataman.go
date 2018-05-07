@@ -198,7 +198,7 @@ func (m *dataMan) run() {
 	}
 
 	// 等待处理中的任务完成
-	m.DataBox.Defer()
+	//m.DataBox.Defer()
 
 	fmt.Println("dataMan run end......", m.DataBox.GetMatrixCnt())
 }
@@ -243,6 +243,9 @@ func (m *dataMan) runChanReq() {
 		//	m.FreeOne()
 		//}(req)
 	}
+
+	// 等待处理中的任务完成
+	m.DataBox.Defer()
 }
 
 // 超时控制

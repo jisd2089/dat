@@ -1,7 +1,7 @@
 package logs
 
 import (
-	"dds/settings"
+	"drcs/settings"
 	"fmt"
 	"io"
 

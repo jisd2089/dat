@@ -1,7 +1,7 @@
 package appender
 
 import (
-	"dds/settings"
+	"drcs/settings"
 	"io"
 	"os"
 	"strconv"

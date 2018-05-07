@@ -12,6 +12,7 @@ import (
 	"bufio"
 	"strings"
 	"drcs/core/interaction/request"
+	"drcs/runtime/status"
 )
 
 func init() {
@@ -61,10 +62,13 @@ func readFileRootFunc(ctx *Context) {
 			PostData:     line,
 			Reloadable:   true,
 		})
+		break
 	}
 }
 
 func readFunc(ctx *Context) {
 	fmt.Println("read start...", ctx.DataRequest.PostData)
 
+	defer ctx.GetDataBox().SetStatus(status.STOP)
+	defer ctx.GetDataBox().CloseRequestChan()
 }

@@ -15,6 +15,7 @@ import (
 
 	"golang.org/x/crypto/ssh"
 	"sync"
+	"net"
 	"time"
 	"fmt"
 )
@@ -93,7 +94,7 @@ func (ft *NodeService) connectSSH(fileCataLog *sftp.FileCatalog) error {
 
 func (ft *NodeService) connectSFTP() error {
 
-	if err := ft.sftpClient.Init(ft.sshClient.Client); err != nil {
+	if err := ft.SftpClient.Init(ft.sshClient.Client); err != nil {
 		return err
 	}
 	return nil

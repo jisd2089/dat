@@ -5,7 +5,7 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	"dds/log/yagrus"
+	"drcs/log/logs"
 )
 
 var errorType = reflect.TypeOf((*error)(nil)).Elem()
@@ -45,6 +45,6 @@ func Debug(format string, args ...interface{}) {
 
 // GetLogger 获取指定日志实例
 func GetLogger(loggerName string) Logger {
-	logrusLogger := yagrus.GetLogger(loggerName)
+	logrusLogger := logs.GetLogger(loggerName)
 	return NewLoggerOnLogrus(logrusLogger)
 }

@@ -238,6 +238,7 @@ func (self *Matrix) DoHistory(req *request.DataRequest, ok bool) bool {
 	}
 
 	if ok {
+		self.history.UpsertSuccess(req.Unique())
 		return false
 	}
 

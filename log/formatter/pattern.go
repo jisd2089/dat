@@ -3,7 +3,7 @@ package formatter
 // Auther xiaolie 20170531
 
 import (
-	"dds/settings"
+	"drcs/settings"
 	"math"
 	"strconv"
 	"strings"

@@ -166,6 +166,7 @@ func (self *DataBox) Defer() {
 	self.reqMatrix.Wait()
 	// 更新失败记录
 	self.reqMatrix.TryFlushFailure()
+	self.reqMatrix.TryFlushSuccess()
 }
 
 // 是否输出默认添加的字段 Url/ParentUrl/DownloadTime

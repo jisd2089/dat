@@ -164,7 +164,7 @@ func (self *DataRequest) Serialize() string {
 // 请求的唯一识别码
 func (self *DataRequest) Unique() string {
 	if self.unique == "" {
-		block := md5.Sum([]byte(self.DataBox + self.Rule + self.Url + self.Method ))
+		block := md5.Sum([]byte(self.DataBox + self.Rule + self.Url + self.Method + time.Now().String() ))
 		self.unique = hex.EncodeToString(block[:])
 	}
 	return self.unique
