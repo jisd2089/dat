@@ -25,6 +25,10 @@ var (
 	_privateKey string
 )
 
+func init() {
+
+}
+
 func GetPrivateKey() (string, error) {
 	if _privateKey == "" {
 		return "", fmt.Errorf("未初始化私钥")
@@ -33,13 +37,7 @@ func GetPrivateKey() (string, error) {
 }
 
 func Initialize() error {
-	//settings := settings.GetSettings()
-	//filePath, err := settings.GetString(settings_xpath_filepath)
-	settings := settings.GetCommomSettings()
-	filePath := settings.KeysFile
-	//if err != nil {
-	//return fmt.Errorf("get %s from setting err:%s", settings_xpath_filepath, err.Error())
-	//}
+	filePath := settings.GetCommonSettings().ConfigFile.KeysFile
 
 	if filePath == "" {
 		return fmt.Errorf("配置缺失:%s", settings_xpath_filepath)
@@ -49,9 +47,8 @@ func Initialize() error {
 	if err != nil {
 		return err
 	}
-	logger.Info("security init pkey:%s", key)
+	logger.Info("security init private key: %s", key)
 	_privateKey = key
-	fmt.Printf("_privateKey is %s \n", _privateKey)
 	// 调用国密模块的初始化方法
 	cncrypt.Init(_privateKey)
 	return nil
@@ -71,8 +68,6 @@ func parseConfigFileAndCalcPriKey(filePath string) (string, error) {
 	}
 	return calculatePrivateKey(&memberKeys)
 }
-
-// 从bobo那搬来的
 
 func calculatePrivateKey(memberKeys *memberKeys) (string, error) {
 	memId := memberKeys.MemId
@@ -169,8 +164,7 @@ func SaveDataToxml(seed, memId, userkey string) (string, *errors.MeanfulError) {
 	rootend := "</member_keys>"
 	xmldata = append(xmldata, rootend...)
 
-	//xmlPath, _ := settings.GetSettings().GetString("KeysFile")
-	xmlPath := settings.GetCommomSettings().KeysFile
+	xmlPath := settings.GetCommonSettings().ConfigFile.KeysFile
 	ioutil.WriteFile(xmlPath, xmldata, os.ModeAppend)
 
 	return pubkey, nil

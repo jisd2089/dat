@@ -1,6 +1,9 @@
 package agollo
 
-import "github.com/coocood/freecache"
+import (
+	"github.com/coocood/freecache"
+	"sync"
+)
 
 /**
     Author: luzequan
@@ -17,6 +20,7 @@ type (
 		appConfig      *AppConfig
 		notifyChan     chan *ChangeEvent
 		repository     *Repository
+		sync.RWMutex
 	}
 )
 
@@ -24,7 +28,10 @@ func NewAgollo(configFileName string) Agollo {
 	return &agollo{
 		configFileName: configFileName,
 		appConfig:      &AppConfig{},
-		repository:     &Repository{currentConnApolloConfig: &ApolloConnConfig{}, apolloConfigCache: freecache.NewCache(apolloConfigCacheSize),},
+		repository: &Repository{
+			currentConnApolloConfig: &ApolloConnConfig{},
+			apolloConfigCache:       freecache.NewCache(apolloConfigCacheSize),
+		},
 	}
 }
 
@@ -42,10 +49,10 @@ func (a *agollo) Start() {
 	a.initNotify()
 
 	ncc := &NotifyConfigComponent{
-		appConfig: a.appConfig,
+		appConfig:  a.appConfig,
 		notifyChan: a.notifyChan,
 		repository: a.repository,
-		}
+	}
 
 	//first sync
 	ncc.notifySyncConfigServices()
@@ -85,9 +92,11 @@ func (a *agollo) setConfig(appConfigFileName string) {
 }
 
 func (a *agollo) initNotify() {
+	a.RLock()
+	defer a.RUnlock()
 	if allNotifications == nil {
 		allNotifications = &notificationsMap{
-			notifications: make(map[string]int64, 10),
+			notifications: make(map[string]int64, 50),
 		}
 	}
 

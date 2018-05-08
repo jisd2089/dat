@@ -13,126 +13,144 @@ const (
 	defaultTag            = "yaml"
 )
 
-var commonSettings CommonSettings
+var commonSettings *CommonSettings
 
 type CommonSettings struct {
-	DemService DemService
-	Redis      Redis
-	Conf       Conf
-	Routine    Routine
-	Kafka      Kafka
-
-	NodeId  string `yaml:"nodeId"`
-	MemId   string `yaml:"memId"`
-	Version string `yaml:"version"`
-	Type    string `yaml:"type"`
-	Userkey string `yaml:"userkey"`
-	Token   string `yaml:"token"`
-
-	KeysFile           string `yaml:"KeysFile"`
-	OrderFile          string `yaml:"OrderFile"`
-	OrderFileExpirS    int64  `yaml:"OrderFileExpirS"`
-	MemberFile         string `yaml:"MemberFile"`
-	MemberFileExpirS   int64  `yaml:"MemberFileExpirS"`
-	OrderRouteFilePath string `yaml:"OrderRouteFilePath"`
-	DLS_url            string `yaml:"dls_url"`
-
-	SupPort         int    `yaml:"SupPort"`
-	LogrusPath      string `yaml:"LogrusPath"`
-	BusiLog         BusiLog
-	Log             Log
-	DMP             DMP
-	Sftp            Sftp
-	BatchCollison   BatchCollison
-	SupLoadDir      string `yaml:"SupLoadDir"`
-	FileCleanInterv int    `yaml:"FileCleanInterv"`
-	ExIdTimeout     int    `yaml:"ExIdTimeout"`
-
-	BusilogRuleFlow string `yaml:"BusilogRuleFlow"`
+	Node          Node          `yaml:"node"`
+	ConfigFile    ConfigFile    `yaml:"configfile"`
+	NodeService   NodeService   `yaml:"service"`
+	Xid           Xid           `yaml:"xid"`
+	Redis         Redis         `yaml:"redis"`
+	Conf          Conf          `yaml:"conf"`
+	Routine       Routine       `yaml:"routine"`
+	Kafka         Kafka         `yaml:"kafka"`
+	BusiLog       BusiLog       `yaml:"busilog"`
+	DMP           DMP           `yaml:"dmp"`
+	Log           Log           `yaml:"log"`
+	Sftp          Sftp          `yaml:"sftp"`
+	BatchCollison BatchCollison `yaml:"batchCollison"`
+	Other         Other         `yaml:"other"`
 }
 
-type Sftp struct {
-	Hosts              string `yaml:"sftp.hosts"`
-	Port               int    `yaml:"sftp.port"`
-	Username           string `yaml:"sftp.username"`
-	Password           string `yaml:"sftp.password"`
-	DefualtTimeout     int    `yaml:"sftp.defualtTimeout"`
-	RemoteDir          string `yaml:"sftp.remoteDir"`
-	LocalDir           string `yaml:"sftp.localDir"`
-	FetchInterv        int    `yaml:"sftp.fetchInterv"`
-	BatchKeyScanInterv int    `yaml:"sftp.batchKeyScanInterv"`
-	EnableSftp         int    `yaml:"sftp.enableSftp"`
+type Node struct {
+	NodeId   string `yaml:"nodeId"`
+	Host     string `yaml:"host"`
+	Port     string `yaml:"port"`
+	MemberId string `yaml:"memberId"`
+	Role     string `yaml:"role"`
+	Version  string `yaml:"version"`
+	Userkey  string `yaml:"userkey"`
+	Token    string `yaml:"token"`
+	DlsUrl   string `yaml:"dlsUrl"`
 }
 
-type BatchCollison struct {
-	MaxThreadNum   int `yaml:"batchCollison.maxThreadNum"`
-	GroupDataCount int `yaml:"batchCollison.groupDataCount"`
+type ConfigFile struct {
+	KeysFile             string `yaml:"keysFile"`
+	OrderFile            string `yaml:"orderFile"`
+	OrderFileExpireTime  int64 `yaml:"orderFileExpireTime"`
+	MemberFile           string `yaml:"memberFile"`
+	MemberFileExpireTime int64 `yaml:"memberFileExpireTime"`
+	OrderRouteFilePath   string `yaml:"orderRouteFilePath"`
 }
 
-type DemService struct {
-	Protocol   string `yaml:"service.protocol"`
-	ListenIP   string `yaml:"service.listenIp"`
-	ListenPort int    `yaml:"service.listenPort"`
-	ServiceUrl string `yaml:"service.serviceUrl"`
+type Xid struct {
+	XidIp     string `yaml:"xidIp"`
+	XidDealer string `yaml:"xidDealer"`
 }
 
-//new
+type NodeService struct {
+	Protocol   string `yaml:"protocol"`
+	ListenIP   string `yaml:"listenIp"`
+	ListenPort int    `yaml:"listenPort"`
+	ServiceUrl string `yaml:"serviceUrl"`
+}
+
 type Conf struct {
-	CfgDir        string `yaml:"conf.cfgDir"`
-	LogDir        string `yaml:"conf.logDir"`
-	XmlDir        string `yaml:"conf.xmlDir"`
-	XmlReloadTime int    `yaml:"conf.xmlReloadTime"`
+	CfgDir        string `yaml:"cfgDir"`
+	LogDir        string `yaml:"logDir"`
+	XmlDir        string `yaml:"xmlDir"`
+	XmlReloadTime int    `yaml:"xmlReloadTime"`
 }
 
 type Redis struct {
-	Addr          string   `yaml:"redis.Addr"`
-	Addrs         []string `yaml:"redis.Addrs"`
-	DB            int      `yaml:"redis.DB"`
-	BatchDB       int      `yaml:"redis.BatchDB"`
-	PoolSize      int      `yaml:"redis.PoolSize"`
-	BatchPoolSize int      `yaml:"redis.BatchPoolSize"`
-	ReadOnly      bool     `yaml:"redis.ReadOnly"`
-	BucketSize    int      `yaml:"redis.BucketSize"`
+	Addr       string `yaml:"addr"`
+	DB         int    `yaml:"db"`
+	PoolSize   int    `yaml:"poolSize"`
+	ReadOnly   bool   `yaml:"readOnly"`
+	BucketSize int    `yaml:"bucketSize"`
 
-	ReadTimeout  int `yaml:"redis.ReadTimeout"`
-	WriteTimeout int `yaml:"redis.WriteTimeout"`
-	DialTimeout  int `yaml:"redis.DialTimeout"`
+	ReadTimeout  int `yaml:"readTimeout"`
+	WriteTimeout int `yaml:"writeTimeout"`
+	DialTimeout  int `yaml:"dialTimeout"`
 
-	ClusterOpen     bool     `yaml:"redis.ClusterOpen"`
-	ClusterAddrs    []string `yaml:"redis.ClusterAddrs"`
-	ClusterPoolSize int      `yaml:"redis.ClusterPoolSize"`
-}
-
-type Kafka struct {
-	Brokers      []string `yaml:"kafka.brokers"`
-	Topic        string   `yaml:"kafka.topic"`
-	PartitionNum int      `yaml:"kafka.partitionNum"`
+	Mode string `yaml:"mode"`
 }
 
 type Routine struct {
-	MemIds   []string `yaml:"routine.memId"`
-	Capacity []int    `yaml:"routine.capacity"`
-	MCMap    map[string]int
+	MemberIds []string `yaml:"memberId"`
+	Capacity  []int    `yaml:"capacity"`
+	MCMap     map[string]int
+}
+
+type Kafka struct {
+	Brokers      []string `yaml:"brokers"`
+	Topic        string   `yaml:"topic"`
+	PartitionNum int      `yaml:"partitionNum"`
 }
 
 type BusiLog struct {
-	MQPath string `yaml:"busilog.MQPath"`
+	MQPath string `yaml:"mqPath"`
 }
 
 type DMP struct {
-	URL     string `yaml:"DMP.URL"`
-	Timeout int    `yaml:"DMP.Timeout"`
+	URL     string `yaml:"url"`
+	Timeout int    `yaml:"timeout"`
 }
 
 type Log struct {
-	ConfigPath string `yaml:"Log.ConfigPath"`
+	ConfigPath string `yaml:"ConfigPath"`
+	LogrusPath string `yaml:"logrusPath"`
+}
+
+type Sftp struct {
+	Hosts              string `yaml:"hosts"`
+	Port               int    `yaml:"port"`
+	Username           string `yaml:"username"`
+	Password           string `yaml:"password"`
+	DefualtTimeout     int    `yaml:"defualtTimeout"`
+	RemoteDir          string `yaml:"remoteDir"`
+	LocalDir           string `yaml:"localDir"`
+	EnableSftp         int    `yaml:"enableSftp"`
+	FetchInterv        int    `yaml:"fetchInterv"`
+	BatchKeyScanInterv int    `yaml:"batchKeyScanInterv"`
+}
+
+type BatchCollison struct {
+	MaxThreadNum   int `yaml:"maxThreadNum"`
+	GroupDataCount int `yaml:"groupDataCount"`
+}
+
+type Other struct {
+	SupLoadDir      string `yaml:"supLoadDir"`
+	FileCleanInterv int    `yaml:"fileCleanInterv"`
+	ExidTimeout     string `yaml:"exidTimeout"`
+	GuardFlag       string `yaml:"guardFlag"`
+	Crp             Crp    `yaml:"crp"`
+}
+
+type Crp struct {
+	ReqTimeout int `yaml:"reqTimeout"`
 }
 
 //func GetCommonSettings() CommonSettings {
 //	return commonSettings
 //}
-func GetCommomSettings() CommonSettings {
+func GetCommonSettings() *CommonSettings {
 	return commonSettings
+}
+
+func SetCommonSettings(settings *CommonSettings) {
+	commonSettings = settings
 }
 
 func LoadCommonSettings(yamlPath string) error {

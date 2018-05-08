@@ -4,7 +4,9 @@ import (
 	"flag"
 	"drcs/core"
 
-	"drcs/dep/job"
+	_ "drcs/dep/service"
+
+	//"drcs/dep/job"
 )
 
 var (
@@ -24,9 +26,9 @@ func Flag() {
 
 // 执行入口
 func Run(port int) {
-	assetnode.AssetNodeEntity.Init()
-
-	assetnode.AssetNodeEntity.Run()
+	//assetnode.AssetNodeEntity.Init()
+	//
+	//assetnode.AssetNodeEntity.Run()
 
 	httpServer := &HttpServer{}
 	httpServer.Run(port)
@@ -50,14 +52,14 @@ func appInit() {
 
 func RunDem() {
 
-	jobs.InitDem()
+	//jobs.InitDem()
 
 	Run(8899)
 }
 
 func RunSup() {
 
-	jobs.InitSup()
+	//jobs.InitSup()
 
 	Run(8989)
 }

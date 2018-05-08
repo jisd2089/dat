@@ -12,6 +12,7 @@ const (
 
 var (
 	allNotifications *notificationsMap
+	lock sync.RWMutex
 )
 
 type NotifyConfigComponent struct {
@@ -83,7 +84,6 @@ func (this *NotifyConfigComponent) getRemoteConfig() ([]*apolloNotify, error) {
 func (this *NotifyConfigComponent) notifySyncConfigServices() error {
 
 	remoteConfigs, err := this.getRemoteConfig()
-
 	if err != nil || len(remoteConfigs) == 0 {
 		return err
 	}
@@ -142,6 +142,7 @@ func (this *notificationsMap) setNotify(namespaceName string, notificationId int
 	defer this.Unlock()
 	this.notifications[namespaceName] = notificationId
 }
+
 func (this *notificationsMap) getNotifies() string {
 	this.RLock()
 	defer this.RUnlock()
@@ -171,9 +172,11 @@ func (this *NotifyConfigComponent) SyncConfig() error {
 
 func autoSyncConfigServices(notifyChan chan *ChangeEvent, appConfig *AppConfig, repository *Repository) error {
 	//appConfig := GetAppConfig()
-	if appConfig == nil {
-		panic("can not find apollo config!please confirm!")
-	}
+	//if appConfig == nil {
+	//	panic("can not find apollo config!please confirm!")
+	//}
+	lock.RLock()
+	defer lock.RUnlock()
 
 	urlSuffix := getConfigUrlSuffix(appConfig)
 

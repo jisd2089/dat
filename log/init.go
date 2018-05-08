@@ -18,7 +18,7 @@ func Initialize() {
 	formatter.Initialize()
 
 
-	se := settings.GetCommomSettings()
+	se := settings.GetCommonSettings()
 	configPath := se.Log.ConfigPath
 	if configPath == "" {
 		Info("log initialize, use default configuration file: %s", defaultConfigPath)

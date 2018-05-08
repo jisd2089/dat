@@ -21,6 +21,7 @@ type ConnectConfig struct {
 }
 
 func request(requestUrl string, connectionConfig *ConnectConfig, callBack *CallBack, notifyChan chan *ChangeEvent, repository *Repository) (interface{}, error) {
+
 	client := &http.Client{}
 	//如有设置自定义超时时间即使用
 	if connectionConfig != nil && connectionConfig.Timeout != 0 {

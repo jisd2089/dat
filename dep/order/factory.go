@@ -18,14 +18,14 @@ var (
 )
 
 func createOrderManager() (OrderManager, error) {
-	settings := settings.GetCommomSettings()
-	filePath := settings.OrderFile
+	settings := settings.GetCommonSettings()
+	filePath := settings.ConfigFile.OrderFile
 	if filePath == "" {
 		logger.Error("OrderFile missing in setting:%s", settings_xpath_filepath)
 		return nil, fmt.Errorf("配置缺失:%s", settings_xpath_filepath)
 	}
 
-	expirS := settings.OrderFileExpirS
+	expirS := settings.ConfigFile.OrderFileExpireTime
 
 	orderManager, err := NewOrderManagerXMLFile(filePath)
 	if err != nil {

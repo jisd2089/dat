@@ -10,8 +10,8 @@ import (
 	"drcs/runtime/cache"
 	"drcs/runtime/status"
 	"drcs/log"
-	"drcs/settings"
-	"os"
+	//"drcs/settings"
+	//"os"
 )
 
 var (
@@ -56,9 +56,9 @@ func init() {
 
 func DefaultRun(port int) {
 
-	if err := settings.LoadCommonSettings(*demConfDir); err != nil {
-		os.Exit(2)
-	}
+	//if err := settings.LoadCommonSettings(*demConfDir); err != nil {
+	//	os.Exit(2)
+	//}
 
 	// 初始化日志
 	log.Initialize()

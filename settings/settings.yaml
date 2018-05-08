@@ -1,16 +1,95 @@
-a: Easy
-b: 1
-c: -1
-d: 11.1
-f: -11.1
-g: [1, 2, 3]
-h:
-    i:
-        k: 3
-    j: 2
+node:
+  host: 0.0.0.0
+  port: 8097
+  memberId: 0000168
+  role: sup
+  version: 1.8
+  nodeId: 01
+  userKey:
+  #token: 3AF7C02601EA61D040A278219B1E6687
+  token: a1c90c0c8a80d75f40615c17dc20fa3c
+  dlsUrl: http://test.dlsnew.com/api/api/init/node/
+
+configfile:
+  keysFile: /opt/project/dds-supplier-168/data/memkeys.xml
+  orderFile: /opt/project/dds-supplier-168/data/order_info.xml
+  orderFileExpireTime: 100000
+  memberFile: /opt/project/dds-supplier-168/data/mem_info.xml
+  memberFileExpireTime: 100000
+  orderRouteFilePath: /opt/project/dds-supplier-168/data/
+
+xid:
+  xidIp: 101.230.3.123
+  xidDealer: 1
 
 service:
-    protocol: http
-    listenIp: 0.0.0.0
-    listenPort: 80
-    serviceUrl: http://das.chinadep.com
+  protocol: http
+  listenIp: 0.0.0.0
+  listenPort: 8097
+  serviceUrl: http://127.0.0.1
+
+conf:
+  cfgDir: /opt/project/dds-supplier-168/conf/
+  xmlDir: /opt/project/dds-supplier-168/data/
+  logDir: /opt/project/dds-supplier-168/log/
+  xmlReloadTime: 900
+
+redis:
+  addr:
+    - 10.101.12.4:6378
+  db: 3
+  poolSize: 16
+  readOnly: true
+  bucketSize: 30000000
+  readTimeout: 60
+  writeTimeout: 60
+  dialTimeout: 60
+  mode: alone
+
+routine:
+  memberId:
+    - 0000101
+  capacity:
+    - 300
+
+kafka:
+  brokers:
+    - 172.22.57.51:9092
+  topic: order_route
+  partitionNum: 256
+
+busilog:
+  mqPath: gosupplier168
+
+dmp:
+  url: http://localhost:9005/
+  timeout: 0
+
+log:
+  configPath: /opt/project/dds-supplier-168/conf/logrus.yaml
+  logrusPath: /opt/project/dds-supplier-168/conf/logrus.yaml
+
+sftp:
+  hosts: 10.101.12.5
+  port: 22
+  username: ddssit
+  password: \u-kaCOYcrUcHvHU
+  defualtTimeout: 30
+  remoteDir: /dep/sftp/sup_101
+  localDir: /opt/project/dds-supplier-168/batch_file
+  enableSftp: 0
+  fetchInterv: 1
+  batchKeyScanInterv: 1
+
+batchCollison:
+  maxThreadNum: 1000
+  groupDataCount: 10
+
+other:
+  supLoadDir: /opt/project/dds-supplier-168/supload
+  fileCleanInterv: 20000 #day
+  exidTimeout: 100000 #day
+  guardFlag: "00"
+  crp:
+    reqTimeout: 10 # in seconds
+      #supUrl: {"00001011003002": "http://10.101.12.15:8090/data/"}
