@@ -46,8 +46,8 @@ type OrderDetailInfo struct {
 	SvcType          string `xml:"svcType"`
 }
 
-func SetOrderInfos(orderInfoList *OrderInfoList) *OrderInfoList {
-	orderInfoList = orderInfoList
+func SetOrderInfos(orderInfos *OrderInfoList) *OrderInfoList {
+	orderInfoList = orderInfos
 	return orderInfoList
 }
 

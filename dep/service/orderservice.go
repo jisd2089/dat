@@ -14,7 +14,7 @@ import (
 */
 
 func init() {
-	NewOrderService().Init()
+	//NewOrderService().Init()
 }
 
 type OrderService struct {

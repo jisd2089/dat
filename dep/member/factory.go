@@ -20,14 +20,14 @@ var (
 )
 
 func createMemberManager() (MemberManager, error) {
-	settings := settings.GetCommomSettings()
-	filePath := settings.MemberFile
+	settings := settings.GetCommonSettings()
+	filePath := settings.ConfigFile.MemberFile
 	if filePath == "" {
 		logger.Error("%s missing in setting ", settings_xpath_filepath)
 		return nil, fmt.Errorf("配置缺失:%s", settings_xpath_filepath)
 	}
 
-	expirS := settings.MemberFileExpirS
+	expirS := settings.ConfigFile.MemberFileExpireTime
 
 	memberManager, err := NewMemberManagerXMLFile(filePath)
 	if err != nil {
@@ -57,8 +57,8 @@ func GetMemberManager() (MemberManager, error) {
 }
 
 func initLocalMemberID() (string, error) {
-	settings := settings.GetCommomSettings()
-	memID := settings.MemId
+	settings := settings.GetCommonSettings()
+	memID := settings.Node.MemberId
 	if memID == "" {
 		logger.Error(" %s missing in setting", settings_xpath_memid)
 		fmt.Errorf("配置缺失:%s", settings_xpath_memid)
