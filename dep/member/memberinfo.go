@@ -10,12 +10,12 @@ var (
 )
 
 type MemberInfoList struct {
-	Head             Head              `xml:"head"`
+	Head             *Head              `xml:"head"`
 	MemberDetailList *MemberDetailList `xml:"member_dtl_list"`
 }
 
 type PartnerInfoList struct {
-	Head              Head               `xml:"head"`
+	Head              *Head               `xml:"head"`
 	PartnerDetailList *PartnerDetailList `xml:"partner_dtl_list"`
 }
 

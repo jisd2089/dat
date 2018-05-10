@@ -27,7 +27,6 @@ type (
 func NewAgollo(configFileName string) Agollo {
 	return &agollo{
 		configFileName: configFileName,
-		appConfig:      &AppConfig{},
 		repository: &Repository{
 			currentConnApolloConfig: &ApolloConnConfig{},
 			apolloConfigCache:       freecache.NewCache(apolloConfigCacheSize),
@@ -40,11 +39,11 @@ func (a *agollo) Start() {
 	//	initLogger(loggerInterface)
 	//}
 
-	if a.configFileName == "" {
-		a.configFileName = appConfigFileName
+	if a.appConfig != nil {
+		go a.updateConfig()
+	} else {
+		a.setConfig()
 	}
-
-	a.setConfig(a.configFileName)
 
 	a.initNotify()
 
@@ -71,24 +70,30 @@ func (a *agollo) ListenChangeEvent() <-chan *ChangeEvent {
 	return a.notifyChan
 }
 
-func (a *agollo) setConfig(appConfigFileName string) {
+func (a *agollo) setConfig() {
+
+	if a.configFileName == "" {
+		a.configFileName = appConfigFileName
+	}
 
 	var err error
 	//init config file
-	a.appConfig, err = loadJsonConfig(appConfigFileName)
+	a.appConfig, err = loadJsonConfig(a.configFileName)
 
 	if err != nil {
 		panic(err)
 	}
 
-	go func(notifyChan chan *ChangeEvent, appConfig *AppConfig) {
-		apolloConfig := &ApolloConfig{}
-		apolloConfig.AppId = appConfig.AppId
-		apolloConfig.Cluster = appConfig.Cluster
-		apolloConfig.NamespaceName = appConfig.NamespaceName
+	go a.updateConfig()
+}
 
-		a.repository.updateApolloConfig(notifyChan, apolloConfig)
-	}(a.notifyChan, a.appConfig)
+func (a *agollo) updateConfig() {
+	apolloConfig := &ApolloConfig{}
+	apolloConfig.AppId = a.appConfig.AppId
+	apolloConfig.Cluster = a.appConfig.Cluster
+	apolloConfig.NamespaceName = a.appConfig.NamespaceName
+
+	a.repository.updateApolloConfig(a.notifyChan, apolloConfig)
 }
 
 func (a *agollo) initNotify() {

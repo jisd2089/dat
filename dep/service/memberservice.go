@@ -15,7 +15,7 @@ import (
 */
 
 func init() {
-	NewMemberService().Init()
+	//NewMemberService().Init()
 }
 
 type MemberService struct {

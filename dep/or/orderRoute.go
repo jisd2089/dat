@@ -13,24 +13,33 @@ import (
 	"os"
 	"path"
 	"strings"
+	"sync"
 )
 
+var (
+	orderRoutePolicyMap map[string]*OrderRoutePolicy
+)
+
+func init() {
+	orderRoutePolicyMap = make(map[string]*OrderRoutePolicy)
+}
+
 type Head struct {
-	RouteMethod   RouteMethod   `xml:"routeMethod"`
-	SvcTimeOut    int           `xml:"svcTimeOut"`
-	PreTimeOut    int           `xml:"preTimeOut"`
-	Batch         int           `xml:"batch"`
-	MaxDelay      int           `xml:"maxDelay"`
-	StopFlag      StopFlag      `xml:"stopFlag"`
-	NeedCache     CacheFlag     `xml:"needCache"`
-	NeedKafka     KafkaFlag     `xml:"needKafka"`
-	CacheTime     int           `xml:"cacheTime"`
-	SyncFlag      SyncFlag      `xml:"syncFlag"`
-	CacheCodeList CacheCodeList `xml:"cacheCodeList"`
+	RouteMethod   RouteMethod    `xml:"routeMethod"`
+	SvcTimeOut    int            `xml:"svcTimeOut"`
+	PreTimeOut    int            `xml:"preTimeOut"`
+	Batch         int            `xml:"batch"`
+	MaxDelay      int            `xml:"maxDelay"`
+	StopFlag      StopFlag       `xml:"stopFlag"`
+	NeedCache     CacheFlag      `xml:"needCache"`
+	NeedKafka     KafkaFlag      `xml:"needKafka"`
+	CacheTime     int            `xml:"cacheTime"`
+	SyncFlag      SyncFlag       `xml:"syncFlag"`
+	CacheCodeList *CacheCodeList `xml:"cacheCodeList"`
 }
 
 type CacheCodeList struct {
-	CacheCodes []CacheCode `xml:"code"`
+	CacheCodes []*CacheCode `xml:"code"`
 }
 
 type CacheCode struct {
@@ -39,12 +48,12 @@ type CacheCode struct {
 }
 
 type SvcInfo struct {
-	MemId      string      `xml:"memId"`
-	TaskIdList TaskIdInfos `xml:"taskIdList"`
+	MemId      string       `xml:"memId"`
+	TaskIdList *TaskIdInfos `xml:"taskIdList"`
 }
 
 type TaskIdInfos struct {
-	TaskIdInfo []TaskIdInfo `xml:"taskId"`
+	TaskIdInfo []*TaskIdInfo `xml:"taskId"`
 }
 
 type TaskIdInfo struct {
@@ -53,7 +62,7 @@ type TaskIdInfo struct {
 }
 
 type SvcList struct {
-	SvcInfo []SvcInfo `xml:"svc_info"`
+	SvcInfo []*SvcInfo `xml:"svc_info"`
 }
 
 type SinglePolicy struct {
@@ -61,7 +70,7 @@ type SinglePolicy struct {
 }
 
 type StaticPolicy struct {
-	CallList Calllist `xml:"call_list"`
+	CallList *Calllist `xml:"call_list"`
 }
 
 type DynamicPolicy struct {
@@ -69,7 +78,7 @@ type DynamicPolicy struct {
 }
 
 type BroadcastPolicy struct {
-	CallList Calllist `xml:"call_list"`
+	CallList *Calllist `xml:"call_list"`
 }
 
 type Calllist struct {
@@ -77,18 +86,20 @@ type Calllist struct {
 }
 
 type OrderRoute struct {
-	XMLName         xml.Name        `xml:"route_info"`
-	Head            Head            `xml:"head"`
-	SvcList         SvcList         `xml:"svc_list"`
-	SinglePolicy    SinglePolicy    `xml:"single_policy"`
-	StaticPolicy    StaticPolicy    `xml:"static_policy"`
-	DynamicPolicy   DynamicPolicy   `xml:"dynamic_policy"`
-	BroadcastPolicy BroadcastPolicy `xml:"broadcast_policy"`
+	XMLName         xml.Name         `xml:"route_info"`
+	Head            *Head            `xml:"head"`
+	SvcList         *SvcList         `xml:"svc_list"`
+	SinglePolicy    *SinglePolicy    `xml:"single_policy"`
+	StaticPolicy    *StaticPolicy    `xml:"static_policy"`
+	DynamicPolicy   *DynamicPolicy   `xml:"dynamic_policy"`
+	BroadcastPolicy *BroadcastPolicy `xml:"broadcast_policy"`
+
+	mu sync.RWMutex
 }
 
 // 解析之后的订单路由结构体
 type OrderRoutePolicy struct {
-	OrderId          string
+	JobId            string
 	RouteMethod      RouteMethod
 	SvcTimeOut       int
 	PreTimeOut       int
@@ -103,14 +114,14 @@ type OrderRoutePolicy struct {
 	Calllist         []string
 	MemTaskIdMap     map[string]string
 	MemConnObjIdMap  map[string]string
-	MemKeyQryTypeMap map[string][]TaskIdInfo
-	CacheCodeList    []CacheCode
+	MemKeyQryTypeMap map[string][]*TaskIdInfo
+	CacheCodeList    []*CacheCode
 }
 
 func (o *OrderRoute) LoadOrderRouteFromXml(jobId string) (err error) {
 
 	xmlName := fmt.Sprintf("order_route_%s.xml", jobId)
-	xmlDir := settings.GetCommomSettings().Conf.XmlDir
+	xmlDir := settings.GetCommonSettings().Conf.XmlDir
 	xmlPath := path.Join(xmlDir, xmlName)
 	xmlFile, err := ioutil.ReadFile(xmlPath)
 	if err != nil {
@@ -126,7 +137,7 @@ func (o *OrderRoute) LoadOrderRouteFromXml(jobId string) (err error) {
 	return
 }
 
-func (this OrderRoute) GetConnObjIdByTaskId(taskId string) string {
+func (this *OrderRoute) GetConnObjIdByTaskId(taskId string) string {
 	orderManager, err := order.GetOrderManager()
 	if err != nil {
 		fmt.Println("GetOrderMananger err :", err)
@@ -151,6 +162,28 @@ func (this OrderRoute) GetConnObjListStr(taskIdStr string) string {
 	return strings.Join(s, "|@|")
 }
 
+func (or *OrderRoute) getConnObjListStr(jobId string, taskIdInfos []*TaskIdInfo) string {
+	s := make([]string, 0)
+	for _, taskIdInfo := range taskIdInfos {
+		s = append(s, or.getConnObjIdByTaskId(jobId, taskIdInfo.TaskId))
+	}
+
+	return strings.Join(s, "|@|")
+}
+
+func (or *OrderRoute) getConnObjIdByTaskId(jobId string, taskId string) string {
+	orderData, ok := order.GetOrderInfoMap()[jobId]
+	if !ok {
+		return ""
+	}
+	orderInfo, ok := orderData.TaskInfoMapById[taskId]
+	if !ok {
+		return ""
+	}
+
+	return orderInfo.ConnObjId
+}
+
 // 旧版本根据orderId选择路由策略，新版本根据jobId（工单号）选择路由策略 ————lzq 2017.12.07
 func (this OrderRoute) GetOrderRoute(orderId string) (OrderRoutePolicy, *errors.MeanfulError) {
 	var policy OrderRoutePolicy
@@ -169,7 +202,7 @@ func (this OrderRoute) GetOrderRoute(orderId string) (OrderRoutePolicy, *errors.
 func (this OrderRoute) LoadOrderRouteXml(policy OrderRoutePolicy, orderRoute OrderRoute, orderId string) (OrderRoutePolicy, *errors.MeanfulError) {
 
 	xmlName := fmt.Sprintf("order_route_%s.xml", orderId)
-	xmlDir := settings.GetCommomSettings().Conf.XmlDir
+	xmlDir := settings.GetCommonSettings().Conf.XmlDir
 	xmlPath := path.Join(xmlDir, xmlName)
 	xmlFile, err := ioutil.ReadFile(xmlPath)
 	if err != nil {
@@ -185,8 +218,8 @@ func (this OrderRoute) LoadOrderRouteXml(policy OrderRoutePolicy, orderRoute Ord
 
 	memTaskIdMap := make(map[string]string)
 	memConnObjIdMap := make(map[string]string)
-	memKeyQryTypeMap := make(map[string][]TaskIdInfo)
-	cacheCodeList := make([]CacheCode, 0)
+	memKeyQryTypeMap := make(map[string][]*TaskIdInfo)
+	cacheCodeList := make([]*CacheCode, 0)
 	for _, svcInfo := range orderRoute.SvcList.SvcInfo {
 		taskIdArr := make([]string, 0)
 		memKeyQryTypeMap[svcInfo.MemId] = svcInfo.TaskIdList.TaskIdInfo
@@ -215,7 +248,7 @@ func (this OrderRoute) LoadOrderRouteXml(policy OrderRoutePolicy, orderRoute Ord
 		panic("route method TO-DO")
 	}
 
-	policy.OrderId = orderId
+	policy.JobId = orderId
 	policy.RouteMethod = orderRoute.Head.RouteMethod
 	policy.SvcTimeOut = orderRoute.Head.SvcTimeOut
 	policy.PreTimeOut = orderRoute.Head.PreTimeOut
@@ -233,7 +266,7 @@ func (this OrderRoute) LoadOrderRouteXml(policy OrderRoutePolicy, orderRoute Ord
 	policy.MemKeyQryTypeMap = memKeyQryTypeMap
 	policy.CacheCodeList = cacheCodeList
 
-	timeout := settings.GetCommomSettings().Conf.XmlReloadTime
+	timeout := settings.GetCommonSettings().Conf.XmlReloadTime
 	memCache := cache.GetMemCacheInstance()
 	cache_key := fmt.Sprintf("orderRoute_%s", orderId)
 	memCache.SetMemCache(cache_key, policy, timeout)
@@ -241,10 +274,75 @@ func (this OrderRoute) LoadOrderRouteXml(policy OrderRoutePolicy, orderRoute Ord
 	return policy, nil
 }
 
+func (or *OrderRoute) LoadOrderRouteMap(jobId string) (*errors.MeanfulError) {
+
+	memTaskIdMap := make(map[string]string)
+	memConnObjIdMap := make(map[string]string)
+	memKeyQryTypeMap := make(map[string][]*TaskIdInfo)
+	cacheCodeList := make([]*CacheCode, 0)
+	for _, svcInfo := range or.SvcList.SvcInfo {
+		taskIdArr := make([]string, 0)
+		taskIdList := svcInfo.TaskIdList.TaskIdInfo
+		memKeyQryTypeMap[svcInfo.MemId] = taskIdList
+		for _, taskIdInfo := range taskIdList {
+			taskIdArr = append(taskIdArr, taskIdInfo.TaskId)
+		}
+		taskIdStr := strings.Join(taskIdArr, "|@|")
+		memTaskIdMap[svcInfo.MemId] = taskIdStr
+		memConnObjIdMap[svcInfo.MemId] = or.getConnObjListStr(jobId, taskIdList)
+	}
+
+	for _, cacheCode := range or.Head.CacheCodeList.CacheCodes {
+		cacheCodeList = append(cacheCodeList, cacheCode)
+	}
+
+	callist := make([]string, 0)
+	routeMethod := or.Head.RouteMethod
+	if routeMethod == 1 {
+		callist = append(callist, or.SinglePolicy.MemId)
+	} else if routeMethod == 2 {
+		for _, memId := range or.StaticPolicy.CallList.MemId {
+			callist = append(callist, memId)
+		}
+	} else {
+		logger.Error("route method %s error ", routeMethod)
+		return errors.RawNew("999999", "route method error " + string(routeMethod))
+	}
+
+	policy := &OrderRoutePolicy{}
+	policy.JobId = jobId
+	policy.RouteMethod = or.Head.RouteMethod
+	policy.SvcTimeOut = or.Head.SvcTimeOut
+	policy.PreTimeOut = or.Head.PreTimeOut
+	policy.Batch = or.Head.Batch
+	policy.MaxDelay = or.Head.MaxDelay
+	policy.StopFlag = or.Head.StopFlag
+	policy.NeedCache = or.Head.NeedCache
+	policy.NeedKafka = or.Head.NeedKafka
+	policy.CacheTime = or.Head.CacheTime
+	policy.SyncFlag = or.Head.SyncFlag
+	policy.PolicyType = or.DynamicPolicy.PolicyType
+	policy.Calllist = callist
+	policy.MemTaskIdMap = memTaskIdMap
+	policy.MemConnObjIdMap = memConnObjIdMap
+	policy.MemKeyQryTypeMap = memKeyQryTypeMap
+	policy.CacheCodeList = cacheCodeList
+
+	or.mu.RLock()
+	defer or.mu.RUnlock()
+	orderRoutePolicyMap[jobId] = policy
+
+	return nil
+}
+
+func GetOrderRoutePolicyMap() map[string]*OrderRoutePolicy {
+	return orderRoutePolicyMap
+}
+
 //初始化目录下所有OrderRouteFile
 func InitOrderRouteFile() {
 
-	xmlPath := settings.GetCommomSettings().Conf.XmlDir
+	xmlPath := settings.GetCommonSettings().Conf.XmlDir
 	if xmlPath == "" {
 		logger.Error("init orderRoute file empty ")
 	}
