@@ -11,7 +11,7 @@ import (
 
 	. "drcs/settings"
 	"drcs/dep/handler/msg"
-	logger "dds/log"
+	logger "drcs/log"
 	"drcs/dep/security"
 )
 

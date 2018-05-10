@@ -6,7 +6,7 @@ package order
 */
 var (
 	orderInfoList *OrderInfoList
-	orderInfoMap map[string]*OrderData
+	orderInfoMap  map[string]*OrderData
 )
 
 type OrderInfoList struct {
@@ -50,6 +50,8 @@ type OrderDetailInfo struct {
 }
 
 type OrderData struct {
+	OrderId                string
+	MemberRole             string
 	TaskInfoMapById        map[string]*OrderDetailInfo //以TaskId作为key
 	TaskInfoMapByConnObjID map[string]*OrderDetailInfo //以ConnObjID作为key
 }
@@ -77,8 +79,10 @@ func SetOrderInfoMap(orderInfos *OrderInfoList) {
 			taskInfoMapByConnObjID[d.ConnObjId] = d
 		}
 		orderInfoMap[o.JobId] = &OrderData{
-			taskInfoMapById,
-			taskInfoMapByConnObjID,
+			OrderId:                o.OrderId,
+			MemberRole:             o.MemberRole,
+			TaskInfoMapById:        taskInfoMapById,
+			TaskInfoMapByConnObjID: taskInfoMapByConnObjID,
 		}
 	}
 }
@@ -86,5 +90,3 @@ func SetOrderInfoMap(orderInfos *OrderInfoList) {
 func GetOrderInfoMap() map[string]*OrderData {
 	return orderInfoMap
 }
-
-

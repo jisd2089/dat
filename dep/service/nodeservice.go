@@ -57,7 +57,6 @@ func (s *NodeService) Init() {
 
 	defaultInitSecurityConfig()
 
-	//
 	//// 初始化xml订单文件信息
 	//or.InitOrderRouteFile()
 	//

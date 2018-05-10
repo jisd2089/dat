@@ -14,7 +14,7 @@ import (
 )
 
 func init() {
-	NewRouteService().Init()
+	//NewRouteService().Init()
 }
 
 type RouteService struct {

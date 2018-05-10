@@ -1,0 +1,23 @@
+transmission:
+  memberId: 0000168
+
+  dest:
+  -
+    type: data
+    dataPath: ************
+    jobId: JON20171011000000011
+    destinationId: 0000167
+    destIp: 0.0.0.0
+    destHost: 8080
+    api: /api/sup/rec
+    boxName: **
+
+  -
+    type: algorithm
+    dataPath: ************
+    jobId: JON20171011000000012
+    destinationId: 0000166
+    destIp: 0.0.0.0
+    destHost: 8080
+    api: /api/sup/rec
+    boxName: **
