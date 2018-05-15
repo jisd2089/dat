@@ -10,16 +10,17 @@ import (
 	logger "drcs/log"
 
 	"drcs/dep/agollo"
-	//"drcs/core"
+	"drcs/core"
 	"drcs/core/interaction/request"
 	"time"
+	"drcs/settings"
 )
 
 func init() {
 
 	go initTransConfig("D:/GoglandProjects/src/drcs/dep/service/trans.properties")
 
-	time.Sleep(1*time.Second)
+	time.Sleep(1 * time.Second)
 	NewDepService().Process()
 }
 
@@ -38,52 +39,42 @@ func (s *DepService) Process() {
 
 	transInfo := GetTransInfo()
 
+	common := settings.GetCommonSettings()
+
 	logger.Info("transInfo", transInfo)
+	logger.Info("common setting", common)
+
 	nodeMemberId := transInfo.Trans.MemberId
 
-	dataAddrs := []*request.NodeAddress{}
-	algAddrs := []*request.NodeAddress{}
+	fsAddress := &request.FileServerAddress{
+		Host:      common.Sftp.Hosts,
+		Port:      common.Sftp.Port,
+		UserName:  common.Sftp.Username,
+		Password:  common.Sftp.Password,
+		TimeOut:   common.Sftp.DefualtTimeout,
+		LocalDir:  common.Sftp.LocalDir,
+		RemoteDir: common.Sftp.RemoteDir,
+	}
+
+	dataAddrs := []*Dest{}
+	algAddrs := []*Dest{}
 
 	for _, val := range transInfo.Trans.Dest {
 		switch val.Type {
 		case "data":
-			dataAddrs = append(dataAddrs, &request.NodeAddress{
-				MemberId: nodeMemberId,
-				IP:       val.DestIp,
-				Host:     val.DestHost,
-				URL:      "/api/sup/rec",
-				Priority: 0,})
+			dataAddrs = append(dataAddrs, val)
 		case "algorithm":
-			algAddrs = append(algAddrs, &request.NodeAddress{
-				MemberId: nodeMemberId,
-				IP:       val.DestIp,
-				Host:     val.DestHost,
-				URL:      "/api/sup/rec",
-				Priority: 0,})
+			algAddrs = append(algAddrs, val)
 		}
 	}
 
 	logger.Info("dataAddrs", dataAddrs)
 	logger.Info("algAddrs", algAddrs)
 
+	runDataBox(dataAddrs, "datasend", nodeMemberId, fsAddress)
 
-	//b := assetnode.AssetNodeEntity.GetDataBoxByName("demsend")
-	//if b == nil {
-	//	logger.Error("databox is nil!")
-	//}
-	//b.SetDataFilePath(s.DataPath)
-	//
-	//addrs := []*request.NodeAddress{}
-	//addrs = append(addrs, &request.NodeAddress{
-	//	MemberId: transInfo.Trans.MemberId,
-	//	IP:       "127.0.0.1",
-	//	Host:     "8989",
-	//	URL:      "/api/sup/rec",
-	//	Priority: 0,})
-	//
-	//b.SetNodeAddress(addrs)
-	//
-	//setDataBoxQueue(b)
+	runDataBox(algAddrs, "algorithmsend", nodeMemberId, fsAddress)
+
 }
 
 func initTransConfig(configDir string) {
@@ -104,5 +95,28 @@ func initTransConfig(configDir string) {
 
 		SetTransInfo(transInfo)
 	}
+}
 
+func runDataBox(addrs []*Dest, boxName string, nodeMemberId string, fsAddress *request.FileServerAddress) {
+	for _, v := range addrs {
+
+		b := assetnode.AssetNodeEntity.GetDataBoxByName(boxName)
+		if b == nil {
+			logger.Error("databox is nil!")
+		}
+		b.SetDataFilePath(v.DataPath)
+
+		addrs := []*request.NodeAddress{}
+		addrs = append(addrs, &request.NodeAddress{
+			MemberId: nodeMemberId,
+			IP:       v.DestIp,
+			Host:     v.DestHost,
+			URL:      v.Api,
+			Priority: 0,})
+
+		b.SetNodeAddress(addrs)
+		b.FileServerAddress = fsAddress
+
+		setDataBoxQueue(b)
+	}
 }

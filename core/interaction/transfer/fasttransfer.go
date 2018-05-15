@@ -37,7 +37,7 @@ func (ft *FastTransfer) ExecuteMethod(req Request) Response {
 	case "POST":
 		execPost(req, dataResponse)
 	case "POSTFILE":
-		execPostFileStream(req, dataResponse)
+		execPostFile(req, dataResponse)
 	case "FILESTREAM":
 		execPostFileStream(req, dataResponse)
 	}
@@ -76,7 +76,8 @@ func execPost(req Request, dataResponse *DataResponse) {
 }
 
 func execPostFile(req Request, dataResponse *DataResponse) error {
-	fileName := req.GetPostData()
+	filePath := req.GetPostData()
+	fileName := path.Base(filePath)
 	targetUrl := req.GetUrl()
 
 	timeOut := time.Duration(50) * time.Minute
@@ -88,23 +89,26 @@ func execPostFile(req Request, dataResponse *DataResponse) error {
 	fileWriter, err := bodyWriter.CreateFormFile("file", fileName)
 	if err != nil {
 		fmt.Println("error writing to buffer")
+		dataResponse.SetStatusCode(500)
+		dataResponse.ReturnCode = "000000"
 		return err
 	}
 
 	//打开文件句柄操作
-	//filePath := path.Join("/home/ddsdev/data/test/sup/send", fileName)
-	filePath := path.Join("D:/dds_send/tmp", fileName)
-
 	fh, err := os.Open(filePath)
 	defer fh.Close()
 	if err != nil {
 		fmt.Println("error opening file")
+		dataResponse.SetStatusCode(500)
+		dataResponse.ReturnCode = "000000"
 		return err
 	}
 
 	//iocopy
 	_, err = io.Copy(fileWriter, fh)
 	if err != nil {
+		dataResponse.SetStatusCode(500)
+		dataResponse.ReturnCode = "000000"
 		return err
 	}
 
@@ -123,6 +127,8 @@ func execPostFile(req Request, dataResponse *DataResponse) error {
 
 	err = fasthttp.DoTimeout(freq, fresp, timeOut)
 	if err != nil {
+		dataResponse.SetStatusCode(500)
+		dataResponse.ReturnCode = "000000"
 		return err
 	}
 

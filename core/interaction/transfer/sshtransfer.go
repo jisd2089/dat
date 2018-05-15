@@ -15,36 +15,28 @@ import (
 	"sync"
 )
 
-type SftpTransfer struct {
+type SshTransfer struct {
 	sshClient  *SSH.SSHClient
-	sftpClient *sftp.SFTPClient
 	lock       sync.RWMutex
 }
 
-func NewSftpTransfer() *SftpTransfer {
-	return &SftpTransfer{
+func NewSshTransfer() *SshTransfer {
+	return &SshTransfer{
 		sshClient:  SSH.New(),
-		sftpClient: sftp.New(),
 	}
 }
 
-var (
-	sshCli    *SSH.SSHClient
-	sftpCli   *sftp.SFTPClient
-	once      sync.Once
-	retryOnce sync.Once
-	lock      sync.RWMutex
-)
-
 // 封装sftp服务
-func (st *SftpTransfer) ExecuteMethod(req Request) Response {
+func (st *SshTransfer) ExecuteMethod(req Request) Response {
 
 	defer func() {
 		err := recover()
 		if err != nil {
-			fmt.Println("sftp recover error: ", err)
+			fmt.Println("ssh transfer recover error: ", err)
 		}
 	}()
+
+	cmdline := req.GetCommandLine()
 
 	st.lock.Lock()
 	defer st.lock.Unlock()
@@ -57,16 +49,17 @@ func (st *SftpTransfer) ExecuteMethod(req Request) Response {
 	st.connect(req.GetFileCatalog())
 
 RETRY:
-	switch req.GetMethod() {
-	case "GET":
-		fmt.Println("sftp get ^^^^^^^^^^^^^^^^^^^^: ", req.GetFileCatalog().RemoteFileName)
-		err = st.sftpClient.RemoteGet(req.GetFileCatalog())
-	case "PUT":
-		fmt.Println("sftp put ^^^^^^^^^^^^^^^^^^^^: ", req.GetFileCatalog().LocalFileName)
-		err = st.sftpClient.RemotePut(req.GetFileCatalog())
-	case "CLOSE":
-		st.Close()
-	}
+	//switch req.GetMethod() {
+	//case "GET":
+	//	fmt.Println("sftp get ^^^^^^^^^^^^^^^^^^^^: ", req.GetFileCatalog().RemoteFileName)
+	//	err = st.sftpClient.RemoteGet(req.GetFileCatalog())
+	//case "PUT":
+	//	fmt.Println("sftp put ^^^^^^^^^^^^^^^^^^^^: ", req.GetFileCatalog().LocalFileName)
+	//	err = st.sftpClient.RemotePut(req.GetFileCatalog())
+	//case "CLOSE":
+	//	st.Close()
+	//}
+	session, err := st.sshClient.Client.NewSession()
 
 	if err != nil {
 		fmt.Println(err.Error())
@@ -74,7 +67,7 @@ RETRY:
 		if retryTimes >= 1 {
 			fmt.Println("sftp failed ^^^^^^^^^^^^^^^^^^^^: ", req.GetFileCatalog().RemoteFileName)
 			return &response.DataResponse{
-				StatusCode: 500,
+				StatusCode: 400,
 				ReturnCode: "999999",
 			}
 		}
@@ -85,10 +78,19 @@ RETRY:
 		goto RETRY
 	}
 
-	fmt.Println("sftp success ^^^^^^^^^^^^^^^^^^^^: ", req.GetFileCatalog().RemoteFileName)
 	defer func() {
 		retryOnce = sync.Once{}
 	}()
+
+	err = session.Run(cmdline)
+	if err != nil {
+		return &response.DataResponse{
+			StatusCode: 500,
+			ReturnCode: "999999",
+		}
+	}
+
+	fmt.Println("sftp success ^^^^^^^^^^^^^^^^^^^^: ", req.GetFileCatalog().RemoteFileName)
 
 	return &response.DataResponse{
 		StatusCode: 200,
@@ -96,26 +98,23 @@ RETRY:
 	}
 }
 
-func (st *SftpTransfer) connect(fileCataLog *sftp.FileCatalog) {
+func (st *SshTransfer) connect(fileCataLog *sftp.FileCatalog) {
 	once.Do(func() {
 		st.connectSSH(fileCataLog)
-		st.connectSFTP()
 	})
 }
 
-func (st *SftpTransfer) refresh(fileCataLog *sftp.FileCatalog) {
+func (st *SshTransfer) refresh(fileCataLog *sftp.FileCatalog) {
 	retryOnce.Do(func() {
 		st.connectSSH(fileCataLog)
-		st.connectSFTP()
 	})
 }
 
-func (st *SftpTransfer) Close() {
+func (st *SshTransfer) Close() {
 	st.sshClient.Client.Close()
-	st.sftpClient.CloseSession()
 }
 
-func (ft *SftpTransfer) connectSSH(fileCataLog *sftp.FileCatalog) error {
+func (ft *SshTransfer) connectSSH(fileCataLog *sftp.FileCatalog) error {
 	userName := fileCataLog.UserName
 	password := fileCataLog.Password
 	host := fileCataLog.Host
@@ -141,14 +140,6 @@ func (ft *SftpTransfer) connectSSH(fileCataLog *sftp.FileCatalog) error {
 	address := fmt.Sprintf("%s:%d", host, port)
 
 	if err := ft.sshClient.Init(address, clientConfig); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (ft *SftpTransfer) connectSFTP() error {
-
-	if err := ft.sftpClient.Init(ft.sshClient.Client); err != nil {
 		return err
 	}
 	return nil

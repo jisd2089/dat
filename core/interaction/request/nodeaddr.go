@@ -26,3 +26,13 @@ func (self *NodeAddress) SetPriority(priority int) *NodeAddress {
 func (a *NodeAddress) GetUrl() string {
 	return "http://" + a.IP + ":" + a.Host + a.URL
 }
+
+type FileServerAddress struct {
+	Host      string
+	Port      int
+	UserName  string
+	Password  string
+	TimeOut   int
+	LocalDir  string
+	RemoteDir string
+}

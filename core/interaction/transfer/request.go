@@ -38,6 +38,7 @@ type (
 		GetParameters() []byte
 		GetCommandName() string
 		GetCommandParams() []string
+		GetCommandLine() string
 		// http header
 		GetHeader() http.Header
 		// enable http cookies

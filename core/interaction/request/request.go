@@ -68,6 +68,7 @@ const (
 	HTTP      = "HTTP"
 	FASTHTTP  = "FASTHTTP"
 	SFTP      = "SFTP"
+	SSH       = "SSH"
 	REDIS     = "REDIS"
 	DATABOX   = "DATABOX"
 	NONETYPE  = "NONETYPE"
@@ -398,6 +399,10 @@ func (dq *DataRequest) GetCommandName() string {
 
 func (dq *DataRequest) GetCommandParams() []string {
 	return dq.CommandParams
+}
+
+func (dq *DataRequest) GetCommandLine() string {
+	return strings.Join(dq.CommandParams, " ")
 }
 
 func (self *DataRequest) MarshalJSON() ([]byte, error) {

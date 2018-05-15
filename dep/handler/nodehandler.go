@@ -8,11 +8,16 @@ import (
 	"crypto/sha256"
 	"strings"
 	"encoding/hex"
+	"io"
 
 	. "drcs/settings"
 	"drcs/dep/handler/msg"
 	logger "drcs/log"
 	"drcs/dep/security"
+	"drcs/core"
+	"os"
+	"path"
+	"drcs/core/interaction/request"
 )
 
 /**
@@ -111,4 +116,55 @@ func (n *NodeHandler) GenKeys(ctx *fasthttp.RequestCtx) {
 	logger.Info(" generate public key resp: ", res_keyGen_msg)
 	body, _ := proto.Marshal(res_keyGen_msg)
 	ctx.Response.SetBody(body)
+}
+
+func (n *NodeHandler) RcvFile(ctx *fasthttp.RequestCtx) {
+
+	dataFile, err := ctx.FormFile("file")
+	if err != nil {
+		logger.Error("filePath err:", err)
+	}
+	logger.Info("filePath***********: ", dataFile.Filename)
+
+	common := GetCommonSettings()
+	targetFileDir := common.Sftp.LocalDir
+
+	targetFilePath := path.Join(targetFileDir, dataFile.Filename)
+
+	targetFile, err := os.OpenFile(targetFilePath, os.O_WRONLY|os.O_CREATE, 0644)
+	defer targetFile.Close()
+	if err != nil {
+		logger.Error("open target file err:", err)
+	}
+
+	dataFileContent, err := dataFile.Open()
+	defer dataFileContent.Close()
+	if err != nil {
+		logger.Error("open form file err:", err)
+	}
+
+	io.Copy(targetFile, dataFileContent)
+
+	fsAddress := &request.FileServerAddress{
+		Host:      common.Sftp.Hosts,
+		Port:      common.Sftp.Port,
+		UserName:  common.Sftp.Username,
+		Password:  common.Sftp.Password,
+		TimeOut:   common.Sftp.DefualtTimeout,
+		LocalDir:  common.Sftp.LocalDir,
+		RemoteDir: common.Sftp.RemoteDir,
+	}
+
+	// 1.1 匹配相应的DataBox
+	b := assetnode.AssetNodeEntity.GetDataBoxByName("algorithmreceive")
+
+	if b == nil {
+		logger.Error("databox is nil!")
+	}
+
+	b.DataFilePath = targetFilePath
+	b.FileServerAddress = fsAddress
+
+	// 1.2 setDataBoxQueue
+	setDataBoxQueue(b)
 }
