@@ -14,24 +14,27 @@ import (
 	"drcs/core/interaction/request"
 	"drcs/core/interaction/response"
 	"mime/multipart"
+	"github.com/micro/go-bot/input"
 )
 
 const (
 	KEYIN       = util.USE_KEYIN // 若使用DataBox.Keyin，则须在规则中设置初始值为USE_KEYIN
 	LIMIT       = math.MaxInt64  // 如希望在规则中自定义控制Limit，则Limit初始值必须为LIMIT
 	FORCED_STOP = "——主动终止DataBox——"
+	maxParam         = 50
 )
 
 // 数据产品流
 type (
 	DataBox struct {
 		// 以下字段由用户定义
-		Name               string                                                      // 名称（应保证唯一性）
-		Description        string                                                      // 描述
-		DataFilePath       string                                                      // 数据文件地址
-		DataFile           *multipart.FileHeader                                       // 数据文件内容
-		NodeAddress        []*request.NodeAddress                                      // 交互节点地址
-		FileServerAddress  *request.FileServerAddress                                // 文件服务器地址
+		Name              string                     // 名称（应保证唯一性）
+		Description       string                     // 描述
+		DataFilePath      string                     // 数据文件地址
+		DataFile          *multipart.FileHeader      // 数据文件内容
+		NodeAddress       []*request.NodeAddress     // 交互节点地址
+		FileServerAddress *request.FileServerAddress // 文件服务器地址
+
 		Pausetime          int64                                                       // 随机暂停区间(50%~200%)，若规则中直接定义，则不被界面传参覆盖
 		Limit              int64                                                       // 默认限制请求数，0为不限；若规则中定义为LIMIT，则采用规则的自定义限制方案
 		Keyin              string                                                      // 自定义输入的配置信息，使用前须在规则中设置初始值为KEYIN
@@ -58,6 +61,8 @@ type (
 		subName   string            // 由Keyin转换为的二级标识名
 		reqMatrix *scheduler.Matrix // 请求矩阵
 		timer     *Timer            // 定时器
+		dnames    []string          // 不定参数key
+		dvalues   []string          // 不定参数value
 		status    int               // 执行状态
 		lock      sync.RWMutex
 		once      sync.Once
@@ -84,6 +89,8 @@ type (
 // 添加自身到数据流产品菜单
 func (self DataBox) Register() *DataBox {
 	self.status = status.STOPPED
+	self.dnames = make([]string, 0, maxParam)
+	self.dvalues = make([]string, 0, maxParam)
 	return Species.Add(&self)
 }
 
@@ -375,6 +382,8 @@ func (self *DataBox) Copy() *DataBox {
 
 	ghost.timer = self.timer
 	ghost.status = self.status
+	ghost.dnames = self.dnames
+	ghost.dvalues = self.dvalues
 	ghost.StartWG = self.StartWG
 	ghost.PairDataBoxId = self.PairDataBoxId
 	ghost.IsParentBox = self.IsParentBox
@@ -494,6 +503,32 @@ func (self *DataBox) CanStop() bool {
 
 func (b *DataBox) SetStatus(status int) {
 	b.status = status
+}
+
+func (b *DataBox) Param(key string) string {
+	for i, v := range b.dnames {
+		if v == key && i <= len(b.dvalues) {
+			return b.dvalues[i]
+		}
+	}
+	return ""
+}
+
+func (b *DataBox) SetParam(key, val string) {
+	// check if already exists
+	for i, v := range b.dnames {
+		if v == key && i <= len(b.dvalues) {
+			b.dvalues[i] = val
+			return
+		}
+	}
+	b.dvalues = append(b.dvalues, val)
+	b.dnames = append(b.dnames, key)
+}
+
+func (b *DataBox) ResetParams() {
+	b.dnames = b.dnames[:0]
+	b.dvalues = b.dvalues[:0]
 }
 
 func (self *DataBox) IsStopping() bool {

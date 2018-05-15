@@ -2,44 +2,41 @@ package demanderonly
 
 /**
     Author: luzequan
-    Created: 2018-05-14 10:19:48
+    Created: 2017-12-28 17:22:00
 */
 import (
 	"path"
 	"drcs/core/interaction/request"
 	. "drcs/core/databox"
 	"fmt"
-	"drcs/dep/management/util"
-	"drcs/common/sftp"
-	"drcs/runtime/status"
-	"time"
+	"encoding/json"
+	"bufio"
 	"strings"
+	"io"
+	"drcs/dep/management/util"
+	"drcs/dep/management/entity"
 	"os"
-	"github.com/micro/misc/lib/addr"
+	"strconv"
+	"drcs/common/sftp"
+	"time"
 )
 
 func init() {
-	ALGRCV.Register()
+	DATARCV.Register()
 }
 
-var ALGRCV = &DataBox{
-	Name:        "algorithmreceive",
-	Description: "algorithmreceive",
+var DATARCV = &DataBox{
+	Name:        "datareceive",
+	Description: "datareceive",
 	RuleTree: &RuleTree{
-		Root: algrcvRootFunc,
+		Root: datarcvRootFunc,
 
 		Trunk: map[string]*Rule{
 			"pushtoserver": {
-				ParseFunc: pushToServerFunc,
+				ParseFunc: pushDataToServerFunc,
 			},
 			"puttohdfs": {
-				ParseFunc: putToHDFSFunc,
-			},
-			"dataready": {
-				ParseFunc: datareadyFunc,
-			},
-			"runtask": {
-				ParseFunc: runTaskFunc,
+				ParseFunc: putDataToHDFSFunc,
 			},
 			"end": {
 				ParseFunc: procEndFunc,
@@ -48,8 +45,8 @@ var ALGRCV = &DataBox{
 	},
 }
 
-func algrcvRootFunc(ctx *Context) {
-	fmt.Println("algorithmreceive Root ...")
+func datarcvRootFunc(ctx *Context) {
+	fmt.Println("datareceive Root...")
 
 	ctx.AddQueue(&request.DataRequest{
 		Rule:         "pushtoserver",
@@ -58,9 +55,8 @@ func algrcvRootFunc(ctx *Context) {
 	})
 }
 
-func pushToServerFunc(ctx *Context) {
-	fmt.Println("algorithmreceive push to server...")
-
+func pushDataToServerFunc(ctx *Context) {
+	fmt.Println("datareceive push data to server...")
 	filePath := ctx.GetDataBox().GetDataFilePath()
 	dataFile := path.Base(filePath)
 	dataFilePath := path.Dir(filePath)
@@ -100,8 +96,8 @@ func pushToServerFunc(ctx *Context) {
 	})
 }
 
-func putToHDFSFunc(ctx *Context) {
-	fmt.Println("algorithmreceive put to hdfs...")
+func putDataToHDFSFunc(ctx *Context) {
+	fmt.Println("datareceive put data to hdfs...")
 
 	if ctx.GetResponse().StatusCode != 200 {
 		errEnd(ctx)
@@ -155,62 +151,5 @@ func putToHDFSFunc(ctx *Context) {
 		Reloadable:    true,
 	})
 }
-
-func datareadyFunc(ctx *Context) {
-	fmt.Println("algorithmreceive data ready ...")
-
-	if ctx.DataResponse.StatusCode == 200 && strings.EqualFold(ctx.DataResponse.ReturnCode, "000000") {
-
-		dataPath := ctx.GetDataBox().Param("dataPath")
-
-		for {
-			if isDirExists(dataPath) {
-				break
-			}
-		}
-
-		ctx.AddQueue(&request.DataRequest{
-			Rule:         "runtask",
-			TransferType: request.NONETYPE,
-			Priority:     1,
-			Reloadable:   true,
-		})
-	} else {
-		errEnd(ctx)
-	}
-}
-
-func runTaskFunc(ctx *Context) {
-	fmt.Println("algorithmreceive run task...")
-
-	cmdParams := []string{}
-	cmdParams = append(cmdParams, "spark-submit")
-	cmdParams = append(cmdParams, "--class chinadep.Precollision")
-	cmdParams = append(cmdParams, "--master yarn")
-	cmdParams = append(cmdParams, "--deploy-mode cluster")
-	cmdParams = append(cmdParams, "--queue sparkqueue")
-	cmdParams = append(cmdParams, "--jars hdfs://deptest20:9000/user/aarontest/aaron-oozie/shell-spark-Precollision/lib/GenExidRealTime.jar")
-
-	fsAddress := ctx.GetDataBox().FileServerAddress
-
-	// 1. 从sftp服务器（需方dmp服务器）拉取文件到节点服务器本地
-	fileCatalog := &sftp.FileCatalog{
-		UserName:       fsAddress.UserName,
-		Password:       fsAddress.Password,
-		Host:           fsAddress.Host,
-		Port:           fsAddress.Port,
-		TimeOut:        time.Duration(fsAddress.TimeOut) * time.Second,
-	}
-
-	ctx.AddQueue(&request.DataRequest{
-		Rule:          "end",
-		Method:        "CMD",
-		TransferType:  request.SSH,
-		FileCatalog:   fileCatalog,
-		CommandParams: cmdParams,
-		Reloadable:    true,
-	})
-}
-
 
 

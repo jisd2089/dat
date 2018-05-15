@@ -126,6 +126,10 @@ func (n *NodeHandler) RcvFile(ctx *fasthttp.RequestCtx) {
 	}
 	logger.Info("filePath***********: ", dataFile.Filename)
 
+	bn := ctx.FormValue("boxname")
+	boxName := string(bn)
+	boxName = "algorithmreceive" //TODO
+
 	common := GetCommonSettings()
 	targetFileDir := common.Sftp.LocalDir
 
@@ -156,7 +160,7 @@ func (n *NodeHandler) RcvFile(ctx *fasthttp.RequestCtx) {
 	}
 
 	// 1.1 匹配相应的DataBox
-	b := assetnode.AssetNodeEntity.GetDataBoxByName("algorithmreceive")
+	b := assetnode.AssetNodeEntity.GetDataBoxByName(boxName)
 
 	if b == nil {
 		logger.Error("databox is nil!")
@@ -164,6 +168,7 @@ func (n *NodeHandler) RcvFile(ctx *fasthttp.RequestCtx) {
 
 	b.DataFilePath = targetFilePath
 	b.FileServerAddress = fsAddress
+	b.SetParam("dataPath", "") // TODO
 
 	// 1.2 setDataBoxQueue
 	setDataBoxQueue(b)
