@@ -9,6 +9,8 @@ import (
 	"encoding/json"
 
 	_ "drcs/dep/nodelib/demanderonly"
+	_ "drcs/dep/nodelib/dep"
+
 	"fmt"
 	"strconv"
 	"reflect"

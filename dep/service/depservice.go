@@ -12,7 +12,6 @@ import (
 	"drcs/dep/agollo"
 	"drcs/core"
 	"drcs/core/interaction/request"
-	"time"
 	"drcs/settings"
 )
 
@@ -20,8 +19,8 @@ func init() {
 
 	go initTransConfig("D:/GoglandProjects/src/drcs/dep/service/trans.properties")
 
-	time.Sleep(1 * time.Second)
-	NewDepService().Process()
+	//time.Sleep(1 * time.Second)
+	//NewDepService().Process()
 }
 
 type DepService struct {

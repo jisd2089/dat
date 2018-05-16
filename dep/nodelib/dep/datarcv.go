@@ -9,16 +9,10 @@ import (
 	"drcs/core/interaction/request"
 	. "drcs/core/databox"
 	"fmt"
-	"encoding/json"
-	"bufio"
-	"strings"
-	"io"
 	"drcs/dep/management/util"
-	"drcs/dep/management/entity"
-	"os"
-	"strconv"
 	"drcs/common/sftp"
 	"time"
+	"strings"
 )
 
 func init() {
@@ -32,6 +26,9 @@ var DATARCV = &DataBox{
 		Root: datarcvRootFunc,
 
 		Trunk: map[string]*Rule{
+			"existhdfs": {
+				ParseFunc: existHdfsFileFunc,
+			},
 			"pushtoserver": {
 				ParseFunc: pushDataToServerFunc,
 			},
@@ -49,14 +46,63 @@ func datarcvRootFunc(ctx *Context) {
 	fmt.Println("datareceive Root...")
 
 	ctx.AddQueue(&request.DataRequest{
-		Rule:         "pushtoserver",
+		Rule:         "existhdfs",
 		TransferType: request.NONETYPE,
+		Reloadable:   true,
+	})
+}
+
+func existHdfsFileFunc(ctx *Context) {
+	fmt.Println("datareceive push data to server...")
+
+	hdfsInputDir := ctx.GetDataBox().Param("hdfsInputDir")
+
+	filePath := ctx.GetDataBox().GetDataFilePath()
+	dataFile := path.Base(filePath)
+
+	hdfsPath := path.Join(hdfsInputDir, dataFile)
+
+	fsAddress := ctx.GetDataBox().FileServerAddress
+
+	// 1. push local file to hadoop server
+	fileCatalog := &sftp.FileCatalog{
+		UserName:       fsAddress.UserName,
+		Password:       fsAddress.Password,
+		Host:           fsAddress.Host,
+		Port:           fsAddress.Port,
+		TimeOut:        time.Duration(fsAddress.TimeOut) * time.Second,
+		LocalDir:       fsAddress.LocalDir,
+		LocalFileName:  dataFile,
+		RemoteDir:      fsAddress.RemoteDir,
+		RemoteFileName: dataFile,
+	}
+
+	cmdParam := `/usr/local/package/hadoop-2.7.3/bin/hdfs dfs -test -e ` + hdfsPath + `
+if [ $? -eq 0 ] ;then
+    echo 'exist'
+else
+    echo 'Error! Directory is not exist'
+fi
+`
+
+	ctx.AddQueue(&request.DataRequest{
+		Rule:         "pushtoserver",
+		Method:       "STRING",
+		TransferType: request.SSH,
+		FileCatalog:  fileCatalog,
+		CommandName:  cmdParam,
 		Reloadable:   true,
 	})
 }
 
 func pushDataToServerFunc(ctx *Context) {
 	fmt.Println("datareceive push data to server...")
+
+	if ctx.GetResponse().StatusCode == 200 && strings.EqualFold(strings.TrimSpace(string(ctx.GetResponse().Body)), "exist") {
+		errEnd(ctx)
+		return
+	}
+
 	filePath := ctx.GetDataBox().GetDataFilePath()
 	dataFile := path.Base(filePath)
 	dataFilePath := path.Dir(filePath)
@@ -133,23 +179,21 @@ func putDataToHDFSFunc(ctx *Context) {
 		RemoteFileName: dataFile,
 	}
 
-	cmdParams := []string{}
-	cmdParams = append(cmdParams, "spark-submit")
-	cmdParams = append(cmdParams, "--class chinadep.Precollision")
-	cmdParams = append(cmdParams, "--master yarn")
-	cmdParams = append(cmdParams, "--deploy-mode cluster")
-	cmdParams = append(cmdParams, "--queue sparkqueue")
-	cmdParams = append(cmdParams, "--jars hdfs://deptest20:9000/user/aarontest/aaron-oozie/shell-spark-Precollision/lib/GenExidRealTime.jar")
+	hdfsInputDir := ctx.GetDataBox().Param("hdfsInputDir")
 
-	fmt.Println("NodeAddress: %s", ctx.GetDataBox().GetNodeAddress())
+	cmdParams := []string{}
+	cmdParams = append(cmdParams, "/usr/local/package/hadoop-2.7.3/bin/hdfs")
+	cmdParams = append(cmdParams, "dfs")
+	cmdParams = append(cmdParams, "-put")
+	cmdParams = append(cmdParams, filePath)
+	cmdParams = append(cmdParams, hdfsInputDir)
+
 	ctx.AddQueue(&request.DataRequest{
-		Rule:          "dataready",
-		Method:        "CMD",
+		Rule:          "end",
+		Method:        "SLICE",
 		TransferType:  request.SSH,
 		FileCatalog:   fileCatalog,
 		CommandParams: cmdParams,
 		Reloadable:    true,
 	})
 }
-
-

@@ -128,9 +128,11 @@ func (n *NodeHandler) RcvFile(ctx *fasthttp.RequestCtx) {
 
 	bn := ctx.FormValue("boxname")
 	boxName := string(bn)
-	boxName = "algorithmreceive" //TODO
+	//boxName = "algorithmreceive" //TODO
 
 	common := GetCommonSettings()
+	hdfsInputDir := common.Hdfs.InputDir
+	hdfsOutputDir := common.Hdfs.OutputDir
 	targetFileDir := common.Sftp.LocalDir
 
 	targetFilePath := path.Join(targetFileDir, dataFile.Filename)
@@ -169,6 +171,8 @@ func (n *NodeHandler) RcvFile(ctx *fasthttp.RequestCtx) {
 	b.DataFilePath = targetFilePath
 	b.FileServerAddress = fsAddress
 	b.SetParam("dataPath", "") // TODO
+	b.SetParam("hdfsInputDir", hdfsInputDir) // TODO
+	b.SetParam("hdfsOutputDir", hdfsOutputDir) // TODO
 
 	// 1.2 setDataBoxQueue
 	setDataBoxQueue(b)

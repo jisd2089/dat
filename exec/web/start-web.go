@@ -26,9 +26,9 @@ func Flag() {
 
 // 执行入口
 func Run(port int) {
-	//assetnode.AssetNodeEntity.Init()
-	//
-	//assetnode.AssetNodeEntity.Run()
+	assetnode.AssetNodeEntity.Init()
+
+	assetnode.AssetNodeEntity.Run()
 
 	httpServer := &HttpServer{}
 	httpServer.Run(port)

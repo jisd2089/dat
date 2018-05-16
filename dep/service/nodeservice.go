@@ -34,7 +34,7 @@ var (
 
 func init() {
 
-	//NewNodeService().Init()
+	go NewNodeService().Init()
 
 }
 
@@ -55,7 +55,7 @@ func (s *NodeService) Init() {
 
 	initApollo("D:/GoglandProjects/src/drcs/settings/setting.properties")
 
-	defaultInitSecurityConfig()
+	//defaultInitSecurityConfig()
 
 	//// 初始化xml订单文件信息
 	//or.InitOrderRouteFile()

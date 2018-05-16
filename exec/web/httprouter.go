@@ -31,7 +31,9 @@ func (r *HttpRouter) Register() {
 	r.Router.POST("/api/sup/send", NewSupHandler().SupRespSendToDem)
 	r.Router.POST("/api/sup/sendfull", NewSupHandler().SupRespWholeSendToDem)
 	r.Router.POST("/api/sup/sendcompress", NewSupHandler().SupCompressFileSendToDem)
-	
+
+	r.Router.POST("/api/test/rcvfile", NewNodeHandler().RcvFile)
+
 	// 生产业务流程
 	//r.Router.POST("/api/dmp/orderRouteQry/", demander.HTTPService{}.DoService)
 	//r.Router.POST("/api/p/pushFile/", common.CommonSvc.PlatPushFile)

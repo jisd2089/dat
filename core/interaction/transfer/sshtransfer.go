@@ -16,15 +16,20 @@ import (
 )
 
 type SshTransfer struct {
-	sshClient  *SSH.SSHClient
-	lock       sync.RWMutex
+	sshClient *SSH.SSHClient
+	lock      sync.RWMutex
 }
 
 func NewSshTransfer() *SshTransfer {
 	return &SshTransfer{
-		sshClient:  SSH.New(),
+		sshClient: SSH.New(),
 	}
 }
+
+var (
+	sshOnce      sync.Once
+	sshRetryOnce sync.Once
+)
 
 // 封装sftp服务
 func (st *SshTransfer) ExecuteMethod(req Request) Response {
@@ -36,12 +41,11 @@ func (st *SshTransfer) ExecuteMethod(req Request) Response {
 		}
 	}()
 
-	cmdline := req.GetCommandLine()
-
 	st.lock.Lock()
 	defer st.lock.Unlock()
 
 	var (
+		cmdline string
 		err        error
 		retryTimes = 0
 	)
@@ -49,17 +53,15 @@ func (st *SshTransfer) ExecuteMethod(req Request) Response {
 	st.connect(req.GetFileCatalog())
 
 RETRY:
-	//switch req.GetMethod() {
-	//case "GET":
-	//	fmt.Println("sftp get ^^^^^^^^^^^^^^^^^^^^: ", req.GetFileCatalog().RemoteFileName)
-	//	err = st.sftpClient.RemoteGet(req.GetFileCatalog())
-	//case "PUT":
-	//	fmt.Println("sftp put ^^^^^^^^^^^^^^^^^^^^: ", req.GetFileCatalog().LocalFileName)
-	//	err = st.sftpClient.RemotePut(req.GetFileCatalog())
-	//case "CLOSE":
-	//	st.Close()
-	//}
-	session, err := st.sshClient.Client.NewSession()
+	switch req.GetMethod() {
+	case "STRING":
+		cmdline = req.GetCommandName()
+	case "SLICE":
+		cmdline = req.GetCommandLine()
+	}
+
+	client := st.sshClient.Client
+	session, err := client.NewSession()
 
 	if err != nil {
 		fmt.Println(err.Error())
@@ -79,33 +81,36 @@ RETRY:
 	}
 
 	defer func() {
-		retryOnce = sync.Once{}
+		sshRetryOnce = sync.Once{}
 	}()
 
-	err = session.Run(cmdline)
+	output, err := session.Output(cmdline)
 	if err != nil {
 		return &response.DataResponse{
+			Body:       output,
 			StatusCode: 500,
 			ReturnCode: "999999",
 		}
 	}
 
+	fmt.Println(string(output))
 	fmt.Println("sftp success ^^^^^^^^^^^^^^^^^^^^: ", req.GetFileCatalog().RemoteFileName)
 
 	return &response.DataResponse{
+		Body:       output,
 		StatusCode: 200,
 		ReturnCode: "000000",
 	}
 }
 
 func (st *SshTransfer) connect(fileCataLog *sftp.FileCatalog) {
-	once.Do(func() {
+	sshOnce.Do(func() {
 		st.connectSSH(fileCataLog)
 	})
 }
 
 func (st *SshTransfer) refresh(fileCataLog *sftp.FileCatalog) {
-	retryOnce.Do(func() {
+	sshRetryOnce.Do(func() {
 		st.connectSSH(fileCataLog)
 	})
 }

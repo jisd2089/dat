@@ -70,16 +70,20 @@ log:
   logrusPath: /opt/project/dds-supplier-168/conf/logrus.yaml
 
 sftp:
-  hosts: 10.101.12.5
+  hosts: 10.101.12.20
   port: 22
-  username: ddssit
-  password: \u-kaCOYcrUcHvHU
-  defualtTimeout: 30
+  username: deplab
+  password: _T1,tqPvFTqcoJ8n
+  defualtTimeout: 320
   remoteDir: /dep/sftp/sup_101
   localDir: /opt/project/dds-supplier-168/batch_file
   enableSftp: 0
   fetchInterv: 1
   batchKeyScanInterv: 1
+
+hdfs:
+  inputDir: /logistic/input
+  outputDir: /logistic/output
 
 batchCollison:
   maxThreadNum: 1000

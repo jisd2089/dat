@@ -28,6 +28,7 @@ type CommonSettings struct {
 	DMP           DMP           `yaml:"dmp"`
 	Log           Log           `yaml:"log"`
 	Sftp          Sftp          `yaml:"sftp"`
+	Hdfs          Hdfs          `yaml:"hdfs"`
 	BatchCollison BatchCollison `yaml:"batchCollison"`
 	Other         Other         `yaml:"other"`
 }
@@ -47,9 +48,9 @@ type Node struct {
 type ConfigFile struct {
 	KeysFile             string `yaml:"keysFile"`
 	OrderFile            string `yaml:"orderFile"`
-	OrderFileExpireTime  int64 `yaml:"orderFileExpireTime"`
+	OrderFileExpireTime  int64  `yaml:"orderFileExpireTime"`
 	MemberFile           string `yaml:"memberFile"`
-	MemberFileExpireTime int64 `yaml:"memberFileExpireTime"`
+	MemberFileExpireTime int64  `yaml:"memberFileExpireTime"`
 	OrderRouteFilePath   string `yaml:"orderRouteFilePath"`
 }
 
@@ -123,6 +124,11 @@ type Sftp struct {
 	EnableSftp         int    `yaml:"enableSftp"`
 	FetchInterv        int    `yaml:"fetchInterv"`
 	BatchKeyScanInterv int    `yaml:"batchKeyScanInterv"`
+}
+
+type Hdfs struct {
+	InputDir  string `yaml:"inputDir"`
+	OutputDir string `yaml:"outputDir"`
 }
 
 type BatchCollison struct {

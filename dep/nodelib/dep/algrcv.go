@@ -11,11 +11,9 @@ import (
 	"fmt"
 	"drcs/dep/management/util"
 	"drcs/common/sftp"
-	"drcs/runtime/status"
 	"time"
 	"strings"
-	"os"
-	"github.com/micro/misc/lib/addr"
+	"os/exec"
 )
 
 func init() {
@@ -31,9 +29,6 @@ var ALGRCV = &DataBox{
 		Trunk: map[string]*Rule{
 			"pushtoserver": {
 				ParseFunc: pushToServerFunc,
-			},
-			"puttohdfs": {
-				ParseFunc: putToHDFSFunc,
 			},
 			"dataready": {
 				ParseFunc: datareadyFunc,
@@ -92,7 +87,7 @@ func pushToServerFunc(ctx *Context) {
 	ctx.GetDataBox().SetDataFilePath(path.Join(fsAddress.RemoteDir, dataFile))
 
 	ctx.AddQueue(&request.DataRequest{
-		Rule:         "puttohdfs",
+		Rule:         "dataready",
 		Method:       "PUT",
 		TransferType: request.SFTP,
 		FileCatalog:  fileCatalog,
@@ -137,13 +132,14 @@ func putToHDFSFunc(ctx *Context) {
 		RemoteFileName: dataFile,
 	}
 
+	hdfsInputDir := ctx.GetDataBox().Param("hdfsInputDir")
+
 	cmdParams := []string{}
-	cmdParams = append(cmdParams, "spark-submit")
-	cmdParams = append(cmdParams, "--class chinadep.Precollision")
-	cmdParams = append(cmdParams, "--master yarn")
-	cmdParams = append(cmdParams, "--deploy-mode cluster")
-	cmdParams = append(cmdParams, "--queue sparkqueue")
-	cmdParams = append(cmdParams, "--jars hdfs://deptest20:9000/user/aarontest/aaron-oozie/shell-spark-Precollision/lib/GenExidRealTime.jar")
+	cmdParams = append(cmdParams, "/usr/local/package/hadoop-2.7.3/bin/hdfs")
+	cmdParams = append(cmdParams, "dfs")
+	cmdParams = append(cmdParams, "-put")
+	cmdParams = append(cmdParams, filePath)
+	cmdParams = append(cmdParams, hdfsInputDir)
 
 	fmt.Println("NodeAddress: %s", ctx.GetDataBox().GetNodeAddress())
 	ctx.AddQueue(&request.DataRequest{
@@ -161,20 +157,43 @@ func datareadyFunc(ctx *Context) {
 
 	if ctx.DataResponse.StatusCode == 200 && strings.EqualFold(ctx.DataResponse.ReturnCode, "000000") {
 
-		dataPath := ctx.GetDataBox().Param("dataPath")
+		hdfsPath := ctx.GetDataBox().Param("dataPath")
 
-		for {
-			if isDirExists(dataPath) {
-				break
-			}
+		//hdfsInputDir := ctx.GetDataBox().Param("hdfsInputDir")
+		//
+		//filePath := ctx.GetDataBox().GetDataFilePath()
+		//dataFile := path.Base(filePath)
+		//
+		//hdfsPath := path.Join(hdfsInputDir, dataFile)
+
+		fsAddress := ctx.GetDataBox().FileServerAddress
+
+		// 1. push local file to hadoop server
+		fileCatalog := &sftp.FileCatalog{
+			UserName:       fsAddress.UserName,
+			Password:       fsAddress.Password,
+			Host:           fsAddress.Host,
+			Port:           fsAddress.Port,
+			TimeOut:        time.Duration(fsAddress.TimeOut) * time.Second,
 		}
+
+		cmdParam := `/usr/local/package/hadoop-2.7.3/bin/hdfs dfs -test -e ` + hdfsPath + `
+if [ $? -eq 0 ] ;then
+    echo 'exist'
+else
+    echo 'Error! Directory is not exist'
+fi
+`
 
 		ctx.AddQueue(&request.DataRequest{
 			Rule:         "runtask",
-			TransferType: request.NONETYPE,
-			Priority:     1,
+			Method:       "STRING",
+			TransferType: request.SSH,
+			FileCatalog:  fileCatalog,
+			CommandName:  cmdParam,
 			Reloadable:   true,
 		})
+
 	} else {
 		errEnd(ctx)
 	}
@@ -183,8 +202,20 @@ func datareadyFunc(ctx *Context) {
 func runTaskFunc(ctx *Context) {
 	fmt.Println("algorithmreceive run task...")
 
+	if !(ctx.GetResponse().StatusCode == 200 && strings.EqualFold(strings.TrimSpace(string(ctx.GetResponse().Body)), "exist")) {
+
+		time.Sleep(time.Duration(60) * time.Second)
+
+		ctx.AddQueue(&request.DataRequest{
+			Rule:          "dataready",
+			TransferType:  request.NONETYPE,
+			Reloadable:    true,
+		})
+		return
+	}
+
 	cmdParams := []string{}
-	cmdParams = append(cmdParams, "spark-submit")
+	cmdParams = append(cmdParams, "/usr/local/package/spark-2.2.1-bin-hadoop2.7/bin/spark-submit")
 	cmdParams = append(cmdParams, "--class chinadep.Precollision")
 	cmdParams = append(cmdParams, "--master yarn")
 	cmdParams = append(cmdParams, "--deploy-mode cluster")
@@ -204,7 +235,7 @@ func runTaskFunc(ctx *Context) {
 
 	ctx.AddQueue(&request.DataRequest{
 		Rule:          "end",
-		Method:        "CMD",
+		Method:        "SLICE",
 		TransferType:  request.SSH,
 		FileCatalog:   fileCatalog,
 		CommandParams: cmdParams,
@@ -212,5 +243,30 @@ func runTaskFunc(ctx *Context) {
 	})
 }
 
+
+func isHdfsDirExists(ctx *Context) bool {
+
+	hdfsInputDir := ctx.GetDataBox().Param("hdfsInputDir")
+
+	filePath := ctx.GetDataBox().GetDataFilePath()
+	dataFile := path.Base(filePath)
+
+	hdfsPath := path.Join(hdfsInputDir, dataFile)
+
+	c := `/usr/local/package/hadoop-2.7.3/bin/hdfs dfs -test -e ` + hdfsPath + `
+if [ $? -eq 0 ] ;then
+    echo 'exist'
+else
+    echo 'Error! Directory is not exist'
+fi
+`
+	cmd := exec.Command("sh", "-c", c)
+	out, err := cmd.Output()
+	if err != nil || !strings.EqualFold(string(out), "exist") {
+		return false
+	}
+
+	return true
+}
 
 
