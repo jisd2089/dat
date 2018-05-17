@@ -170,7 +170,7 @@ func (n *NodeHandler) RcvFile(ctx *fasthttp.RequestCtx) {
 
 	b.DataFilePath = targetFilePath
 	b.FileServerAddress = fsAddress
-	b.SetParam("dataPath", "") // TODO
+	b.SetParam("dataPath", "/logistic/input/logistic3.txt") // TODO
 	b.SetParam("hdfsInputDir", hdfsInputDir) // TODO
 	b.SetParam("hdfsOutputDir", hdfsOutputDir) // TODO
 

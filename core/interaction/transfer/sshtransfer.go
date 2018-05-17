@@ -86,6 +86,7 @@ RETRY:
 
 	output, err := session.Output(cmdline)
 	if err != nil {
+		fmt.Println("ssh err: ", err.Error())
 		return &response.DataResponse{
 			Body:       output,
 			StatusCode: 500,
@@ -94,7 +95,7 @@ RETRY:
 	}
 
 	fmt.Println(string(output))
-	fmt.Println("sftp success ^^^^^^^^^^^^^^^^^^^^: ", req.GetFileCatalog().RemoteFileName)
+	fmt.Println("ssh success ^^^^^^^^^^^^^^^^^^^^: ", req.GetFileCatalog().RemoteFileName)
 
 	return &response.DataResponse{
 		Body:       output,
