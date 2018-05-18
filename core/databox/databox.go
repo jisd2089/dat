@@ -20,19 +20,20 @@ const (
 	KEYIN       = util.USE_KEYIN // 若使用DataBox.Keyin，则须在规则中设置初始值为USE_KEYIN
 	LIMIT       = math.MaxInt64  // 如希望在规则中自定义控制Limit，则Limit初始值必须为LIMIT
 	FORCED_STOP = "——主动终止DataBox——"
-	maxParam         = 50
+	maxParam    = 50
 )
 
 // 数据产品流
 type (
 	DataBox struct {
 		// 以下字段由用户定义
-		Name              string                     // 名称（应保证唯一性）
-		Description       string                     // 描述
-		DataFilePath      string                     // 数据文件地址
-		DataFile          *multipart.FileHeader      // 数据文件内容
-		NodeAddress       []*request.NodeAddress     // 交互节点地址
-		FileServerAddress *request.FileServerAddress // 文件服务器地址
+		Name               string                                                      // 名称（应保证唯一性）
+		Description        string                                                      // 描述
+		DataFilePath       string                                                      // 数据文件地址
+		DataFile           *multipart.FileHeader                                       // 数据文件内容
+		NodeAddress        []*request.NodeAddress                                      // 交互节点地址
+		FileServerAddress  *request.FileServerAddress                                  // 文件服务器地址
+		Params             []string                                                    // 数组参数
 		Pausetime          int64                                                       // 随机暂停区间(50%~200%)，若规则中直接定义，则不被界面传参覆盖
 		Limit              int64                                                       // 默认限制请求数，0为不限；若规则中定义为LIMIT，则采用规则的自定义限制方案
 		Keyin              string                                                      // 自定义输入的配置信息，使用前须在规则中设置初始值为KEYIN

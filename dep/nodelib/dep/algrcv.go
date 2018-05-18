@@ -26,13 +26,16 @@ var ALGRCV = &DataBox{
 
 		Trunk: map[string]*Rule{
 			"pushtoserver": {
-				ParseFunc: pushToServerFunc,
+				ParseFunc: pushToServerFunc, // 将算法产品推送到hadoop server
+			},
+			"datacheck": {
+				ParseFunc: dataCheckFunc, // 检查hdfs数据文件是否准备就绪
 			},
 			"dataready": {
-				ParseFunc: datareadyFunc,
+				ParseFunc: datareadyFunc, // hdfs数据文件准备就绪
 			},
 			"runtask": {
-				ParseFunc: runTaskFunc,
+				ParseFunc: runTaskFunc, // 执行算法任务
 			},
 			"end": {
 				ParseFunc: procEndFunc,
@@ -57,15 +60,8 @@ func pushToServerFunc(ctx *Context) {
 	filePath := ctx.GetDataBox().GetDataFilePath()
 	dataFile := path.Base(filePath)
 	dataFilePath := path.Dir(filePath)
-	//dataFileName := &util.DataFileName{}
-	//if err := dataFileName.ParseAndValidFileName(dataFile); err != nil {
-	//	errEnd(ctx)
-	//	return
-	//}
 
-	fmt.Println(dataFilePath)
-
-	fmt.Println(ctx.GetDataBox().GetDataFilePath())
+	fmt.Println(dataFilePath + "&&" + ctx.GetDataBox().GetDataFilePath())
 
 	fsAddress := ctx.GetDataBox().FileServerAddress
 
@@ -82,10 +78,11 @@ func pushToServerFunc(ctx *Context) {
 		RemoteFileName: dataFile,
 	}
 
+	// 算法文件路径重置为hadoop server上的路径
 	ctx.GetDataBox().SetDataFilePath(path.Join(fsAddress.RemoteDir, dataFile))
 
 	ctx.AddQueue(&request.DataRequest{
-		Rule:         "dataready",
+		Rule:         "datacheck",
 		Method:       "PUT",
 		TransferType: request.SFTP,
 		FileCatalog:  fileCatalog,
@@ -93,25 +90,30 @@ func pushToServerFunc(ctx *Context) {
 	})
 }
 
-func datareadyFunc(ctx *Context) {
-	fmt.Println("algorithmreceive data ready ...")
+func dataCheckFunc(ctx *Context) {
+	fmt.Println("algorithmreceive data check ...")
 
-	if ctx.DataResponse.StatusCode == 200 && strings.EqualFold(ctx.DataResponse.ReturnCode, "000000") {
+	if ! (ctx.DataResponse.StatusCode == 200 && strings.EqualFold(ctx.DataResponse.ReturnCode, "000000")) {
+		errEnd(ctx)
+		return
 
-		hdfsPath := ctx.GetDataBox().Param("dataPath")
+	}
 
-		fsAddress := ctx.GetDataBox().FileServerAddress
+	fsAddress := ctx.GetDataBox().FileServerAddress
 
-		// 1. push local file to hadoop server
-		fileCatalog := &sftp.FileCatalog{
-			UserName:       fsAddress.UserName,
-			Password:       fsAddress.Password,
-			Host:           fsAddress.Host,
-			Port:           fsAddress.Port,
-			TimeOut:        time.Duration(fsAddress.TimeOut) * time.Second,
-		}
+	fileCatalog := &sftp.FileCatalog{
+		UserName:       fsAddress.UserName,
+		Password:       fsAddress.Password,
+		Host:           fsAddress.Host,
+		Port:           fsAddress.Port,
+		TimeOut:        time.Duration(fsAddress.TimeOut) * time.Second,
+	}
 
-		cmdParam := `/usr/local/package/hadoop-2.7.3/bin/hdfs dfs -test -e ` + hdfsPath + `
+	hdfsPaths := ctx.GetDataBox().Params
+
+	for _, p := range hdfsPaths {
+
+		cmdParam := `/usr/local/package/hadoop-2.7.3/bin/hdfs dfs -test -e ` + p + `
 if [ $? -eq 0 ] ;then
     echo 'exist'
 else
@@ -120,17 +122,31 @@ fi
 `
 
 		ctx.AddQueue(&request.DataRequest{
-			Rule:         "runtask",
+			Rule:         "dataready",
 			Method:       "STRING",
 			TransferType: request.SSH,
 			FileCatalog:  fileCatalog,
 			CommandName:  cmdParam,
 			Reloadable:   true,
 		})
-
-	} else {
-		errEnd(ctx)
 	}
+}
+
+func datareadyFunc(ctx *Context) {
+	fmt.Println("algorithmreceive data ready...")
+
+	if !(ctx.GetResponse().StatusCode == 200 && strings.EqualFold(strings.TrimSpace(string(ctx.GetResponse().Body)), "exist")) {
+
+		time.Sleep(time.Duration(60) * time.Second)
+
+		ctx.AddQueue(&request.DataRequest{
+			Rule:          "dataready",
+			TransferType:  request.NONETYPE,
+			Reloadable:    true,
+		})
+		return
+	}
+
 }
 
 func runTaskFunc(ctx *Context) {

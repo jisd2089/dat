@@ -14,7 +14,7 @@ type DataResponse struct {
 	Header      *fasthttp.ResponseHeader // response头
 	Body        []byte                   // 返回消息体
 	BodyStr     string                   // 消息体字符串
-	BodyStrs []string                 // 消息体字符串数组
+	BodyStrs    []string                 // 消息体字符串数组
 	StatusCode  int                      // 返回码
 	ReturnCode  string                   // 业务返回码
 	ReturnMsg   string                   // 业务返回信息

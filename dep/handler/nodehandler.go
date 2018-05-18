@@ -18,6 +18,7 @@ import (
 	"os"
 	"path"
 	"drcs/core/interaction/request"
+	"fmt"
 )
 
 /**
@@ -118,7 +119,7 @@ func (n *NodeHandler) GenKeys(ctx *fasthttp.RequestCtx) {
 	ctx.Response.SetBody(body)
 }
 
-func (n *NodeHandler) RcvFile(ctx *fasthttp.RequestCtx) {
+func (n *NodeHandler) RcvData(ctx *fasthttp.RequestCtx) {
 
 	dataFile, err := ctx.FormFile("file")
 	if err != nil {
@@ -176,4 +177,77 @@ func (n *NodeHandler) RcvFile(ctx *fasthttp.RequestCtx) {
 
 	// 1.2 setDataBoxQueue
 	setDataBoxQueue(b)
+}
+
+func (n *NodeHandler) RcvAlg(ctx *fasthttp.RequestCtx) {
+
+	// 算法文件
+	dataFile, err := ctx.FormFile("file")
+	if err != nil {
+		logger.Error("filePath err:", err)
+	}
+	logger.Info("filePath***********: ", dataFile.Filename)
+
+	// 算法依赖文件hdfs路径
+	var dataFiles []string
+
+	mf, err := ctx.MultipartForm()
+	if err == nil && mf.Value != nil {
+		vv := mf.Value["dataFiles"]
+		if len(vv) > 0 {
+			dataFiles = vv
+		}
+	}
+
+	// boxname
+	bn := ctx.FormValue("boxname")
+	boxName := string(bn)
+
+	common := GetCommonSettings()
+	hdfsInputDir := common.Hdfs.InputDir
+	hdfsOutputDir := common.Hdfs.OutputDir // 算法输出结果路径
+	targetFileDir := common.Sftp.LocalDir
+
+	targetFilePath := path.Join(targetFileDir, dataFile.Filename)
+
+	targetFile, err := os.OpenFile(targetFilePath, os.O_WRONLY|os.O_CREATE, 0644)
+	defer targetFile.Close()
+	if err != nil {
+		logger.Error("open target file err:", err)
+	}
+
+	dataFileContent, err := dataFile.Open()
+	defer dataFileContent.Close()
+	if err != nil {
+		logger.Error("open form file err:", err)
+	}
+
+	io.Copy(targetFile, dataFileContent)
+
+	fsAddress := &request.FileServerAddress{
+		Host:      common.Sftp.Hosts,
+		Port:      common.Sftp.Port,
+		UserName:  common.Sftp.Username,
+		Password:  common.Sftp.Password,
+		TimeOut:   common.Sftp.DefualtTimeout,
+		LocalDir:  common.Sftp.LocalDir,
+		RemoteDir: common.Sftp.RemoteDir,
+	}
+
+	// 1.1 匹配相应的DataBox
+	b := assetnode.AssetNodeEntity.GetDataBoxByName(boxName)
+
+	if b == nil {
+		logger.Error("databox is nil!")
+	}
+
+	b.DataFilePath = targetFilePath
+	b.FileServerAddress = fsAddress
+	b.Params = dataFiles
+	b.SetParam("dataPath", "") // TODO
+	b.SetParam("hdfsInputDir", hdfsInputDir) // TODO
+	b.SetParam("hdfsOutputDir", hdfsOutputDir) // TODO
+
+	// 1.2 setDataBoxQueue
+	//setDataBoxQueue(b)
 }
