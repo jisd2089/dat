@@ -18,7 +18,7 @@ import (
 	"os"
 	"path"
 	"drcs/core/interaction/request"
-	"fmt"
+	. "drcs/dep/service"
 )
 
 /**
@@ -249,5 +249,9 @@ func (n *NodeHandler) RcvAlg(ctx *fasthttp.RequestCtx) {
 	b.SetParam("hdfsOutputDir", hdfsOutputDir) // TODO
 
 	// 1.2 setDataBoxQueue
-	//setDataBoxQueue(b)
+	setDataBoxQueue(b)
+}
+
+func (n *NodeHandler) RunProcess(ctx *fasthttp.RequestCtx) {
+	NewDepService().Process()
 }

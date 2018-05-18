@@ -18,6 +18,8 @@ func init() {
 	ALGRCV.Register()
 }
 
+var relyDatas map[string]int
+
 var ALGRCV = &DataBox{
 	Name:        "algorithmreceive",
 	Description: "algorithmreceive",
@@ -46,6 +48,8 @@ var ALGRCV = &DataBox{
 
 func algrcvRootFunc(ctx *Context) {
 	fmt.Println("algorithmreceive Root ...")
+
+	relyDatas = make(map[string]int)
 
 	ctx.AddQueue(&request.DataRequest{
 		Rule:         "pushtoserver",
@@ -96,20 +100,21 @@ func dataCheckFunc(ctx *Context) {
 	if ! (ctx.DataResponse.StatusCode == 200 && strings.EqualFold(ctx.DataResponse.ReturnCode, "000000")) {
 		errEnd(ctx)
 		return
-
 	}
 
 	fsAddress := ctx.GetDataBox().FileServerAddress
 
 	fileCatalog := &sftp.FileCatalog{
-		UserName:       fsAddress.UserName,
-		Password:       fsAddress.Password,
-		Host:           fsAddress.Host,
-		Port:           fsAddress.Port,
-		TimeOut:        time.Duration(fsAddress.TimeOut) * time.Second,
+		UserName: fsAddress.UserName,
+		Password: fsAddress.Password,
+		Host:     fsAddress.Host,
+		Port:     fsAddress.Port,
+		TimeOut:  time.Duration(fsAddress.TimeOut) * time.Second,
 	}
 
 	hdfsPaths := ctx.GetDataBox().Params
+
+	ctx.GetDataBox().TsfSuccCount = len(hdfsPaths)
 
 	for _, p := range hdfsPaths {
 
@@ -135,34 +140,50 @@ fi
 func datareadyFunc(ctx *Context) {
 	fmt.Println("algorithmreceive data ready...")
 
-	if !(ctx.GetResponse().StatusCode == 200 && strings.EqualFold(strings.TrimSpace(string(ctx.GetResponse().Body)), "exist")) {
+	cmdParam := ctx.GetResponse().BodyStr
+
+	if (ctx.GetResponse().StatusCode == 200 && strings.EqualFold(strings.TrimSpace(string(ctx.GetResponse().Body)), "exist")) {
+
+		relyDatas[cmdParam] = 1
+
+	} else {
 
 		time.Sleep(time.Duration(60) * time.Second)
 
+		fsAddress := ctx.GetDataBox().FileServerAddress
+
+		fileCatalog := &sftp.FileCatalog{
+			UserName: fsAddress.UserName,
+			Password: fsAddress.Password,
+			Host:     fsAddress.Host,
+			Port:     fsAddress.Port,
+			TimeOut:  time.Duration(fsAddress.TimeOut) * time.Second,
+		}
+
 		ctx.AddQueue(&request.DataRequest{
-			Rule:          "dataready",
-			TransferType:  request.NONETYPE,
-			Reloadable:    true,
+			Rule:         "dataready",
+			TransferType: request.NONETYPE,
+			CommandName:  cmdParam,
+			FileCatalog:  fileCatalog,
+			Reloadable:   true,
 		})
 		return
 	}
 
+	if len(relyDatas) == ctx.GetDataBox().TsfSuccCount {
+		ctx.AddQueue(&request.DataRequest{
+			Rule:         "runtask",
+			TransferType: request.NONETYPE,
+			Reloadable:   true,
+		})
+	}
 }
 
 func runTaskFunc(ctx *Context) {
 	fmt.Println("algorithmreceive run task...")
 
-	if !(ctx.GetResponse().StatusCode == 200 && strings.EqualFold(strings.TrimSpace(string(ctx.GetResponse().Body)), "exist")) {
-
-		time.Sleep(time.Duration(60) * time.Second)
-
-		ctx.AddQueue(&request.DataRequest{
-			Rule:          "dataready",
-			TransferType:  request.NONETYPE,
-			Reloadable:    true,
-		})
-		return
-	}
+	inputPaths := ctx.GetDataBox().Params
+	outputPath := ctx.GetDataBox().Param("hdfsOutputDir")
 
 	cmdParams := []string{}
 	cmdParams = append(cmdParams, "/usr/local/package/spark-2.2.1-bin-hadoop2.7/bin/spark-submit")
@@ -172,15 +193,23 @@ func runTaskFunc(ctx *Context) {
 	cmdParams = append(cmdParams, "--queue sparkqueue")
 	cmdParams = append(cmdParams, ctx.GetDataBox().GetDataFilePath())
 
+	for _, i := range inputPaths {
+		cmdParams = append(cmdParams, i)
+	}
+
+	cmdParams = append(cmdParams, outputPath)
+
+	fmt.Println(cmdParams)
+
 	fsAddress := ctx.GetDataBox().FileServerAddress
 
 	// 1. 从sftp服务器（需方dmp服务器）拉取文件到节点服务器本地
 	fileCatalog := &sftp.FileCatalog{
-		UserName:       fsAddress.UserName,
-		Password:       fsAddress.Password,
-		Host:           fsAddress.Host,
-		Port:           fsAddress.Port,
-		TimeOut:        time.Duration(fsAddress.TimeOut) * time.Second,
+		UserName: fsAddress.UserName,
+		Password: fsAddress.Password,
+		Host:     fsAddress.Host,
+		Port:     fsAddress.Port,
+		TimeOut:  time.Duration(fsAddress.TimeOut) * time.Second,
 	}
 
 	ctx.AddQueue(&request.DataRequest{

@@ -57,14 +57,8 @@ func pullFunc(ctx *Context) {
 	filePath := ctx.GetDataBox().GetDataFilePath()
 	dataFile := path.Base(filePath)
 	dataFilePath := path.Dir(filePath)
-	dataFileName := &util.DataFileName{}
-	if err := dataFileName.ParseAndValidFileName(dataFile); err != nil {
-		return
-	}
 
-	fmt.Println(dataFilePath)
-
-	fmt.Println(ctx.GetDataBox().GetDataFilePath())
+	fmt.Println(dataFilePath + "@" + ctx.GetDataBox().GetDataFilePath())
 
 	fsAddress := ctx.GetDataBox().FileServerAddress
 

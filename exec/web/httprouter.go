@@ -34,6 +34,7 @@ func (r *HttpRouter) Register() {
 
 	r.Router.POST("/api/test/rcvfile", NewNodeHandler().RcvData)
 	r.Router.POST("/api/test/rcvalg", NewNodeHandler().RcvAlg)
+	r.Router.POST("/api/fusion/run", NewNodeHandler().RunProcess)
 
 	// 生产业务流程
 	//r.Router.POST("/api/dmp/orderRouteQry/", demander.HTTPService{}.DoService)

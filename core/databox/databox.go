@@ -382,6 +382,7 @@ func (self *DataBox) Copy() *DataBox {
 
 	ghost.timer = self.timer
 	ghost.status = self.status
+	ghost.Params = self.Params
 	ghost.dnames = self.dnames
 	ghost.dvalues = self.dvalues
 	ghost.StartWG = self.StartWG

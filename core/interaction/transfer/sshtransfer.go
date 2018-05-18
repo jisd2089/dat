@@ -45,7 +45,7 @@ func (st *SshTransfer) ExecuteMethod(req Request) Response {
 	defer st.lock.Unlock()
 
 	var (
-		cmdline string
+		cmdline    string
 		err        error
 		retryTimes = 0
 	)
@@ -88,6 +88,7 @@ RETRY:
 	if err != nil {
 		fmt.Println("ssh err: ", err.Error())
 		return &response.DataResponse{
+			BodyStr:    cmdline,
 			Body:       output,
 			StatusCode: 500,
 			ReturnCode: "999999",
@@ -98,6 +99,7 @@ RETRY:
 	fmt.Println("ssh success ^^^^^^^^^^^^^^^^^^^^: ", req.GetFileCatalog().RemoteFileName)
 
 	return &response.DataResponse{
+		BodyStr:    cmdline,
 		Body:       output,
 		StatusCode: 200,
 		ReturnCode: "000000",
