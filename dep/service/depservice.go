@@ -12,12 +12,14 @@ import (
 	"drcs/dep/agollo"
 	"drcs/core"
 	"drcs/core/interaction/request"
-	"drcs/settings"
+	st "drcs/settings"
 )
 
 func init() {
 
-	go initTransConfig("D:/GoglandProjects/src/drcs/dep/service/trans.properties")
+
+	//path := filepath.Join(SETT ING_PATH, "trans.properties")
+	//go initTransConfig(filepath.Clean(path))
 
 	//time.Sleep(1 * time.Second)
 	//NewDepService().Process()
@@ -38,7 +40,7 @@ func (s *DepService) Process() {
 
 	transInfo := GetTransInfo()
 
-	common := settings.GetCommonSettings()
+	common := st.GetCommonSettings()
 
 	logger.Info("transInfo", transInfo)
 	logger.Info("common setting", common)

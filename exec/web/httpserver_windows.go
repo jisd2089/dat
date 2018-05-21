@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"net"
 	"github.com/valyala/fasthttp"
+
+	. "drcs/settings"
 )
 
 /**
@@ -13,12 +15,22 @@ import (
 
 type HttpServer struct{}
 
-func (s *HttpServer) Run(port int) {
+func (s *HttpServer) Run() {
 	router := NewHttpRouter()
 	router.Register()
 
-	host := "0.0.0.0"
-	//port := 8899
+	var (
+		host string
+		port int
+	)
+	for {
+		common := GetCommonSettings()
+		if common != nil {
+			host = common.Node.Host
+			port = common.Node.Port
+			break
+		}
+	}
 
 	uri := fmt.Sprintf("%s:%d", host, port)
 	ln, err := net.Listen("tcp4", uri)

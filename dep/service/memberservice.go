@@ -7,6 +7,7 @@ import (
 	"drcs/dep/agollo"
 	"drcs/dep/member"
 	"fmt"
+	"path/filepath"
 )
 
 /**
@@ -23,14 +24,15 @@ type MemberService struct {
 }
 
 func NewMemberService() *MemberService {
-	return &MemberService{
-	}
+	return &MemberService{}
 }
 
 func (o *MemberService) Init() {
 
-	go initMemberConfig("D:/GoglandProjects/src/drcs/dep/member/member.properties")
-	go initPartnersConfig("D:/GoglandProjects/src/drcs/dep/member/partners.properties")
+	memberPath := filepath.Join(SETTING_PATH, "member.properties")
+	partnersPath := filepath.Join(SETTING_PATH, "partners.properties")
+	go initMemberConfig(filepath.Clean(memberPath))
+	go initPartnersConfig(filepath.Clean(partnersPath))
 
 }
 

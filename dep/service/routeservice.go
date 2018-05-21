@@ -11,6 +11,7 @@ import (
 
 	"drcs/dep/agollo"
 	"drcs/dep/or"
+	"path/filepath"
 )
 
 func init() {
@@ -26,8 +27,8 @@ func NewRouteService() *RouteService {
 }
 
 func (o *RouteService) Init() {
-
-	initRouteConfig("D:/GoglandProjects/src/drcs/dep/or/route.properties")
+	path := filepath.Join(SETTING_PATH, "route.properties")
+	go initRouteConfig(filepath.Clean(path))
 
 }
 

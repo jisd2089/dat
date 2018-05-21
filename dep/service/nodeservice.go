@@ -6,10 +6,6 @@ package service
 */
 
 import (
-	//"drcs/dep/security"
-	//"drcs/dep/or"
-	//"drcs/dep/member"
-	//logger "dds/log"
 	SSH "drcs/common/ssh"
 	"drcs/common/sftp"
 	"drcs/dep/agollo"
@@ -23,22 +19,29 @@ import (
 	"net"
 	"time"
 	"fmt"
-	//"encoding/json"
-	yaml "gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v2"
 	"github.com/valyala/fasthttp"
+	"path/filepath"
+	"drcs/exec/web"
+)
+
+const (
+	//SETTING_PATH string = "/settings/properties"
+	SETTING_PATH string = "./web/properties"
 )
 
 var (
-	once      sync.Once
+	once sync.Once
 )
 
 func init() {
 
-	go NewNodeService().Init()
+	//go NewNodeService().Init()
 
 }
 
 type NodeService struct {
+	nodeCh     chan bool
 	sshClient  *SSH.SSHClient
 	SftpClient *sftp.SFTPClient
 	lock       sync.RWMutex
@@ -53,7 +56,14 @@ func NewNodeService() *NodeService {
 
 func (s *NodeService) Init() {
 
-	initApollo("D:/GoglandProjects/src/drcs/settings/setting.properties")
+	path := filepath.Join(*web.SettingPath, "setting.properties")
+
+	go s.initApollo(filepath.Clean(path))
+
+	// 初始化日志
+	if <- s.nodeCh {
+		logger.Initialize()
+	}
 
 	//defaultInitSecurityConfig()
 
@@ -67,7 +77,9 @@ func (s *NodeService) Init() {
 	//logger.Info("init with memberManager:%+v", memberManager)
 }
 
-func initApollo(configDir string) {
+func (s *NodeService)initApollo(configDir string) {
+	s.nodeCh = make(chan bool, 1)
+
 	newAgollo := agollo.NewAgollo(configDir)
 	go newAgollo.Start()
 
@@ -93,6 +105,8 @@ func initApollo(configDir string) {
 			}
 			settings.SetCommonSettings(common)
 		}
+
+		s.nodeCh <- true
 		//bytes, _ := json.Marshal(changeEvent)
 		//fmt.Println("event:", string(bytes))
 	}

@@ -6,6 +6,7 @@ import (
 
 	"drcs/dep/agollo"
 	"drcs/dep/order"
+	"path/filepath"
 )
 
 /**
@@ -22,13 +23,12 @@ type OrderService struct {
 }
 
 func NewOrderService() *OrderService {
-	return &OrderService{
-	}
+	return &OrderService{}
 }
 
 func (o *OrderService) Init() {
-
-	initOrderConfig("D:/GoglandProjects/src/drcs/dep/order/order.properties")
+	path := filepath.Join(SETTING_PATH, "order.properties")
+	go initOrderConfig(filepath.Clean(path))
 
 }
 

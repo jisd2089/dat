@@ -7,14 +7,19 @@ import (
 	_ "drcs/dep/service"
 
 	//"drcs/dep/job"
+	"drcs/dep/service"
 )
 
 var (
-	ip           *string
-	port         *int
-	addr         string
+	ip          *string
+	port        *int
+	addr        string
 	dataBoxMenu []map[string]string
+
+	SettingPath *string
 )
+
+
 
 // 获取外部参数
 func Flag() {
@@ -22,16 +27,21 @@ func Flag() {
 	// web服务器IP与端口号
 	ip = flag.String("b_ip", "0.0.0.0", "   <Web Server IP>")
 	port = flag.Int("b_port", 9090, "   <Web Server Port>")
+
+	SettingPath = flag.String("c", "/dep/go/conf/dem-settings.yaml", "setting config path")
 }
 
 // 执行入口
-func Run(port int) {
+func Run() {
+
+	service.NewNodeService().Init()
+
 	assetnode.AssetNodeEntity.Init()
 
 	assetnode.AssetNodeEntity.Run()
 
 	httpServer := &HttpServer{}
-	httpServer.Run(port)
+	httpServer.Run()
 }
 
 func appInit() {
@@ -54,12 +64,12 @@ func RunDem() {
 
 	//jobs.InitDem()
 
-	Run(8899)
+	Run()
 }
 
 func RunSup() {
 
 	//jobs.InitSup()
 
-	Run(8989)
+	Run()
 }

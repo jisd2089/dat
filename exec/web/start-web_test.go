@@ -15,6 +15,8 @@ import (
 	"strconv"
 	"reflect"
 	"time"
+	"path/filepath"
+	"os"
 )
 
 //func init() {
@@ -25,11 +27,16 @@ import (
 
 func TestDemRun(t *testing.T) {
 
-	Run(8899)
+	dir, err := filepath.Abs(filepath.Dir(os.Args[0]))
+	if err != nil {
+	}
+	fmt.Println("current dir: " + dir)
+
+	Run()
 }
 
 func TestSupRun(t *testing.T) {
-	Run(8989)
+	Run()
 }
 
 

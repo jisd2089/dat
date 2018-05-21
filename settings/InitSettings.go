@@ -36,7 +36,7 @@ type CommonSettings struct {
 type Node struct {
 	NodeId   string `yaml:"nodeId"`
 	Host     string `yaml:"host"`
-	Port     string `yaml:"port"`
+	Port     int    `yaml:"port"`
 	MemberId string `yaml:"memberId"`
 	Role     string `yaml:"role"`
 	Version  string `yaml:"version"`

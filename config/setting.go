@@ -53,6 +53,7 @@ var setting = func() config.Configer {
 	os.MkdirAll(filepath.Clean(CACHE_DIR), 0777)
 	os.MkdirAll(filepath.Clean(PHANTOMJS_TEMP), 0777)
 
+	fmt.Println(HISTORY_DIR)
 	conf := CONFIG
 	fmt.Println(conf)
 	iniconf, err := config.NewConfig("ini", CONFIG)

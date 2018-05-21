@@ -18,7 +18,7 @@ import (
 	"os"
 	"path"
 	"drcs/core/interaction/request"
-	. "drcs/dep/service"
+	"drcs/dep/service"
 )
 
 /**
@@ -253,5 +253,5 @@ func (n *NodeHandler) RcvAlg(ctx *fasthttp.RequestCtx) {
 }
 
 func (n *NodeHandler) RunProcess(ctx *fasthttp.RequestCtx) {
-	NewDepService().Process()
+	service.NewDepService().Process()
 }
