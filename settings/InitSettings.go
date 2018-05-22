@@ -109,7 +109,7 @@ type DMP struct {
 }
 
 type Log struct {
-	ConfigPath string `yaml:"ConfigPath"`
+	ConfigPath string `yaml:"configPath"`
 	LogrusPath string `yaml:"logrusPath"`
 }
 

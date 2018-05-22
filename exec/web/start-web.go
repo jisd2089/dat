@@ -3,10 +3,6 @@ package web
 import (
 	"flag"
 	"drcs/core"
-
-	_ "drcs/dep/service"
-
-	//"drcs/dep/job"
 	"drcs/dep/service"
 )
 
@@ -16,10 +12,13 @@ var (
 	addr        string
 	dataBoxMenu []map[string]string
 
-	SettingPath *string
+	settingPath *string
 )
 
-
+func init() {
+	Flag()
+	service.SettingPath = *settingPath
+}
 
 // 获取外部参数
 func Flag() {
@@ -28,7 +27,7 @@ func Flag() {
 	ip = flag.String("b_ip", "0.0.0.0", "   <Web Server IP>")
 	port = flag.Int("b_port", 9090, "   <Web Server Port>")
 
-	SettingPath = flag.String("c", "/dep/go/conf/dem-settings.yaml", "setting config path")
+	settingPath = flag.String("c", "D:/GoglandProjects/src/drcs/settings/properties", "setting config path")
 }
 
 // 执行入口
@@ -36,9 +35,8 @@ func Run() {
 
 	service.NewNodeService().Init()
 
-	assetnode.AssetNodeEntity.Init()
+	assetnode.AssetNodeEntity.Init().Run()
 
-	assetnode.AssetNodeEntity.Run()
 
 	httpServer := &HttpServer{}
 	httpServer.Run()

@@ -13,17 +13,8 @@ import (
 	"drcs/core"
 	"drcs/core/interaction/request"
 	st "drcs/settings"
+	"path/filepath"
 )
-
-func init() {
-
-
-	//path := filepath.Join(SETT ING_PATH, "trans.properties")
-	//go initTransConfig(filepath.Clean(path))
-
-	//time.Sleep(1 * time.Second)
-	//NewDepService().Process()
-}
 
 type DepService struct {
 	DataPath  string
@@ -34,6 +25,11 @@ type DepService struct {
 
 func NewDepService() *DepService {
 	return &DepService{}
+}
+
+func (s *DepService) Init() {
+	path := filepath.Join(SettingPath, "trans.properties")
+	go initTransConfig(filepath.Clean(path))
 }
 
 func (s *DepService) Process() {

@@ -15,10 +15,6 @@ import (
     Created: 2018-05-08 17:08:17
 */
 
-func init() {
-	//NewMemberService().Init()
-}
-
 type MemberService struct {
 	lock       sync.RWMutex
 }
@@ -29,11 +25,10 @@ func NewMemberService() *MemberService {
 
 func (o *MemberService) Init() {
 
-	memberPath := filepath.Join(SETTING_PATH, "member.properties")
-	partnersPath := filepath.Join(SETTING_PATH, "partners.properties")
+	memberPath := filepath.Join(SettingPath, "member.properties")
+	partnersPath := filepath.Join(SettingPath, "partners.properties")
 	go initMemberConfig(filepath.Clean(memberPath))
 	go initPartnersConfig(filepath.Clean(partnersPath))
-
 }
 
 func initMemberConfig(configDir string) {

@@ -14,10 +14,6 @@ import (
 	"path/filepath"
 )
 
-func init() {
-	//NewRouteService().Init()
-}
-
 type RouteService struct {
 	lock       sync.RWMutex
 }
@@ -27,9 +23,8 @@ func NewRouteService() *RouteService {
 }
 
 func (o *RouteService) Init() {
-	path := filepath.Join(SETTING_PATH, "route.properties")
+	path := filepath.Join(SettingPath, "route.properties")
 	go initRouteConfig(filepath.Clean(path))
-
 }
 
 func initRouteConfig(configDir string) {

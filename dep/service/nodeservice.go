@@ -11,7 +11,7 @@ import (
 	"drcs/dep/agollo"
 	"drcs/settings"
 	"drcs/dep/handler/msg"
-	logger "dds/log"
+	logger "drcs/log"
 
 	"github.com/golang/protobuf/proto"
 	"golang.org/x/crypto/ssh"
@@ -22,23 +22,12 @@ import (
 	"gopkg.in/yaml.v2"
 	"github.com/valyala/fasthttp"
 	"path/filepath"
-	"drcs/exec/web"
-)
-
-const (
-	//SETTING_PATH string = "/settings/properties"
-	SETTING_PATH string = "./web/properties"
 )
 
 var (
-	once sync.Once
+	once        sync.Once
+	SettingPath string
 )
-
-func init() {
-
-	//go NewNodeService().Init()
-
-}
 
 type NodeService struct {
 	nodeCh     chan bool
@@ -48,21 +37,32 @@ type NodeService struct {
 }
 
 func NewNodeService() *NodeService {
-	return &NodeService{
-		//sshClient:  SSH.New(),
-		//SftpClient: sftp.New(),
-	}
+	return &NodeService{}
 }
 
 func (s *NodeService) Init() {
 
-	path := filepath.Join(*web.SettingPath, "setting.properties")
+	NewDepService().Init()
+	NewMemberService().Init()
+	NewOrderService().Init()
+	NewRouteService().Init()
+
+	s.init()
+}
+
+func (s *NodeService) init() {
+	s.nodeCh = make(chan bool, 1)
+
+	path := filepath.Join(SettingPath, "setting.properties")
 
 	go s.initApollo(filepath.Clean(path))
 
 	// 初始化日志
-	if <- s.nodeCh {
+	select {
+	case ret := <-s.nodeCh:
+		fmt.Println("logger init", ret)
 		logger.Initialize()
+		break
 	}
 
 	//defaultInitSecurityConfig()
@@ -77,8 +77,7 @@ func (s *NodeService) Init() {
 	//logger.Info("init with memberManager:%+v", memberManager)
 }
 
-func (s *NodeService)initApollo(configDir string) {
-	s.nodeCh = make(chan bool, 1)
+func (s *NodeService) initApollo(configDir string) {
 
 	newAgollo := agollo.NewAgollo(configDir)
 	go newAgollo.Start()
@@ -107,8 +106,6 @@ func (s *NodeService)initApollo(configDir string) {
 		}
 
 		s.nodeCh <- true
-		//bytes, _ := json.Marshal(changeEvent)
-		//fmt.Println("event:", string(bytes))
 	}
 }
 

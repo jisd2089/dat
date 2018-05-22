@@ -18,19 +18,9 @@ func (s *HttpServer) Run() {
 	router := NewHttpRouter()
 	router.Register()
 
-	var (
-		host string
-		port int
-	)
-	for {
-		common := GetCommonSettings()
-		if common != nil {
-
-			host = common.Node.Host
-			port = common.Node.Port
-			break
-		}
-	}
+	common := GetCommonSettings()
+	host := common.Node.Host
+	port := common.Node.Port
 
 	uri := fmt.Sprintf("%s:%d", host, port)
 	ln, err := reuseport.Listen("tcp4", uri)

@@ -13,11 +13,6 @@ import (
     Author: luzequan
     Created: 2018-05-08 17:08:17
 */
-
-func init() {
-	//NewOrderService().Init()
-}
-
 type OrderService struct {
 	lock       sync.RWMutex
 }
@@ -27,9 +22,8 @@ func NewOrderService() *OrderService {
 }
 
 func (o *OrderService) Init() {
-	path := filepath.Join(SETTING_PATH, "order.properties")
+	path := filepath.Join(SettingPath, "order.properties")
 	go initOrderConfig(filepath.Clean(path))
-
 }
 
 func initOrderConfig(configDir string) {
