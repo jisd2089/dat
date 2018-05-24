@@ -43,7 +43,7 @@ func (d *DemHandler) SendDemReqToSup(ctx *fasthttp.RequestCtx) {
 
 	addrs := []*request.NodeAddress{}
 	//addrs = append(addrs, &request.NodeAddress{MemberId: "000079", IP: "10.101.12.44", Host: "8989", URL: "/api/sup/rec", Priority: 0})
-	addrs = append(addrs, &request.NodeAddress{MemberId: "000079", IP: "127.0.0.1", Host: "8989", URL: "/api/sup/rec", Priority: 0})
+	addrs = append(addrs, &request.NodeAddress{MemberId: "000079", Host: "127.0.0.1", Port: "8989", URL: "/api/sup/rec", Priority: 0})
 	//addrs = append(addrs, &request.NodeAddress{MemberId: "000108", IP: "127.0.0.1", Host: "8082", URL: "/api/sup/rec", Priority: 1})
 	//addrs = append(addrs, &request.NodeAddress{MemberId: "000109", IP: "127.0.0.1", Host: "8083", URL: "/api/sup/rec", Priority: 2})
 	//addrs = append(addrs, &request.NodeAddress{MemberId: "000115", IP: "127.0.0.1", Host: "8084", URL: "/api/sup/rec", Priority: 3})
@@ -159,7 +159,7 @@ func (d *DemHandler) RunParentAndChild(ctx *fasthttp.RequestCtx) {
 	b.SetDataFilePath(filePath)
 
 	addrs := []*request.NodeAddress{}
-	addrs = append(addrs, &request.NodeAddress{MemberId: "000079", IP: "127.0.0.1", Host: "8989", URL: "/api/sup/rec", Priority: 0})
+	addrs = append(addrs, &request.NodeAddress{MemberId: "000079", Host: "127.0.0.1", Port: "8989", URL: "/api/sup/rec", Priority: 0})
 
 	b.SetNodeAddress(addrs)
 

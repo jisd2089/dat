@@ -100,14 +100,15 @@ func runDataBox(addrs []*Dest, boxName string, nodeMemberId string, fsAddress *r
 		b := assetnode.AssetNodeEntity.GetDataBoxByName(boxName)
 		if b == nil {
 			logger.Error("databox is nil!")
+			return
 		}
 		b.SetDataFilePath(v.DataPath)
 
 		addrs := []*request.NodeAddress{}
 		addrs = append(addrs, &request.NodeAddress{
 			MemberId: nodeMemberId,
-			IP:       v.DestIp,
 			Host:     v.DestHost,
+			Port:     v.DestPort,
 			URL:      v.Api,
 			Priority: 0,})
 

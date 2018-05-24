@@ -124,12 +124,13 @@ func (n *NodeHandler) RcvData(ctx *fasthttp.RequestCtx) {
 	dataFile, err := ctx.FormFile("file")
 	if err != nil {
 		logger.Error("filePath err:", err)
+		return
 	}
 	logger.Info("filePath***********: ", dataFile.Filename)
 
-	bn := ctx.FormValue("boxname")
-	boxName := string(bn)
-	//boxName = "algorithmreceive" //TODO
+	//bn := ctx.FormValue("boxname")
+	//boxName := string(bn)
+	boxName := "datareceive" //TODO
 
 	common := GetCommonSettings()
 	hdfsInputDir := common.Hdfs.InputDir
@@ -142,12 +143,14 @@ func (n *NodeHandler) RcvData(ctx *fasthttp.RequestCtx) {
 	defer targetFile.Close()
 	if err != nil {
 		logger.Error("open target file err:", err)
+		return
 	}
 
 	dataFileContent, err := dataFile.Open()
 	defer dataFileContent.Close()
 	if err != nil {
 		logger.Error("open form file err:", err)
+		return
 	}
 
 	io.Copy(targetFile, dataFileContent)
@@ -167,6 +170,7 @@ func (n *NodeHandler) RcvData(ctx *fasthttp.RequestCtx) {
 
 	if b == nil {
 		logger.Error("databox is nil!")
+		return
 	}
 
 	b.DataFilePath = targetFilePath
@@ -200,8 +204,9 @@ func (n *NodeHandler) RcvAlg(ctx *fasthttp.RequestCtx) {
 	}
 
 	// boxname
-	bn := ctx.FormValue("boxname")
-	boxName := string(bn)
+	//bn := ctx.FormValue("boxname")
+	//boxName := string(bn)
+	boxName := "algorithmreceive" //TODO
 
 	common := GetCommonSettings()
 	hdfsInputDir := common.Hdfs.InputDir

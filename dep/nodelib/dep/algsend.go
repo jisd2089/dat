@@ -10,7 +10,6 @@ import (
 	. "drcs/core/databox"
 	"fmt"
 	"drcs/common/sftp"
-	"drcs/runtime/status"
 	"time"
 	"strings"
 )
@@ -33,7 +32,7 @@ var ALGSEND = &DataBox{
 				ParseFunc: processAlgFunc,
 			},
 			"end": {
-				ParseFunc: processEndFunc,
+				ParseFunc: procEndFunc,
 			},
 		},
 	},
@@ -111,11 +110,4 @@ func processAlgFunc(ctx *Context) {
 			Reloadable:   true,
 		})
 	}
-}
-
-func processEndFunc(ctx *Context) {
-	fmt.Println("end start ...")
-
-	defer ctx.GetDataBox().SetStatus(status.STOP)
-	defer ctx.GetDataBox().CloseRequestChan()
 }

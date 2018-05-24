@@ -48,6 +48,7 @@ func (s *NodeService) Init() {
 	NewRouteService().Init()
 
 	s.init()
+	fmt.Println("init end")
 }
 
 func (s *NodeService) init() {

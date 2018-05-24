@@ -23,8 +23,8 @@ type Dest struct {
 	JobId         string `yaml:"jobId"`
 	DataPath      string `yaml:"dataPath"`
 	DestinationId string `yaml:"destinationId"`
-	DestIp        string `yaml:"destIp"`
 	DestHost      string `yaml:"destHost"`
+	DestPort      string `yaml:"destPort"`
 	Api           string `yaml:"api"`
 	BoxName       string `yaml:"boxName"`
 }

@@ -6,6 +6,8 @@ package main
 */
 import (
 	"drcs/exec/web"
+
+	_ "drcs/dep/nodelib/dep"
 )
 
 func main() {
