@@ -261,9 +261,11 @@ func (m *dataMan) execProcess(req *request.DataRequest) {
 		fmt.Println(ret)
 		m.FreeOne()
 		break
-	case <-time.After(time.Duration(60) * time.Second):
+	case <-time.After(req.ConnTimeout):
 		fmt.Println("exec process timeout~")
 		m.FreeOne()
+		defer m.DataBox.SetStatus(status.STOP)
+		defer m.DataBox.CloseRequestChan()
 		break
 	}
 }

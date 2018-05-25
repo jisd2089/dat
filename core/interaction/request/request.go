@@ -56,7 +56,7 @@ type DataRequest struct {
 
 const (
 	DefaultDialTimeout = 2 * time.Minute // 默认请求服务器超时
-	DefaultConnTimeout = 2 * time.Minute // 默认下载超时
+	DefaultConnTimeout = 1 * time.Minute // 默认下载超时
 	DefaultTryTimes    = 3               // 默认最大下载次数
 	DefaultRetryPause  = 2 * time.Second // 默认重新下载前停顿时长
 )

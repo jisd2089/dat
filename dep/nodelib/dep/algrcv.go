@@ -218,6 +218,7 @@ func runTaskFunc(ctx *Context) {
 		TransferType:  request.SSH,
 		FileCatalog:   fileCatalog,
 		CommandParams: cmdParams,
+		ConnTimeout:   time.Duration(24) * time.Hour,
 		Reloadable:    true,
 	})
 }
