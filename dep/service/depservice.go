@@ -114,6 +114,8 @@ func runDataBox(addrs []*Dest, boxName string, nodeMemberId string, fsAddress *r
 
 		b.SetNodeAddress(addrs)
 		b.FileServerAddress = fsAddress
+		// 算法依赖文件hdfs路径
+		b.Params = v.RelyDatas
 
 		setDataBoxQueue(b)
 	}

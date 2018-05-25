@@ -3,7 +3,7 @@ package agollo
 import (
 	"testing"
 	"fmt"
-	"github.com/zouyx/agollo/test"
+	"drcs/dep/agollo/test"
 )
 
 func createEnvMap()map[string]env {

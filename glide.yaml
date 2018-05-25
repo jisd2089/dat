@@ -1,43 +1,33 @@
-package: dat
+package: drcs
 import:
 - package: bitbucket.org/avd/go-ipc
-  version: v0.5.0
   subpackages:
   - mq
+- package: dds/log
 - package: github.com/Shopify/sarama
-  version: v1.15.0
 - package: github.com/astaxie/beego
-  version: v1.9.2
   subpackages:
   - utils
 - package: github.com/buaazp/fasthttprouter
-  version: v0.1.1
+- package: github.com/cihub/seelog
+- package: github.com/coocood/freecache
 - package: github.com/elazarl/go-bindata-assetfs
-  version: v1.0.0
 - package: github.com/getlantern/lantern
-  version: 4.4.1
   subpackages:
   - src/github.com/oxtoacart/bpool
 - package: github.com/go-sql-driver/mysql
-  version: v1.3
-- package: github.com/henrylee2cn/pholcus
-  version: v1.2.0
+- package: github.com/golang/protobuf
   subpackages:
-  - cmd
-  - common/ping
-  - config
-  - logs/logs
-  - web
+  - proto
 - package: github.com/henrylee2cn/teleport
-  version: v3.3
 - package: github.com/ouqiang/gocron
-  version: v1.3
   subpackages:
   - modules/logger
+- package: github.com/pkg/errors
 - package: github.com/pkg/sftp
-  version: 1.2.0
+- package: github.com/robfig/cron
+- package: github.com/sirupsen/logrus
 - package: github.com/valyala/fasthttp
-  version: v20160617
   subpackages:
   - reuseport
 - package: golang.org/x/crypto/ssh
@@ -46,4 +36,24 @@ import:
   subpackages:
   - bson
 - package: gopkg.in/redis.v5
-  version: v6.8.2
+- package: gopkg.in/yaml.v2
+testImport:
+- package: github.com/aarzilli/golua
+  subpackages:
+  - lua
+- package: github.com/afex/hystrix-go
+  subpackages:
+  - hystrix
+- package: github.com/shirou/gopsutil
+  subpackages:
+  - cpu
+  - disk
+  - docker
+  - host
+  - load
+  - mem
+  - net
+  - process
+- package: github.com/zouyx/agollo
+  subpackages:
+  - test

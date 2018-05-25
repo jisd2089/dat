@@ -4,6 +4,7 @@ import (
 	"flag"
 	"drcs/core"
 	"drcs/dep/service"
+	"fmt"
 )
 
 var (
@@ -28,6 +29,9 @@ func Flag() {
 	port = flag.Int("b_port", 9090, "   <Web Server Port>")
 
 	settingPath = flag.String("c", "D:/GoglandProjects/src/drcs/settings/properties", "setting config path")
+
+	flag.Parse()
+	fmt.Println("flag settingPath: ", *settingPath)
 }
 
 // 执行入口
@@ -36,7 +40,6 @@ func Run() {
 	service.NewNodeService().Init()
 
 	assetnode.AssetNodeEntity.Init().Run()
-
 
 	httpServer := &HttpServer{}
 	httpServer.Run()

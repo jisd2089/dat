@@ -2,7 +2,7 @@ package agollo
 
 import (
 	"testing"
-	"github.com/zouyx/agollo/test"
+	"drcs/dep/agollo/test"
 	"time"
 )
 

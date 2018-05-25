@@ -5,7 +5,7 @@ import (
 	"os"
 	"strconv"
 	"time"
-	"github.com/zouyx/agollo/test"
+	"drcs/dep/agollo/test"
 )
 
 func TestInit(t *testing.T) {

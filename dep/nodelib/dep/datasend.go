@@ -80,8 +80,8 @@ func startFunc(ctx *Context) {
 	ctx.AddQueue(&request.DataRequest{
 		Rule:         "pull",
 		Method:       "GET",
-		TransferType: request.NONETYPE,
-		//TransferType: request.SFTP,
+		//TransferType: request.NONETYPE,
+		TransferType: request.SFTP,
 		FileCatalog:  fileCatalog,
 		Reloadable:   true,
 	})
@@ -98,8 +98,8 @@ func processPullFunc(ctx *Context) {
 			Rule:         "end",
 			Url:          addr.GetUrl(),
 			Method:       "POSTFILE",
-			TransferType: request.NONETYPE,
-			//TransferType: request.FASTHTTP,
+			//TransferType: request.NONETYPE,
+			TransferType: request.FASTHTTP,
 			Priority:     1,
 			PostData:     ctx.GetDataBox().DataFilePath,
 			Reloadable:   true,

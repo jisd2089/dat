@@ -9,7 +9,6 @@ import (
 	"drcs/core/interaction/request"
 	. "drcs/core/databox"
 	"fmt"
-	"drcs/dep/management/util"
 	"drcs/common/sftp"
 	"time"
 	"strings"
@@ -106,11 +105,6 @@ func pushDataToServerFunc(ctx *Context) {
 	filePath := ctx.GetDataBox().GetDataFilePath()
 	dataFile := path.Base(filePath)
 	dataFilePath := path.Dir(filePath)
-	dataFileName := &util.DataFileName{}
-	if err := dataFileName.ParseAndValidFileName(dataFile); err != nil {
-		errEnd(ctx)
-		return
-	}
 
 	fmt.Println(dataFilePath)
 
@@ -154,11 +148,6 @@ func putDataToHDFSFunc(ctx *Context) {
 	filePath := ctx.GetDataBox().GetDataFilePath()
 	dataFile := path.Base(filePath)
 	dataFilePath := path.Dir(filePath)
-	dataFileName := &util.DataFileName{}
-	if err := dataFileName.ParseAndValidFileName(dataFile); err != nil {
-		errEnd(ctx)
-		return
-	}
 
 	fmt.Println(dataFilePath)
 

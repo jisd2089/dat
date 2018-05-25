@@ -3,7 +3,7 @@ package agollo
 import (
 	"testing"
 	"strings"
-	"github.com/zouyx/agollo/test"
+	"drcs/dep/agollo/test"
 )
 
 func TestGetInternal(t *testing.T) {

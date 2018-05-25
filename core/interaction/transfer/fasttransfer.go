@@ -112,6 +112,11 @@ func execPostFile(req Request, dataResponse *DataResponse) error {
 		return err
 	}
 
+	// 文件传输附带参数
+	for _, p := range req.GetCommandParams() {
+		bodyWriter.WriteField("dataFiles", p)
+	}
+
 	contentType := bodyWriter.FormDataContentType()
 	bodyWriter.Close()
 

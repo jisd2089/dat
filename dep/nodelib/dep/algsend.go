@@ -92,15 +92,19 @@ func processAlgFunc(ctx *Context) {
 		addressList := ctx.GetDataBox().GetNodeAddress()
 
 		addr := addressList[0]
+		fmt.Println(addr.GetUrl())
+
+		relyDatas := ctx.GetDataBox().Params
 
 		ctx.AddQueue(&request.DataRequest{
-			Rule:         "end",
-			Url:          addr.GetUrl(),
-			Method:       "POSTFILE",
-			TransferType: request.FASTHTTP,
-			Priority:     1,
-			PostData:     ctx.GetDataBox().DataFilePath,
-			Reloadable:   true,
+			Rule:          "end",
+			TransferType:  request.FASTHTTP,
+			Url:           addr.GetUrl(),
+			Method:        "POSTFILE",
+			CommandParams: relyDatas,
+			Priority:      1,
+			PostData:      ctx.GetDataBox().DataFilePath,
+			Reloadable:    true,
 		})
 	} else {
 		ctx.AddQueue(&request.DataRequest{

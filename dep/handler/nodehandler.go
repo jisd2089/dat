@@ -189,6 +189,7 @@ func (n *NodeHandler) RcvAlg(ctx *fasthttp.RequestCtx) {
 	dataFile, err := ctx.FormFile("file")
 	if err != nil {
 		logger.Error("filePath err:", err)
+		return
 	}
 	logger.Info("filePath***********: ", dataFile.Filename)
 
@@ -219,12 +220,14 @@ func (n *NodeHandler) RcvAlg(ctx *fasthttp.RequestCtx) {
 	defer targetFile.Close()
 	if err != nil {
 		logger.Error("open target file err:", err)
+		return
 	}
 
 	dataFileContent, err := dataFile.Open()
 	defer dataFileContent.Close()
 	if err != nil {
 		logger.Error("open form file err:", err)
+		return
 	}
 
 	io.Copy(targetFile, dataFileContent)
@@ -244,6 +247,7 @@ func (n *NodeHandler) RcvAlg(ctx *fasthttp.RequestCtx) {
 
 	if b == nil {
 		logger.Error("databox is nil!")
+		return
 	}
 
 	b.DataFilePath = targetFilePath

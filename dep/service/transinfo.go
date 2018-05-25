@@ -19,14 +19,15 @@ type Trans struct {
 }
 
 type Dest struct {
-	Type          string `yaml:"type"`
-	JobId         string `yaml:"jobId"`
-	DataPath      string `yaml:"dataPath"`
-	DestinationId string `yaml:"destinationId"`
-	DestHost      string `yaml:"destHost"`
-	DestPort      string `yaml:"destPort"`
-	Api           string `yaml:"api"`
-	BoxName       string `yaml:"boxName"`
+	Type          string   `yaml:"type"`
+	JobId         string   `yaml:"jobId"`
+	DataPath      string   `yaml:"dataPath"`
+	DestinationId string   `yaml:"destinationId"`
+	DestHost      string   `yaml:"destHost"`
+	DestPort      string   `yaml:"destPort"`
+	Api           string   `yaml:"api"`
+	BoxName       string   `yaml:"boxName"`
+	RelyDatas     []string `yaml:"relyDatas"`
 }
 
 func SetTransInfo(transmissionInfo *TransmissionInfo) {
