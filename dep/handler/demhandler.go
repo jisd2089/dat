@@ -211,3 +211,17 @@ func (d *DemHandler) RecSupRespUncompressAndPushToDem(ctx *fasthttp.RequestCtx) 
 	setDataBoxQueue(b)
 	// 1.3 执行DataBox，sftp推送文件，核验
 }
+
+
+func (d *DemHandler) SendMQ(ctx *fasthttp.RequestCtx) {
+
+	fmt.Println("SendMQ")
+
+	b := assetnode.AssetNodeEntity.GetDataBoxByName("datamq")
+	if b == nil {
+		fmt.Println("databox is nil!")
+		return
+	}
+
+	setDataBoxQueue(b)
+}

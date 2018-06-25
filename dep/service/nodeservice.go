@@ -97,6 +97,7 @@ func (s *NodeService) initApollo(configDir string) {
 			if err != nil {
 			}
 
+
 			settings.SetCommonSettings(common)
 		case 1:
 			common := &settings.CommonSettings{}

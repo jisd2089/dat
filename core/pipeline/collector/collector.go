@@ -29,9 +29,9 @@ type Collector struct {
 	once        sync.Once
 }
 
-func NewCollector(df *databox.DataBox) *Collector {
+func NewCollector(b *databox.DataBox) *Collector {
 	var c = &Collector{}
-	c.DataBox = df
+	c.DataBox = b
 	c.outType = cache.Task.OutType
 	if cache.Task.DockerCap < 1 {
 		cache.Task.DockerCap = 1

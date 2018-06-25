@@ -7,11 +7,9 @@ package posixmq
 import (
 	"bitbucket.org/avd/go-ipc/mq"
 	"os"
-	"github.com/getlantern/lantern/src/github.com/oxtoacart/bpool"
-	"github.com/ouqiang/gocron/modules/logger"
+	"time"
+	"fmt"
 )
-
-var _bufferPool = bpool.NewSizedBufferPool(1000, 1024)
 
 type PosixMQ struct {
 	mq *mq.LinuxMessageQueue
@@ -25,12 +23,24 @@ func New(path string) (*PosixMQ, error) {
 	return &PosixMQ{mq}, nil
 }
 
-func (pm *PosixMQ) Record() {
+func (pm *PosixMQ) Record(record *Record) {
+	fmt.Println("posixmq record start~")
+
+	tm := time.Now()
+	record.rdate = tm.Format("20060102")
+	record.rtime = tm.Format("150405")
+	record.stepCount = len(record.StepInfos)
 
 	buffer := _bufferPool.Get()
 	defer _bufferPool.Put(buffer)
-	// buffer := new(bytes.Buffer)
-	//flatRecordIntoBuffer(record, buffer)
-	// TODO 检查错误
-	pm.mq.Send(buffer.Bytes())
+
+	flatRecordIntoBuffer(record, buffer)
+
+	fmt.Println("posixmq record before send~", string(buffer.Bytes()))
+	err := pm.mq.Send(buffer.Bytes())
+	if err != nil {
+		fmt.Println("mq send err: ", err.Error())
+	}
+	fmt.Println("posixmq record end~")
 }
+

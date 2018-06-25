@@ -7,7 +7,6 @@ package transfer
 import (
 	. "drcs/core/interaction/response"
 	"sync"
-	"time"
 )
 
 type NoneTransfer struct {

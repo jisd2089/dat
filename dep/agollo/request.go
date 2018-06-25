@@ -63,7 +63,7 @@ func request(requestUrl string, connectionConfig *ConnectConfig, callBack *CallB
 				return nil, nil
 			}
 		case http.StatusNotModified:
-			logger.Info("Config Not Modified:", err)
+			//logger.Info("Config Not Modified:", err)
 			if callBack != nil && callBack.NotModifyCallBack != nil {
 				return nil, callBack.NotModifyCallBack()
 			} else {

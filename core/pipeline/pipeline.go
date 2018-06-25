@@ -15,6 +15,6 @@ type Pipeline interface {
 	CollectFile(data.FileCell) error //收集文件
 }
 
-func New(df *databox.DataBox) Pipeline {
-	return collector.NewCollector(df)
+func New(b *databox.DataBox) Pipeline {
+	return collector.NewCollector(b)
 }
