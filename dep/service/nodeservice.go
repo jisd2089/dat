@@ -34,10 +34,12 @@ type NodeService struct {
 	sshClient  *SSH.SSHClient
 	SftpClient *sftp.SFTPClient
 	lock       sync.RWMutex
+
 }
 
 func NewNodeService() *NodeService {
-	return &NodeService{}
+	return &NodeService{
+	}
 }
 
 func (s *NodeService) Init() {
@@ -96,7 +98,6 @@ func (s *NodeService) initApollo(configDir string) {
 			err := yaml.Unmarshal([]byte(value), common)
 			if err != nil {
 			}
-
 
 			settings.SetCommonSettings(common)
 		case 1:

@@ -10,6 +10,8 @@ import (
 	//"gopkg.in/redis.v5"
 	"fmt"
 	"sync"
+	"strings"
+	"strconv"
 )
 
 type RedisTransfer struct {
@@ -22,9 +24,10 @@ func NewRedisTransfer() Transfer {
 
 var (
 	redOnce sync.Once
+	redRtOnce sync.Once
 )
 
-// 封装fasthttp服务
+// 封装redis服务
 func (rt *RedisTransfer) ExecuteMethod(req Request) Response {
 	//fmt.Println("RedisTransfer")
 
@@ -35,36 +38,62 @@ func (rt *RedisTransfer) ExecuteMethod(req Request) Response {
 		}
 	}()
 
-	//rt.connect()
+	rt.connect(req)
 
 	var (
 		value     string
 		byteValue []byte
 		values    []string
-		//isExist   bool
-		//err       error
-		retCode   = "000000"
+		isExist   bool
+		retCode = "000000"
+		err        error
+		retryTimes = 0
 	)
 
-	//switch req.GetMethod() {
-	//case "GET_STRING":
-	//	value, err = rt.redisCli.GetString(req.GetPostData())
-	//case "GET_BYTE":
-	//	byteValue, err = rt.redisCli.Get(req.GetPostData())
-	//case "GET_STRINGS":
-	//	values, err = rt.redisCli.Keys(req.GetPostData())
-	//case "EXIST":
-	//	isExist, err = rt.redisCli.HExistString(req.GetPostData())
-	//}
-	//
-	//if err != nil {
-	//	fmt.Println("redis error: ", req.GetPostData())
-	//	return &DataResponse{StatusCode: 400, ReturnCode: "999999"}
-	//}
-	//
-	//if !isExist {
-	//	retCode = "000001"
-	//}
+RETRY:
+	switch req.GetMethod() {
+	case "PING":
+		if err = rt.redisCli.Ping(); err != nil {
+			if retryTimes >= 1 {
+				fmt.Println("redis failed ^^^^^^^^^^^^^^^^^^^^: ")
+				return &DataResponse{
+					StatusCode: 500,
+					ReturnCode: "999999",
+				}
+			}
+			retryTimes ++
+
+			rt.refresh(req)
+			goto RETRY
+		}
+
+		defer func() {
+			redRtOnce = sync.Once{}
+		}()
+
+	case "GET_STRING":
+		value, err = rt.redisCli.GetString(req.GetPostData())
+	case "GET_BYTE":
+		byteValue, err = rt.redisCli.Get(req.GetPostData())
+	case "GET_STRINGS":
+		values, err = rt.redisCli.Keys(req.GetPostData())
+	case "EXIST":
+		isExist, err = rt.redisCli.HExistString(req.GetPostData())
+	}
+
+	if err != nil {
+		fmt.Println("redis error: ", err.Error())
+
+		return &DataResponse{
+			StatusCode: 200,
+			ReturnCode: "000002",
+			ReturnMsg: err.Error(),
+		}
+	}
+
+	if !isExist {
+		retCode = "000001"
+	}
 
 	return &DataResponse{
 		Body:       byteValue,
@@ -73,21 +102,58 @@ func (rt *RedisTransfer) ExecuteMethod(req Request) Response {
 		StatusCode: 200,
 		ReturnCode: retCode,
 	}
-
 }
 
-func (rt *RedisTransfer) connect() {
+func (rt *RedisTransfer) connect(req Request) {
 	redOnce.Do(func() {
-		//options := &redis.Options{
-		//	Addr:     "",
-		//	DB:       6,
-		//	PoolSize: 10,
-		//	// ReadOnly: readOnly,
+		dbIndex, _ := strconv.Atoi(req.Param("redisDB"))
+		//if err != nil {
+		//	return
 		//}
-
-		redisLib.GetRedisClient()
+		redisPoolSize, _ := strconv.Atoi(req.Param("redisPoolSize"))
+		//if err != nil {
+		//	return
+		//}
+		addrStr := req.Param("redisAddrs")
+		addrList := strings.Split(addrStr, ",")
+		o := &redisLib.ConnectOptions{
+			AddressList: addrList,
+			Password:    req.Param("redisPwd"),
+			DBIndex:     dbIndex,
+			PoolSize:    redisPoolSize,
+		}
+		rt.redisCli, _ = redisLib.GetRedisClient(o)
+		//if err != nil {
+		//	return
+		//}
 	})
 }
+
+func (rt *RedisTransfer) refresh(req Request) {
+	redRtOnce.Do(func() {
+		dbIndex, err := strconv.Atoi(req.Param("redisDB"))
+		if err != nil {
+			return
+		}
+		redisPoolSize, err := strconv.Atoi(req.Param("redisPoolSize"))
+		if err != nil {
+			return
+		}
+		addrStr := req.Param("redisAddrs")
+		addrList := strings.Split(addrStr, ",")
+		o := &redisLib.ConnectOptions{
+			AddressList: addrList,
+			Password:    req.Param("redisPwd"),
+			DBIndex:     dbIndex,
+			PoolSize:    redisPoolSize,
+		}
+		rt.redisCli, err = redisLib.GetRedisClient(o)
+		if err != nil {
+			return
+		}
+	})
+}
+
 
 func (rt *RedisTransfer) Close() {
 

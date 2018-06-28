@@ -20,6 +20,7 @@ type Cross struct {
 	fileTsf     transfer.Transfer
 	shellTsf    transfer.Transfer
 	sshTsf      transfer.Transfer
+	redisTsf    transfer.Transfer
 	sync.RWMutex
 }
 
@@ -32,6 +33,7 @@ func NewCross() Carrier {
 		fileTsf:     transfer.NewFileTransfer(),
 		shellTsf:    transfer.NewShellTransfer(),
 		sshTsf:      transfer.NewSshTransfer(),
+		redisTsf:    transfer.NewRedisTransfer(),
 	}
 }
 
@@ -43,6 +45,7 @@ var CrossHandler = &Cross{
 	fileTsf:     transfer.NewFileTransfer(),
 	shellTsf:    transfer.NewShellTransfer(),
 	sshTsf:      transfer.NewSshTransfer(),
+	redisTsf:    transfer.NewRedisTransfer(),
 }
 
 func (c *Cross) Handle(b *databox.DataBox, cReq *request.DataRequest) *databox.Context {
@@ -69,6 +72,8 @@ func (c *Cross) Handle(b *databox.DataBox, cReq *request.DataRequest) *databox.C
 		resp = c.shellTsf.ExecuteMethod(cReq).(*response.DataResponse)
 	case request.SSH:
 		resp = c.sshTsf.ExecuteMethod(cReq).(*response.DataResponse)
+	case request.REDIS:
+		resp = c.redisTsf.ExecuteMethod(cReq).(*response.DataResponse)
 	}
 
 	if resp.GetStatusCode() >= 400 {

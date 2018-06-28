@@ -117,6 +117,11 @@ func execPostFile(req Request, dataResponse *DataResponse) error {
 		bodyWriter.WriteField("dataFiles", p)
 	}
 
+	// 不定参数
+	for _, k := range req.ParamKeys() {
+		bodyWriter.WriteField(k, req.Param(k))
+	}
+
 	contentType := bodyWriter.FormDataContentType()
 	bodyWriter.Close()
 
@@ -143,85 +148,122 @@ func execPostFile(req Request, dataResponse *DataResponse) error {
 }
 
 func execPostFileStream(req Request, dataResponse *DataResponse) error {
-	fileName := req.GetPostData()
+	filePath := req.GetPostData()
 	targetUrl := req.GetUrl()
 
 	timeOut := time.Duration(50) * time.Minute
 
-	//打开文件句柄操作
-	//filePath := path.Join("/home/ddsdev/data/test/sup/send", fileName)
-	filePath := path.Join("D:/dds_send/tmp", fileName)
+	bodyBuf := &bytes.Buffer{}
+	bodyWriter := multipart.NewWriter(bodyBuf)
 
+	//打开文件句柄操作
 	fh, err := os.Open(filePath)
 	defer fh.Close()
 	if err != nil {
 		fmt.Println("error opening file")
+		dataResponse.SetStatusCode(500)
+		dataResponse.ReturnCode = "000000"
 		return err
 	}
+
+	// 文件传输附带参数
+	//for _, p := range req.GetCommandParams() {
+	//	bodyWriter.WriteField("dataFiles", p)
+	//}
+
+	// 不定参数
+	//for _, k := range req.ParamKeys() {
+	//	bodyWriter.WriteField(k, req.Param(k))
+	//
+	//}
+
+	contentType := bodyWriter.FormDataContentType()
+	bodyWriter.Close()
 
 	freq := fasthttp.AcquireRequest()
 	fresp := fasthttp.AcquireResponse()
 	defer fasthttp.ReleaseRequest(freq)
 	defer fasthttp.ReleaseResponse(fresp)
 
+	freq.Header.SetContentType(contentType)
 	freq.Header.SetMethod("POST")
 	freq.SetRequestURI(targetUrl)
+	//freq.SetBody(bodyBuf.Bytes())
+
+	freq.Header.Set("dataFile", path.Base(filePath))
+
+	// 不定参数
+	for _, k := range req.ParamKeys() {
+		freq.Header.Set(k, req.Param(k))
+	}
+
+	writeFlag := 1 // 0:buf 1:line
 
 	freq.SetBodyStreamWriter(func(w *bufio.Writer) {
 		buf := bufio.NewReader(fh)
-		//rows := 0
-		//lineCnt := ""
 
-		bufCnt := make([]byte, 104857600)
-		//
-		//buf.Read(bufCnt)
-		//fmt.Fprintf(w, string(bufCnt))
-		//// Do not forget flushing streamed data to the client.
-		//if err := w.Flush(); err != nil {
-		//	return
-		//}
-
-		for {
-			//line, err := buf.ReadString('\n')
-			nr, err := buf.Read(bufCnt)
-			//line, _, err := buf.ReadLine()
-			//lineStr := string(line) + "\n"
-			if err == io.EOF || err != nil {
-				//fmt.Println("file end ###############################")
-				break
-			}
-			if nr > 0 {
-
-				//rows ++
-				//fmt.Println(rows)
-				//
-				//lineCnt += lineStr
-				//
-				//if rows % 1000 == 0 {
-				fmt.Fprintf(w, string(bufCnt))
-				//lineCnt = ""
-				// Do not forget flushing streamed data to the client.
-				if err := w.Flush(); err != nil {
-					return
+		switch writeFlag {
+		case 0:
+			bufCnt := make([]byte, 1024)
+			for {
+				nr, err := buf.Read(bufCnt)
+				if err == io.EOF || err != nil {
+					//fmt.Println("file end ###############################")
+					break
 				}
-				//time.Sleep(10 * time.Millisecond)
-				//}
+				if nr > 0 {
+					fmt.Fprintf(w, string(bufCnt))
+					// Do not forget flushing streamed data to the client.
+					if err := w.Flush(); err != nil {
+						return
+					}
+				}
+			}
+		case 1:
+			lineCnt := 100
+			cntBuf := &bytes.Buffer{}
+			c := lineCnt
+			for {
+				c--
+				line, _, err := buf.ReadLine()
+
+				if err != nil {
+					if err == io.EOF && cntBuf.Len() == 0 {
+						break
+					} else if err == io.EOF && cntBuf.Len() > 0 {
+						fmt.Fprintf(w, cntBuf.String()[:len(cntBuf.String())-1])
+						// Do not forget flushing streamed data to the client.
+						if err := w.Flush(); err != nil {
+							return
+						}
+						break
+					} else {
+						return
+					}
+				}
+
+				cntBuf.Write(line)
+				cntBuf.WriteByte('\n')
+
+				if c == 0 {
+
+					fmt.Fprintf(w, cntBuf.String())
+					// Do not forget flushing streamed data to the client.
+					if err := w.Flush(); err != nil {
+						return
+					}
+
+					c = lineCnt
+					cntBuf.Reset()
+				}
 			}
 		}
-
-		//for i := 0; i < 10; i++ {
-		//	fmt.Fprintf(w, "this is a message number %d", i)
-		//
-		//	// Do not forget flushing streamed data to the client.
-		//	if err := w.Flush(); err != nil {
-		//		return
-		//	}
-		//	time.Sleep(time.Second)
-		//}
 	})
 
 	err = fasthttp.DoTimeout(freq, fresp, timeOut)
 	if err != nil {
+		dataResponse.SetStatusCode(500)
+		dataResponse.ReturnCode = "000000"
 		return err
 	}
 
@@ -230,9 +272,7 @@ func execPostFileStream(req Request, dataResponse *DataResponse) error {
 	return nil
 }
 
-func (ft *FastTransfer) Close() {
-
-}
+func (ft *FastTransfer) Close() {}
 
 var (
 	_clientMutex sync.RWMutex

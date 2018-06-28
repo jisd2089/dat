@@ -14,6 +14,12 @@ import (
 	"drcs/core/interaction/request"
 	st "drcs/settings"
 	"path/filepath"
+	"drcs/dep/nodelib"
+	"path"
+	"bytes"
+	"github.com/valyala/fasthttp"
+	"drcs/core/databox"
+	"fmt"
 )
 
 type DepService struct {
@@ -21,6 +27,17 @@ type DepService struct {
 	JobId     string
 	PartnerId string
 	lock      sync.RWMutex
+}
+
+type BatchParams struct {
+	SeqNo     []byte
+	TaskId    []byte
+	UserId    []byte
+	JobId     []byte
+	IdType    []byte
+	DataRange []byte
+	MaxDelay  []byte
+	MD5       []byte
 }
 
 func NewDepService() *DepService {
@@ -119,4 +136,131 @@ func runDataBox(addrs []*Dest, boxName string, nodeMemberId string, fsAddress *r
 
 		setDataBoxQueue(b)
 	}
+}
+
+// 处理批量配送
+func (s *DepService) ProcessBatchDis(reqFilePath string) {
+
+	reqFileName := path.Base(reqFilePath)
+
+	dataFileName := &nodelib.DataFileName{}
+	if err := dataFileName.ParseAndValidFileName(reqFileName); err != nil {
+		logger.Error("Parse and valid fileName: [%s] error: %s", reqFileName, err)
+		return
+	}
+
+	//prefixName := dataFileName.GetPrefixName()
+	jobId := dataFileName.JobId
+	idType := dataFileName.IdType
+	batchNo := dataFileName.BatchNo
+	fileNo := dataFileName.FileNo
+
+	common := st.GetCommonSettings()
+	logger.Info("common setting", common)
+
+	fsAddress := &request.FileServerAddress{
+		Host:      common.Sftp.Hosts,
+		Port:      common.Sftp.Port,
+		UserName:  common.Sftp.Username,
+		Password:  common.Sftp.Password,
+		TimeOut:   common.Sftp.DefualtTimeout,
+		LocalDir:  common.Sftp.LocalDir,
+		RemoteDir: common.Sftp.RemoteDir,
+	}
+
+	boxName := "batch_sup_send"
+	//boxName := "batch_dem_send"
+	b := assetnode.AssetNodeEntity.GetDataBoxByName(boxName)
+	if b == nil {
+		logger.Error("databox is nil!")
+		return
+	}
+	b.SetDataFilePath(reqFilePath)
+	b.SetParam("jobId", jobId)
+	b.SetParam("idType", idType)
+	b.SetParam("batchNo", batchNo)
+	b.SetParam("fileNo", fileNo)
+	b.SetParam("NodeMemberId", common.Node.MemberId)
+
+	b.FileServerAddress = fsAddress
+
+	setDataBoxQueue(b)
+}
+
+// 处理批量配送
+func (s *DepService) ProcessBatchRcv(ctx *fasthttp.RequestCtx) {
+
+	boxName := "batch_sup_rcv"
+	b := assetnode.AssetNodeEntity.GetDataBoxByName(boxName)
+	if b == nil {
+		logger.Error("databox is nil!")
+		return
+	}
+
+	setRcvParams(ctx, b)
+
+	b.SetDataFilePath(string(ctx.Request.Header.Peek("dataFile")))
+
+}
+
+func setRcvParams(ctx *fasthttp.RequestCtx, b *databox.DataBox) {
+
+	batchParams := &BatchParams{
+		SeqNo:     ctx.Request.Header.Peek("seqNo"),
+		JobId:     ctx.Request.Header.Peek("orderId"),
+		TaskId:    ctx.Request.Header.Peek("taskId"),
+		UserId:    ctx.Request.Header.Peek("userId"),
+		IdType:    ctx.Request.Header.Peek("idType"),
+		DataRange: ctx.Request.Header.Peek("dataRange"),
+		MaxDelay:  ctx.Request.Header.Peek("maxDelay"),
+		MD5:       ctx.Request.Header.Peek("md5"),
+	}
+
+	if err := checkRcvParams(batchParams); err != nil {
+		return
+	}
+
+	b.SetParam("seqNo", string(batchParams.SeqNo))
+	b.SetParam("taskId", string(batchParams.TaskId))
+	b.SetParam("orderId", string(batchParams.JobId))
+	b.SetParam("userId", string(batchParams.UserId))
+	b.SetParam("idType", string(batchParams.IdType))
+	b.SetParam("dataRange", string(batchParams.DataRange))
+	b.SetParam("maxDelay", string(batchParams.MaxDelay))
+	b.SetParam("md5", string(batchParams.MD5))
+
+}
+
+func checkRcvParams(p *BatchParams) error {
+
+	var errMsg bytes.Buffer
+	if len(p.SeqNo) == 0 {
+		errMsg.WriteString("[seqNo]")
+	}
+	if len(p.TaskId) == 0 {
+		errMsg.WriteString("[taskId]")
+	}
+	if len(p.JobId) == 0 {
+		errMsg.WriteString("[jobId]")
+	}
+	if len(p.IdType) == 0 {
+		errMsg.WriteString("[idType]")
+	}
+	if len(p.UserId) == 0 {
+		errMsg.WriteString("[userId]")
+	}
+	if len(p.DataRange) == 0 {
+		errMsg.WriteString("[dataRange]")
+	}
+	if len(p.MaxDelay) == 0 {
+		errMsg.WriteString("[maxDelay]")
+	}
+	if len(p.MD5) == 0 {
+		errMsg.WriteString("[md5]")
+	}
+	if len(errMsg.String()) != 0 {
+		return fmt.Errorf(" params %s missing", errMsg.String())
+	}
+
+	return nil
 }

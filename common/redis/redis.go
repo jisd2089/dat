@@ -7,7 +7,6 @@ package redis
 import (
 	"gopkg.in/redis.v5"
 	"time"
-	"strings"
 	"sync"
 	"fmt"
 )
@@ -29,6 +28,7 @@ type (
 		PipeLineSetString(kvs []PipeKeyValue) error
 		ConfigSet(password string) error
 		Auth(password string) error
+		Ping() error
 	}
 	redisClient struct {
 		isSingle      bool                 // 是否为单节点
@@ -40,20 +40,27 @@ type (
 		Value      string
 		Expiration time.Duration
 	}
+	ConnectOptions struct {
+		AddressList []string
+		Password    string
+		DBIndex     int
+		PoolSize    int
+	}
 )
 
 const (
 	settings_xpath_addr     = "redis.Addr"
 	settings_xpath_db       = "redis.DB"
 	settings_xpath_poolsize = "redis.PoolSize"
-	setting_password        = "2d6hwi22oM3KUyhd"
+	password_default        = "2d6hwi22oM3KUyhd"
+	poolsize_default        = 16
 	//settings_xpath_readonly = "redis.ReadOnly"
 )
 
 var (
-	redisCli        RedisClient
-	once            sync.Once
-	mutex           sync.Mutex
+	redisCli RedisClient
+	once     sync.Once
+	mutex    sync.Mutex
 )
 
 func NewRedisClient(opts *redis.Options) RedisClient {
@@ -70,84 +77,86 @@ func NewRedisClusterClient(opts *redis.ClusterOptions) RedisClient {
 	}
 }
 
-func GetRedisClient() RedisClient {
-	once.Do(func() {
-		mutex.Lock()
-		defer mutex.Unlock()
-		opts, err := connect(false)
-		if err != nil {
-
-		}
-		redisClient := NewRedisClient(opts.(*redis.Options))
-		if err = redisClient.ConfigSet(setting_password); err != nil {
-			opts, _ = connect(true)
-			redisClient = NewRedisClient(opts.(*redis.Options))
-		}
-		if err = redisClient.Auth(setting_password); err != nil {
-			redisCli = nil
-		} else {
-			redisCli = redisClient
-		}
-	})
-	return redisCli
-}
-
-func GetRedisClusterClient() RedisClient {
-	once.Do(func() {
-		mutex.Lock()
-		defer mutex.Unlock()
-		opts, err := connect(false)
-		if err != nil {
-
-		}
-		redisClient := NewRedisClusterClient(opts.(*redis.ClusterOptions))
-		if err = redisClient.ConfigSet(setting_password); err != nil {
-			opts, _ = connect(true)
-			redisClient = NewRedisClusterClient(opts.(*redis.ClusterOptions))
-		}
-		if err = redisClient.Auth(setting_password); err != nil {
-			redisCli = nil
-		} else {
-			redisCli = redisClient
-		}
-	})
-	return redisCli
-}
-
-func connect(needAuth bool) (interface{}, error) {
-
-	addrs := ""
-	if addrs == "" {
-		return nil, fmt.Errorf("addrs is nil")
+func GetRedisClient(o *ConnectOptions) (RedisClient, error) {
+	mutex.Lock()
+	defer mutex.Unlock()
+	opts, err := connect(o, false)
+	if err != nil {
+		return nil, err
 	}
-	poolSize := 16
+	redisClient := NewRedisClient(opts.(*redis.Options))
+	password := o.Password
+	if password == "" {
+		password = password_default
+	}
+	if err = redisClient.ConfigSet(password); err != nil {
+		opts, _ = connect(o, true)
+		redisClient = NewRedisClient(opts.(*redis.Options))
+	}
+	if err = redisClient.Auth(password); err != nil {
+		fmt.Println("redis err: ", err.Error())
+		return nil, err
+	}
+	return redisClient, nil
+}
+
+func GetRedisClusterClient(o *ConnectOptions) (RedisClient, error) {
+	mutex.Lock()
+	defer mutex.Unlock()
+	opts, err := connect(o, false)
+	if err != nil {
+		return nil, err
+	}
+	password := o.Password
+	if password == "" {
+		password = password_default
+	}
+	redisClient := NewRedisClusterClient(opts.(*redis.ClusterOptions))
+	if err = redisClient.ConfigSet(password); err != nil {
+		opts, _ = connect(o, true)
+		redisClient = NewRedisClusterClient(opts.(*redis.ClusterOptions))
+	}
+	if err = redisClient.Auth(password); err != nil {
+		return nil, err
+	}
+	return redisClient, nil
+}
+
+func connect(connectOpts *ConnectOptions, needAuth bool) (interface{}, error) {
+	if len(connectOpts.AddressList) == 0 {
+		return nil, fmt.Errorf("redis addrs is nil")
+	}
+	poolSize := connectOpts.PoolSize
 	if poolSize == 0 {
-		poolSize = 16
+		poolSize = poolsize_default
 	}
-	password := ""
-	if needAuth {
-		password = "2d6hwi22oM3KUyhd"
-	}
-	addr := strings.Split(addrs, ",")
+	addr := connectOpts.AddressList
 	switch len(addr) {
 	case 1:
-		db := 1
 		opts := &redis.Options{
 			Addr:         addr[0],
-			DB:           db,
-			Password:     password,
+			DB:           connectOpts.DBIndex,
 			PoolSize:     poolSize,
 			DialTimeout:  time.Second * time.Duration(10),
 			WriteTimeout: time.Second * time.Duration(10),
 			ReadTimeout:  time.Second * time.Duration(10),
+		}
+		if needAuth && connectOpts.Password != "" {
+			opts.Password = connectOpts.Password
+		} else if needAuth && connectOpts.Password == "" {
+			opts.Password = password_default
 		}
 		return opts, nil
 
 	default:
 		opts := &redis.ClusterOptions{
 			Addrs:    addr,
-			Password: password,
 			PoolSize: poolSize,
+		}
+		if needAuth && connectOpts.Password != "" {
+			opts.Password = connectOpts.Password
+		} else if needAuth && connectOpts.Password == "" {
+			opts.Password = password_default
 		}
 		return opts, nil
 	}
@@ -331,6 +340,16 @@ func (rc *redisClient) Auth(password string) error {
 			pipe.Auth(password)
 			return nil
 		})
+	}
+	return err
+}
+
+func (rc *redisClient) Ping() error {
+	var err error
+	if rc.isSingle {
+		_, err = rc.client.Ping().Result()
+	} else {
+		_, err = rc.clusterClient.Ping().Result()
 	}
 	return err
 }

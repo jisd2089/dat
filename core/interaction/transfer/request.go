@@ -39,6 +39,11 @@ type (
 		GetCommandName() string
 		GetCommandParams() []string
 		GetCommandLine() string
+
+		Param(key string) string
+		ParamKeys() []string
+		SetParam(key, val string)
+		ResetParams()
 		// http header
 		GetHeader() http.Header
 		// enable http cookies

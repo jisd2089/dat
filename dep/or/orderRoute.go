@@ -17,11 +17,11 @@ import (
 )
 
 var (
-	orderRoutePolicyMap map[string]*OrderRoutePolicy
+	OrderRoutePolicyMap map[string]*OrderRoutePolicy
 )
 
 func init() {
-	orderRoutePolicyMap = make(map[string]*OrderRoutePolicy)
+	OrderRoutePolicyMap = make(map[string]*OrderRoutePolicy)
 }
 
 type Head struct {
@@ -330,14 +330,14 @@ func (or *OrderRoute) LoadOrderRouteMap(jobId string) (*errors.MeanfulError) {
 
 	or.mu.RLock()
 	defer or.mu.RUnlock()
-	orderRoutePolicyMap[jobId] = policy
+	OrderRoutePolicyMap[jobId] = policy
 
 	return nil
 }
 
-func GetOrderRoutePolicyMap() map[string]*OrderRoutePolicy {
-	return orderRoutePolicyMap
-}
+//func GetOrderRoutePolicyMap() map[string]*OrderRoutePolicy {
+//	return OrderRoutePolicyMap
+//}
 
 //初始化目录下所有OrderRouteFile
 func InitOrderRouteFile() {

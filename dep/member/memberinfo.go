@@ -1,5 +1,9 @@
 package member
 
+import (
+	"fmt"
+)
+
 /**
     Author: luzequan
     Created: 2018-05-08 18:11:25
@@ -7,15 +11,16 @@ package member
 var (
 	memberInfos  *MemberInfoList
 	partnersInfo *PartnerInfoList
+	partnersMap  map[string]*MemberDetailInfo
 )
 
 type MemberInfoList struct {
-	Head             *Head              `xml:"head"`
+	Head             *Head             `xml:"head"`
 	MemberDetailList *MemberDetailList `xml:"member_dtl_list"`
 }
 
 type PartnerInfoList struct {
-	Head              *Head               `xml:"head"`
+	Head              *Head              `xml:"head"`
 	PartnerDetailList *PartnerDetailList `xml:"partner_dtl_list"`
 }
 
@@ -58,9 +63,20 @@ func GetMemberInfoList() *MemberInfoList {
 
 func SetPartnersInfo(partnersInfoList *PartnerInfoList) *PartnerInfoList {
 	partnersInfo = partnersInfoList
+	partnersMap = make(map[string]*MemberDetailInfo)
+	for _, p := range partnersInfo.PartnerDetailList.PartnerDetailInfo {
+		partnersMap[p.MemberId] = p
+	}
 	return partnersInfo
 }
 
 func GetPartnersInfo() *PartnerInfoList {
 	return partnersInfo
+}
+
+func GetPartnerInfoById(memberId string) (*MemberDetailInfo, error) {
+	if p, ok := partnersMap[memberId]; ok {
+		return p, nil
+	}
+	return nil, fmt.Errorf("member[%s] is not partner", memberId)
 }

@@ -19,6 +19,7 @@ import (
 	"path"
 	"drcs/core/interaction/request"
 	"drcs/dep/service"
+	"bytes"
 )
 
 /**
@@ -263,4 +264,37 @@ func (n *NodeHandler) RcvAlg(ctx *fasthttp.RequestCtx) {
 
 func (n *NodeHandler) RunProcess(ctx *fasthttp.RequestCtx) {
 	service.NewDepService().Process()
+}
+
+func (n *NodeHandler) RunBatchProcess(ctx *fasthttp.RequestCtx) {
+	reqFilePath := string(ctx.FormValue("reqFilePath"))
+	service.NewDepService().ProcessBatchDis(reqFilePath)
+}
+
+func (n *NodeHandler) RunBatchRcv(ctx *fasthttp.RequestCtx) {
+
+	if len(ctx.Request.Header.Peek("dataFile")) == 0 {
+
+		return
+	}
+	dataFile := string(ctx.Request.Header.Peek("dataFile"))
+	logger.Info("filePath***********: ", dataFile)
+
+	common := GetCommonSettings()
+	//hdfsInputDir := common.Hdfs.InputDir
+	//hdfsOutputDir := common.Hdfs.OutputDir
+	targetFileDir := common.Sftp.LocalDir
+
+	targetFilePath := path.Join(targetFileDir, dataFile)
+
+	targetFile, err := os.OpenFile(targetFilePath, os.O_WRONLY|os.O_CREATE, 0644)
+	defer targetFile.Close()
+	if err != nil {
+		logger.Error("open target file err:", err)
+		return
+	}
+
+	io.Copy(targetFile, bytes.NewReader(ctx.Request.Body()))
+
+	service.NewDepService().ProcessBatchRcv(ctx)
 }

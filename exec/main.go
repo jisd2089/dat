@@ -8,6 +8,7 @@ import (
 	"drcs/exec/web"
 
 	_ "drcs/dep/nodelib/dep"
+	_ "drcs/dep/nodelib/batchdistribution"
 )
 
 func main() {

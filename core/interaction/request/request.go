@@ -49,9 +49,11 @@ type DataRequest struct {
 	DownloaderID int
 	TimeOutCh    chan string // 超时channel
 
-	proxy  string //当用户界面设置可使用代理IP时，自动设置代理
-	unique string //ID
-	lock   sync.RWMutex
+	rnames  []string // 不定参数key
+	rvalues []string // 不定参数value
+	proxy   string   //当用户界面设置可使用代理IP时，自动设置代理
+	unique  string   //ID
+	lock    sync.RWMutex
 }
 
 const (
@@ -59,6 +61,7 @@ const (
 	DefaultConnTimeout = 1 * time.Minute // 默认下载超时
 	DefaultTryTimes    = 3               // 默认最大下载次数
 	DefaultRetryPause  = 2 * time.Second // 默认重新下载前停顿时长
+	maxParam           = 50              // 最大不定参数数量
 )
 
 const (
@@ -143,6 +146,7 @@ func (self *DataRequest) Prepare() error {
 	if self.Temp == nil {
 		self.Temp = make(Temp)
 	}
+
 	return nil
 }
 
@@ -403,6 +407,36 @@ func (dq *DataRequest) GetCommandParams() []string {
 
 func (dq *DataRequest) GetCommandLine() string {
 	return strings.Join(dq.CommandParams, " ")
+}
+
+func (dq *DataRequest) Param(key string) string {
+	for i, v := range dq.rnames {
+		if v == key && i <= len(dq.rvalues) {
+			return dq.rvalues[i]
+		}
+	}
+	return ""
+}
+
+func (dq *DataRequest) ParamKeys() []string {
+	return dq.rnames
+}
+
+func (dq *DataRequest) SetParam(key, val string) {
+	// check if already exists
+	for i, v := range dq.rnames {
+		if v == key && i <= len(dq.rvalues) {
+			dq.rvalues[i] = val
+			return
+		}
+	}
+	dq.rvalues = append(dq.rvalues, val)
+	dq.rnames = append(dq.rnames, key)
+}
+
+func (dq *DataRequest) ResetParams() {
+	dq.rnames = dq.rnames[:0]
+	dq.rvalues = dq.rvalues[:0]
 }
 
 func (self *DataRequest) MarshalJSON() ([]byte, error) {
