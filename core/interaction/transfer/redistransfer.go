@@ -57,7 +57,7 @@ RETRY:
 			if retryTimes >= 1 {
 				fmt.Println("redis failed ^^^^^^^^^^^^^^^^^^^^: ")
 				return &DataResponse{
-					StatusCode: 500,
+					StatusCode: 200,
 					ReturnCode: "999999",
 				}
 			}
@@ -73,12 +73,19 @@ RETRY:
 
 	case "GET_STRING":
 		value, err = rt.redisCli.GetString(req.GetPostData())
+	case "HGET_STRING":
+		value, err = rt.redisCli.HGetString(req.Param("key"), req.Param("field"))
+	case "HSET_STRING":
+		err = rt.redisCli.HSetString(req.Param("key"), req.Param("field"), req.Param("value"))
 	case "GET_BYTE":
 		byteValue, err = rt.redisCli.Get(req.GetPostData())
 	case "GET_STRINGS":
 		values, err = rt.redisCli.Keys(req.GetPostData())
 	case "EXIST":
 		isExist, err = rt.redisCli.HExistString(req.GetPostData())
+		if !isExist {
+			retCode = "000001"
+		}
 	}
 
 	if err != nil {
@@ -89,10 +96,6 @@ RETRY:
 			ReturnCode: "000002",
 			ReturnMsg: err.Error(),
 		}
-	}
-
-	if !isExist {
-		retCode = "000001"
 	}
 
 	return &DataResponse{

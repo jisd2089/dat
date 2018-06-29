@@ -168,8 +168,8 @@ func (s *DepService) ProcessBatchDis(reqFilePath string) {
 		RemoteDir: common.Sftp.RemoteDir,
 	}
 
-	boxName := "batch_sup_send"
-	//boxName := "batch_dem_send"
+	//boxName := "batch_sup_send"
+	boxName := "batch_dem_send"
 	b := assetnode.AssetNodeEntity.GetDataBoxByName(boxName)
 	if b == nil {
 		logger.Error("databox is nil!")
@@ -188,7 +188,15 @@ func (s *DepService) ProcessBatchDis(reqFilePath string) {
 }
 
 // 处理批量配送
-func (s *DepService) ProcessBatchRcv(ctx *fasthttp.RequestCtx) {
+func (s *DepService) ProcessBatchRcv(ctx *fasthttp.RequestCtx, targetFilePath string) {
+
+	respFileName := path.Base(targetFilePath)
+
+	dataFileName := &nodelib.DataFileName{}
+	if err := dataFileName.ParseAndValidFileName(respFileName); err != nil {
+		logger.Error("Parse and valid fileName: [%s] error: %s", respFileName, err)
+		return
+	}
 
 	boxName := "batch_sup_rcv"
 	b := assetnode.AssetNodeEntity.GetDataBoxByName(boxName)
@@ -199,7 +207,26 @@ func (s *DepService) ProcessBatchRcv(ctx *fasthttp.RequestCtx) {
 
 	setRcvParams(ctx, b)
 
-	b.SetDataFilePath(string(ctx.Request.Header.Peek("dataFile")))
+	common := st.GetCommonSettings()
+	logger.Info("common setting", common)
+
+	fsAddress := &request.FileServerAddress{
+		Host:      common.Sftp.Hosts,
+		Port:      common.Sftp.Port,
+		UserName:  common.Sftp.Username,
+		Password:  common.Sftp.Password,
+		TimeOut:   common.Sftp.DefualtTimeout,
+		LocalDir:  common.Sftp.LocalDir,
+		RemoteDir: common.Sftp.RemoteDir,
+	}
+
+	b.SetDataFilePath(targetFilePath)
+	b.FileServerAddress = fsAddress
+	b.SetParam("jobId", dataFileName.JobId)
+	b.SetParam("batchNo", dataFileName.BatchNo)
+	b.SetParam("fileNo", dataFileName.FileNo)
+
+	setDataBoxQueue(b)
 
 }
 

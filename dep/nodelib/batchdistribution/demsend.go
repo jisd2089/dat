@@ -20,8 +20,6 @@ import (
 	"os"
 	"io"
 	"crypto/md5"
-	"bufio"
-	"bytes"
 )
 
 func init() {
@@ -215,47 +213,12 @@ func staticRouteSendPreFunc(ctx *Context) {
 }
 
 func getMD5beforeSend(ctx *Context, nextRule string, batchRequest *BatchRequest) {
-	dataFilePath := ctx.GetDataBox().DataFilePath
 
-	dataFile, err := os.Open(dataFilePath)
-	defer dataFile.Close()
+	md5Str, err := getMD5(ctx.GetDataBox().DataFilePath)
 	if err != nil {
 		errEnd(ctx)
 		return
 	}
-
-	buf := bufio.NewReader(dataFile)
-
-	md5Hash := md5.New()
-	lineCnt := 300
-	cntBuf := &bytes.Buffer{}
-	c := lineCnt
-	for {
-		c--
-		line, _, err := buf.ReadLine()
-		if (err != nil || err == io.EOF) && cntBuf.Len() == 0 {
-			//fmt.Println("file end ###############################")
-			break
-		}
-
-		if (err != nil || err == io.EOF) && cntBuf.Len() > 0 {
-			md5Hash.Write(cntBuf.Bytes())
-			break
-		}
-
-		cntBuf.Write(line)
-		cntBuf.WriteByte('\n')
-
-		if c == 0 {
-
-			md5Hash.Write(cntBuf.Bytes())
-
-			c = lineCnt
-			cntBuf.Reset()
-		}
-	}
-
-	md5Str := fmt.Sprintf("%x", md5Hash.Sum(nil))
 
 	fmt.Println("rcv md5: ", md5Str)
 
@@ -370,7 +333,7 @@ func staticRouteSendFunc(ctx *Context) {
 			//TransferType: request.NONETYPE, // TEST
 			TransferType: request.FASTHTTP,
 			//Url:          targetUrl,
-			Url:        "http://127.0.0.1:8096/api/dem/rec",
+			Url:        "http://127.0.0.1:8096/api/rcv/batch",
 			Method:     "FILESTREAM",
 			Priority:   1,
 			PostData:   ctx.GetDataBox().DataFilePath,

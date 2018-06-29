@@ -10,11 +10,9 @@ import (
 	. "drcs/core/databox"
 	"drcs/runtime/status"
 	"fmt"
-	"crypto/md5"
 	"os"
 	"io"
 	"bufio"
-	"bytes"
 	"strings"
 	"time"
 	"drcs/common/sftp"
@@ -35,10 +33,13 @@ var BATCH_SUP_RCV = &DataBox{
 				ParseFunc: checkMD5Func,
 			},
 			"pingRedis": {
-				ParseFunc: pingRedisFunc,
+				ParseFunc: rcvPingRedisFunc,
 			},
 			"pushToServer": {
 				ParseFunc: pushToServerFunc,
+			},
+			"saveSeqNo": {
+				ParseFunc: saveSeqNoFunc,
 			},
 			"sendRecord": {
 				ParseFunc: sendRcvRecordFunc,
@@ -64,48 +65,12 @@ func batchSupRcvRootFunc(ctx *Context) {
 func checkMD5Func(ctx *Context) {
 	fmt.Println("batchSupRcvRootFunc ...")
 
-	dataFilePath := ctx.GetDataBox().DataFilePath
+	md5Str, err := getMD5(ctx.GetDataBox().DataFilePath)
 
-	dataFile, err := os.Open(dataFilePath)
-	defer dataFile.Close()
 	if err != nil {
+		errEnd(ctx)
 		return
 	}
-
-	buf := bufio.NewReader(dataFile)
-
-	md5Hash := md5.New()
-	lineCnt := 300
-	cntBuf := &bytes.Buffer{}
-	c := lineCnt
-	for {
-		c--
-		line, _, err := buf.ReadLine()
-		if err != nil {
-			if err == io.EOF && cntBuf.Len() == 0 {
-				break
-			} else if err == io.EOF && cntBuf.Len() > 0 {
-				md5Hash.Write(cntBuf.Bytes())
-				break
-			} else {
-				errEnd(ctx)
-				return
-			}
-		}
-
-		cntBuf.Write(line)
-		cntBuf.WriteByte('\n')
-
-		if c == 0 {
-
-			md5Hash.Write(cntBuf.Bytes())
-
-			c = lineCnt
-			cntBuf.Reset()
-		}
-	}
-
-	md5Str := fmt.Sprintf("%x", md5Hash.Sum(nil))
 
 	if !strings.EqualFold(ctx.GetDataBox().Param("md5"), md5Str) {
 		errEnd(ctx)
@@ -113,15 +78,35 @@ func checkMD5Func(ctx *Context) {
 	}
 
 	ctx.AddQueue(&request.DataRequest{
-		Rule:         "pushToServer",
+		Rule:         "pingRedis",
 		Method:       "PUT",
 		TransferType: request.NONETYPE,
 		Reloadable:   true,
 	})
 }
 
+func rcvPingRedisFunc(ctx *Context) {
+	fmt.Println("rcvPingRedisFunc ...")
+
+	dr := &request.DataRequest{
+		Rule:         "pushToServer",
+		Method:       "PING",
+		TransferType: request.REDIS,
+		Reloadable:   true,
+	}
+
+	dr.SetParam("redisAddrs", "10.101.12.45:6379")
+
+	ctx.AddQueue(dr)
+}
+
 func pushToServerFunc(ctx *Context) {
 	fmt.Println("pushToServerFunc ...")
+
+	if ctx.DataResponse.StatusCode == 200 && !strings.EqualFold(ctx.DataResponse.ReturnCode, "000000") {
+		errEnd(ctx)
+		return
+	}
 
 	fsAddress := ctx.GetDataBox().FileServerAddress
 	filePath := ctx.GetDataBox().GetDataFilePath()
@@ -141,16 +126,46 @@ func pushToServerFunc(ctx *Context) {
 	}
 
 	ctx.AddQueue(&request.DataRequest{
-		Rule:         "sendRecord",
+		Rule:         "saveSeqNo",
 		Method:       "PUT",
-		TransferType: request.SFTP,
+		TransferType: request.NONETYPE,
+		//TransferType: request.SFTP,
 		FileCatalog:  fileCatalog,
 		Reloadable:   true,
 	})
 }
 
+func saveSeqNoFunc(ctx *Context) {
+	fmt.Println("sendRcvRecordFunc ...")
+
+	r := &request.DataRequest{
+		Rule:         "sendRecord",
+		Method:       "HSET_STRING",
+		TransferType: request.REDIS,
+		Reloadable:   true,
+	}
+
+	jobId := ctx.GetDataBox().Param("jobId")
+	idType := ctx.GetDataBox().Param("idType")
+	batchNo := ctx.GetDataBox().Param("batchNo")
+	fileNo := ctx.GetDataBox().Param("fileNo")
+
+	key := jobId + "_" + idType + "_" + batchNo + "_" + fileNo
+
+	r.SetParam("key", key)
+	r.SetParam("field", "seqNo")
+	r.SetParam("value", ctx.GetDataBox().Param("seqNo"))
+
+	ctx.AddQueue(r)
+}
+
 func sendRcvRecordFunc(ctx *Context) {
 	fmt.Println("sendRcvRecordFunc ...")
+
+	if ctx.DataResponse.StatusCode == 200 && !strings.EqualFold(ctx.DataResponse.ReturnCode, "000000") {
+		errEnd(ctx)
+		return
+	}
 
 	dataFilePath := ctx.GetDataBox().GetDataFilePath()
 
@@ -181,12 +196,13 @@ func sendRcvRecordFunc(ctx *Context) {
 			continue
 		}
 
+
 		ctx.Output(map[string]interface{}{
-			"exID":       line,
-			"demMemID":   batchRequestInfo.UserId,
+			"exID":       string(line),
+			"demMemID":   ctx.GetDataBox().Param("UserId"),
 			"supMemID":   "0000140",
-			"taskID":     strings.Replace(batchRequestInfo.TaskId, "|@|", ".", -1),
-			"seqNo":      batchRequestInfo.SeqNo,
+			"taskID":     strings.Replace(ctx.GetDataBox().Param("TaskId"), "|@|", ".", -1),
+			"seqNo":      ctx.GetDataBox().Param("seqNo"),
 			"dmpSeqNo":   "",
 			"recordType": "2",
 			"succCount":  "0.0.0",
@@ -201,3 +217,6 @@ func sendRcvRecordFunc(ctx *Context) {
 	defer ctx.GetDataBox().CloseRequestChan()
 
 }
+
+
+

@@ -45,6 +45,16 @@ func Run() {
 	httpServer.Run()
 }
 
+func RunTest(port int) {
+
+	service.NewNodeService().Init()
+
+	assetnode.AssetNodeEntity.Init().Run()
+
+	httpServer := &HttpServer{}
+	httpServer.RunTest(port)
+}
+
 func appInit() {
 	//app.LogicApp.SetLog(Lsc).SetAppConf("Mode", cache.Task.Mode)
 

@@ -10,13 +10,12 @@ import (
 
 	_ "drcs/dep/nodelib/demanderonly"
 	_ "drcs/dep/nodelib/dep"
+	_ "drcs/dep/nodelib/batchdistribution"
 
 	"fmt"
 	"strconv"
 	"reflect"
 	"time"
-	"path/filepath"
-	"os"
 )
 
 //func init() {
@@ -27,16 +26,12 @@ import (
 
 func TestDemRun(t *testing.T) {
 
-	dir, err := filepath.Abs(filepath.Dir(os.Args[0]))
-	if err != nil {
-	}
-	fmt.Println("current dir: " + dir)
-
-	Run()
+	RunTest(8095)
 }
 
 func TestSupRun(t *testing.T) {
-	Run()
+
+	RunTest(8096)
 }
 
 

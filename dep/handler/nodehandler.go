@@ -284,6 +284,7 @@ func (n *NodeHandler) RunBatchRcv(ctx *fasthttp.RequestCtx) {
 	//hdfsInputDir := common.Hdfs.InputDir
 	//hdfsOutputDir := common.Hdfs.OutputDir
 	targetFileDir := common.Sftp.LocalDir
+	targetFileDir = "D:/dds_receive/tmp"
 
 	targetFilePath := path.Join(targetFileDir, dataFile)
 
@@ -296,5 +297,5 @@ func (n *NodeHandler) RunBatchRcv(ctx *fasthttp.RequestCtx) {
 
 	io.Copy(targetFile, bytes.NewReader(ctx.Request.Body()))
 
-	service.NewDepService().ProcessBatchRcv(ctx)
+	service.NewDepService().ProcessBatchRcv(ctx, targetFilePath)
 }

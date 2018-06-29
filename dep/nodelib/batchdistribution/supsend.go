@@ -89,13 +89,24 @@ func qrySeqNoFunc(ctx *Context) {
 		return
 	}
 
-	ctx.AddQueue(&request.DataRequest{
+	r := &request.DataRequest{
 		Rule:         "pullRespFile",
-		Method:       "GET_STRING",
+		Method:       "HGET_STRING",
 		TransferType: request.REDIS,
-		PostData:     "", // TODO redis key
 		Reloadable:   true,
-	})
+	}
+
+	jobId := ctx.GetDataBox().Param("jobId")
+	idType := ctx.GetDataBox().Param("idType")
+	batchNo := ctx.GetDataBox().Param("batchNo")
+	fileNo := ctx.GetDataBox().Param("fileNo")
+
+	key := jobId + "_" + idType + "_" + batchNo + "_" + fileNo
+
+	r.SetParam("key", key)
+	r.SetParam("field", "reqNo")
+
+	ctx.AddQueue(r)
 }
 
 func pullResponseFileFunc(ctx *Context) {
@@ -105,6 +116,8 @@ func pullResponseFileFunc(ctx *Context) {
 		errEnd(ctx)
 		return
 	}
+
+	ctx.GetDataBox().SetParam("seqNo", ctx.DataResponse.BodyStr)
 
 	filePath := ctx.GetDataBox().GetDataFilePath()
 	dataFile := path.Base(filePath)
@@ -151,7 +164,7 @@ func setBatchResponseFunc(ctx *Context) {
 	jobId := ctx.GetDataBox().Param("jobId")
 
 	batchResponseInfo = &BatchRequest{
-		SeqNo:     "", // TODO
+		SeqNo:     ctx.GetDataBox().Param("seqNo"),
 		DmpSeqNo:  dmpSeqNo,
 		JobId:     jobId,
 		IdType:    "sup",
