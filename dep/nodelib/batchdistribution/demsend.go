@@ -259,9 +259,11 @@ func staticRouteSendFunc(ctx *Context) {
 		return
 	}
 
-	svcUrls, _ := getMemberUrls(orPolicyMap.MemTaskIdMap)
+	svcUrls, supMemId := getMemberUrls(orPolicyMap.MemTaskIdMap)
 
-	for _, targetUrl := range svcUrls {
+	ctx.GetDataBox().DetailCount = len(svcUrls)
+
+	for i, targetUrl := range svcUrls {
 		fmt.Println(targetUrl)
 		dataRequest := &request.DataRequest{
 			Rule: "sendRecord",
@@ -284,6 +286,9 @@ func staticRouteSendFunc(ctx *Context) {
 		dataRequest.SetParam("maxDelay", string(batchRequestInfo.MaxDelay))
 		dataRequest.SetParam("md5", batchRequestInfo.MD5)
 
+
+		dataRequest.SetParam("targetMemberId", supMemId[i])
+
 		ctx.AddQueue(dataRequest)
 	}
 }
@@ -295,6 +300,10 @@ func sendRecordFunc(ctx *Context) {
 		errEnd(ctx)
 		return
 	}
+
+	fmt.Println(ctx.DataRequest.Param("targetMemberId"))
+
+	ctx.GetDataBox().TsfSuccCount ++
 
 	stepInfoM := []map[string]interface{}{}
 	stepInfo1 := map[string]interface{}{"no": 1, "memID": "0000161", "stepStatus": "1", "signature": "407a6871ef5d1bd043322c2c5da35401bf9bf4a0afcaf7b899a57d262ca0f3d39097a7ec8e1da4548b124c7f374c6598da94533b9541549647417f1739aa0630"}
@@ -319,7 +328,7 @@ func sendRecordFunc(ctx *Context) {
 	ctx.Output(map[string]interface{}{
 		"exID":       "",
 		"demMemID":   batchRequestInfo.UserId,
-		"supMemID":   "0000140",
+		"supMemID":   ctx.DataRequest.Param("targetMemberId"),
 		"taskID":     strings.Join(batchRequestInfo.TaskIdList, "."),
 		"seqNo":      batchRequestInfo.SeqNo,
 		"dmpSeqNo":   "",
@@ -331,8 +340,10 @@ func sendRecordFunc(ctx *Context) {
 		//"stepInfoM":  stepInfoM,
 	})
 
-	defer ctx.GetDataBox().SetStatus(status.STOP)
-	defer ctx.GetDataBox().CloseRequestChan()
+	if ctx.GetDataBox().TsfSuccCount == ctx.GetDataBox().DetailCount {
+		defer ctx.GetDataBox().SetStatus(status.STOP)
+		defer ctx.GetDataBox().CloseRequestChan()
+	}
 }
 
 func getBatchRequest(ctx *Context) error {

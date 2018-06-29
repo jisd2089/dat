@@ -168,8 +168,8 @@ func (s *DepService) ProcessBatchDis(reqFilePath string) {
 		RemoteDir: common.Sftp.RemoteDir,
 	}
 
-	boxName := "batch_sup_send"
-	//boxName := "batch_dem_send"
+	//boxName := "batch_sup_send"
+	boxName := "batch_dem_send"
 	b := assetnode.AssetNodeEntity.GetDataBoxByName(boxName)
 	if b == nil {
 		logger.Error("databox is nil!")
@@ -198,8 +198,8 @@ func (s *DepService) ProcessBatchRcv(ctx *fasthttp.RequestCtx, targetFilePath st
 		return
 	}
 
-	boxName := "batch_dem_rcv"
-	//boxName := "batch_sup_rcv"
+	//boxName := "batch_dem_rcv"
+	boxName := "batch_sup_rcv"
 	b := assetnode.AssetNodeEntity.GetDataBoxByName(boxName)
 	if b == nil {
 		logger.Error("databox is nil!")

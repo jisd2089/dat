@@ -163,7 +163,7 @@ func setBatchResponseFunc(ctx *Context) {
 	batchResponseInfo = &BatchRequest{
 		SeqNo:     ctx.GetDataBox().Param("seqNo"),
 		DmpSeqNo:  dmpSeqNo,
-		TaskId:    ctx.GetDataBox().Param("batchNo"),
+		TaskIdStr:    ctx.GetDataBox().Param("batchNo"),
 		JobId:     jobId,
 		IdType:    "sup",
 		UserId:    ctx.GetDataBox().Param("NodeMemberId"),
@@ -213,7 +213,7 @@ func postBatchRespDataFunc(ctx *Context) {
 		}
 
 		dataRequest.SetParam("seqNo", batchResponseInfo.SeqNo)
-		dataRequest.SetParam("taskId", batchResponseInfo.TaskId)
+		dataRequest.SetParam("taskId", batchResponseInfo.TaskIdStr)
 		dataRequest.SetParam("orderId", batchResponseInfo.JobId)
 		dataRequest.SetParam("userId", batchResponseInfo.UserId)
 		dataRequest.SetParam("idType", batchResponseInfo.IdType)
@@ -240,7 +240,7 @@ func sendRespRecordFunc(ctx *Context) {
 		"exID":       "",
 		"demMemID":   batchResponseInfo.UserId,
 		"supMemID":   "0000140",
-		"taskID":     strings.Replace(batchResponseInfo.TaskId, "|@|", ".", -1),
+		"taskID":     strings.Replace(batchResponseInfo.TaskIdStr, "|@|", ".", -1),
 		"seqNo":      batchResponseInfo.SeqNo,
 		"dmpSeqNo":   "",
 		"recordType": "2",
