@@ -15,11 +15,8 @@ import (
 	"drcs/dep/or"
 	"drcs/dep/order"
 	"drcs/dep/util"
-	"drcs/dep/member"
 	"drcs/runtime/status"
-	"os"
-	"io"
-	"crypto/md5"
+	"strconv"
 )
 
 func init() {
@@ -203,75 +200,13 @@ func execMultiPatternFunc(ctx *Context) {
 func singleRouteSendPreFunc(ctx *Context) {
 	fmt.Println("singleRouteSendPreFunc ...")
 
-	getMD5beforeSend(ctx, "singleRouteSend", batchRequestInfo)
+	genMD5beforeSend(ctx, "singleRouteSend", batchRequestInfo)
 }
 
 func staticRouteSendPreFunc(ctx *Context) {
 	fmt.Println("staticRouteSendPreFunc ...")
 
-	getMD5beforeSend(ctx, "staticRouteSend", batchRequestInfo)
-}
-
-func getMD5beforeSend(ctx *Context, nextRule string, batchRequest *BatchRequest) {
-
-	md5Str, err := getMD5(ctx.GetDataBox().DataFilePath)
-	if err != nil {
-		errEnd(ctx)
-		return
-	}
-
-	fmt.Println("rcv md5: ", md5Str)
-
-	batchRequest.MD5 = md5Str
-
-	ctx.AddQueue(&request.DataRequest{
-		Rule:         nextRule,
-		TransferType: request.NONETYPE,
-		Priority:     1,
-		Reloadable:   true,
-	})
-}
-
-func getMD5beforeSendOld(ctx *Context, nextRule string) {
-	dataFilePath := ctx.GetDataBox().DataFilePath
-
-	dataFile, err := os.Open(dataFilePath)
-	defer dataFile.Close()
-	if err != nil {
-		errEnd(ctx)
-		return
-	}
-
-	md5Buf := make([]byte, 1024)
-	//md5Buf := make([]byte, 104857600)
-
-	md5Hash := md5.New()
-	for {
-		_, err := dataFile.Read(md5Buf)
-		if err != nil {
-			if err == io.EOF {
-				break
-			} else {
-				errEnd(ctx)
-				return
-			}
-		}
-
-		md5Hash.Write(md5Buf)
-	}
-
-	md5Str := fmt.Sprintf("%x", md5Hash.Sum(nil))
-
-	fmt.Println("rcv md5: ", md5Str)
-
-	ctx.GetDataBox().SetParam("md5", md5Str)
-
-	ctx.AddQueue(&request.DataRequest{
-		Rule:         nextRule,
-		TransferType: request.NONETYPE,
-		Priority:     1,
-		Reloadable:   true,
-	})
+	genMD5beforeSend(ctx, "staticRouteSend", batchRequestInfo)
 }
 
 func singleRouteSendFunc(ctx *Context) {
@@ -302,7 +237,7 @@ func singleRouteSendFunc(ctx *Context) {
 	}
 
 	dataRequest.SetParam("seqNo", batchRequestInfo.SeqNo)
-	dataRequest.SetParam("taskId", batchRequestInfo.TaskId)
+	dataRequest.SetParam("taskId", batchRequestInfo.TaskIdStr)
 	dataRequest.SetParam("orderId", batchRequestInfo.JobId)
 	dataRequest.SetParam("userId", batchRequestInfo.UserId)
 	dataRequest.SetParam("idType", batchRequestInfo.IdType)
@@ -341,7 +276,7 @@ func staticRouteSendFunc(ctx *Context) {
 		}
 
 		dataRequest.SetParam("seqNo", batchRequestInfo.SeqNo)
-		dataRequest.SetParam("taskId", batchRequestInfo.TaskId)
+		dataRequest.SetParam("taskId", batchRequestInfo.TaskIdStr)
 		dataRequest.SetParam("orderId", batchRequestInfo.JobId)
 		dataRequest.SetParam("userId", batchRequestInfo.UserId)
 		dataRequest.SetParam("idType", batchRequestInfo.IdType)
@@ -356,6 +291,11 @@ func staticRouteSendFunc(ctx *Context) {
 func sendRecordFunc(ctx *Context) {
 	fmt.Println("sendRecordFunc ...")
 
+	if ctx.DataResponse.StatusCode == 200 && !strings.EqualFold(ctx.DataResponse.ReturnCode, "000000") {
+		errEnd(ctx)
+		return
+	}
+
 	stepInfoM := []map[string]interface{}{}
 	stepInfo1 := map[string]interface{}{"no": 1, "memID": "0000161", "stepStatus": "1", "signature": "407a6871ef5d1bd043322c2c5da35401bf9bf4a0afcaf7b899a57d262ca0f3d39097a7ec8e1da4548b124c7f374c6598da94533b9541549647417f1739aa0630"}
 	stepInfo2 := map[string]interface{}{"no": 2, "memID": "0000162", "stepStatus": "1", "signature": "407a6871ef5d1bd043322c2c5da35401bf9bf4a0afcaf7b899a57d262ca0f3d39097a7ec8e1da4548b124c7f374c6598da94533b9541549647417f1739aa0630"}
@@ -364,18 +304,30 @@ func sendRecordFunc(ctx *Context) {
 	stepInfoM = append(stepInfoM, stepInfo2)
 	stepInfoM = append(stepInfoM, stepInfo3)
 
+	errCode := "031008"
+	if batchRequestInfo.LineCount == 0 {
+		errCode = "031009"
+	}
+
+	succNumStr := strconv.Itoa(batchRequestInfo.LineCount)
+	if batchRequestInfo.LineCount > 0 {
+		for i := 1; i < len(batchRequestInfo.TaskIdList); i++ {
+			succNumStr += "." + succNumStr
+		}
+	}
+
 	ctx.Output(map[string]interface{}{
 		"exID":       "",
 		"demMemID":   batchRequestInfo.UserId,
 		"supMemID":   "0000140",
-		"taskID":     strings.Replace(batchRequestInfo.TaskId, "|@|", ".", -1),
+		"taskID":     strings.Join(batchRequestInfo.TaskIdList, "."),
 		"seqNo":      batchRequestInfo.SeqNo,
 		"dmpSeqNo":   "",
 		"recordType": "2",
-		"succCount":  "0.0.0",
+		"succCount":  succNumStr,
 		"flowStatus": "01",
-		"usedTime":   11,
-		"errCode":    "031008",
+		"usedTime":   0,
+		"errCode":    errCode,
 		//"stepInfoM":  stepInfoM,
 	})
 
@@ -432,30 +384,15 @@ func getBatchRequest(ctx *Context) error {
 	}
 
 	batchRequestInfo = &BatchRequest{
-		SeqNo:     busiSerialNo,
-		TaskId:    taskIdItemStr,
-		UserId:    taskInfo.DemMemId,
-		JobId:     jobId,
-		IdType:    idType,
-		DataRange: dataRange,
-		MaxDelay:  orPolicyMap.MaxDelay,
+		SeqNo:      busiSerialNo,
+		TaskIdStr:  taskIdItemStr,
+		TaskIdList: taskIdList,
+		UserId:     taskInfo.DemMemId,
+		JobId:      jobId,
+		IdType:     idType,
+		DataRange:  dataRange,
+		MaxDelay:   orPolicyMap.MaxDelay,
 	}
 
 	return nil
-}
-
-func getMemberUrls(taskInfoMap map[string]string) ([]string, []string) {
-	var svcUrls []string
-	var supMemId []string
-
-	for k, _ := range taskInfoMap {
-		if p, err := member.GetPartnerInfoById(k); err == nil {
-			url := p.SvrURL
-			if len(url) > 0 {
-				svcUrls = append(svcUrls, url)
-				supMemId = append(supMemId, k)
-			}
-		}
-	}
-	return svcUrls, supMemId
 }

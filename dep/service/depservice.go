@@ -168,8 +168,8 @@ func (s *DepService) ProcessBatchDis(reqFilePath string) {
 		RemoteDir: common.Sftp.RemoteDir,
 	}
 
-	//boxName := "batch_sup_send"
-	boxName := "batch_dem_send"
+	boxName := "batch_sup_send"
+	//boxName := "batch_dem_send"
 	b := assetnode.AssetNodeEntity.GetDataBoxByName(boxName)
 	if b == nil {
 		logger.Error("databox is nil!")
@@ -198,14 +198,18 @@ func (s *DepService) ProcessBatchRcv(ctx *fasthttp.RequestCtx, targetFilePath st
 		return
 	}
 
-	boxName := "batch_sup_rcv"
+	boxName := "batch_dem_rcv"
+	//boxName := "batch_sup_rcv"
 	b := assetnode.AssetNodeEntity.GetDataBoxByName(boxName)
 	if b == nil {
 		logger.Error("databox is nil!")
 		return
 	}
 
-	setRcvParams(ctx, b)
+	if err := setRcvParams(ctx, b); err != nil {
+		logger.Error("rcv params err [%s]", err.Error())
+		return
+	}
 
 	common := st.GetCommonSettings()
 	logger.Info("common setting", common)
@@ -230,7 +234,7 @@ func (s *DepService) ProcessBatchRcv(ctx *fasthttp.RequestCtx, targetFilePath st
 
 }
 
-func setRcvParams(ctx *fasthttp.RequestCtx, b *databox.DataBox) {
+func setRcvParams(ctx *fasthttp.RequestCtx, b *databox.DataBox) error {
 
 	batchParams := &BatchParams{
 		SeqNo:     ctx.Request.Header.Peek("seqNo"),
@@ -244,7 +248,7 @@ func setRcvParams(ctx *fasthttp.RequestCtx, b *databox.DataBox) {
 	}
 
 	if err := checkRcvParams(batchParams); err != nil {
-		return
+		return err
 	}
 
 	b.SetParam("seqNo", string(batchParams.SeqNo))
@@ -256,6 +260,7 @@ func setRcvParams(ctx *fasthttp.RequestCtx, b *databox.DataBox) {
 	b.SetParam("maxDelay", string(batchParams.MaxDelay))
 	b.SetParam("md5", string(batchParams.MD5))
 
+	return nil
 }
 
 func checkRcvParams(p *BatchParams) error {

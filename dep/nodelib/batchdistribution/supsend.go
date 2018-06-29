@@ -104,7 +104,7 @@ func qrySeqNoFunc(ctx *Context) {
 	key := jobId + "_" + idType + "_" + batchNo + "_" + fileNo
 
 	r.SetParam("key", key)
-	r.SetParam("field", "reqNo")
+	r.SetParam("field", "seqNo")
 
 	ctx.AddQueue(r)
 }
@@ -156,9 +156,6 @@ func pullResponseFileFunc(ctx *Context) {
 func setBatchResponseFunc(ctx *Context) {
 	fmt.Println("setBatchResponseFunc ...")
 
-	//dataFilePath := ctx.GetDataBox().DataFilePath
-	//dataFile := path.Base(dataFilePath)
-
 	dmpSeqNo := ctx.GetDataBox().Param("fileNo")
 
 	jobId := ctx.GetDataBox().Param("jobId")
@@ -166,18 +163,26 @@ func setBatchResponseFunc(ctx *Context) {
 	batchResponseInfo = &BatchRequest{
 		SeqNo:     ctx.GetDataBox().Param("seqNo"),
 		DmpSeqNo:  dmpSeqNo,
+		TaskId:    ctx.GetDataBox().Param("batchNo"),
 		JobId:     jobId,
 		IdType:    "sup",
 		UserId:    ctx.GetDataBox().Param("NodeMemberId"),
 		DataRange: "sup",
 		MaxDelay:  0,
 	}
+
+	ctx.AddQueue(&request.DataRequest{
+		Rule:         "postBatchRespPre",
+		TransferType: request.NONETYPE,
+		Priority:     1,
+		Reloadable:   true,
+	})
 }
 
 func getRespDataMD5Func(ctx *Context) {
 	fmt.Println("getRespDataMD5Func ...")
 
-	getMD5beforeSend(ctx, "postBatchResp", batchResponseInfo)
+	genMD5beforeSend(ctx, "postBatchResp", batchResponseInfo)
 }
 
 func postBatchRespDataFunc(ctx *Context) {
@@ -200,7 +205,7 @@ func postBatchRespDataFunc(ctx *Context) {
 			//TransferType: request.NONETYPE, // TEST
 			TransferType: request.FASTHTTP,
 			//Url:          targetUrl,
-			Url:        "http://127.0.0.1:8096/api/dem/rec",
+			Url:        "http://127.0.0.1:8095/api/rcv/batch",
 			Method:     "FILESTREAM",
 			Priority:   1,
 			PostData:   ctx.GetDataBox().DataFilePath,

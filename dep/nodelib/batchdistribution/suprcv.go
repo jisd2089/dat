@@ -65,7 +65,7 @@ func batchSupRcvRootFunc(ctx *Context) {
 func checkMD5Func(ctx *Context) {
 	fmt.Println("batchSupRcvRootFunc ...")
 
-	md5Str, err := getMD5(ctx.GetDataBox().DataFilePath)
+	md5Str, _, err := getMD5(ctx.GetDataBox().DataFilePath)
 
 	if err != nil {
 		errEnd(ctx)
