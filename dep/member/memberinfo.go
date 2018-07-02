@@ -53,6 +53,7 @@ type MemberDetailInfo struct {
 }
 
 func SetMemberInfoList(memberInfoList *MemberInfoList) *MemberInfoList {
+	fmt.Println("set member config")
 	memberInfos = memberInfoList
 	return memberInfos
 }
@@ -62,6 +63,7 @@ func GetMemberInfoList() *MemberInfoList {
 }
 
 func SetPartnersInfo(partnersInfoList *PartnerInfoList) *PartnerInfoList {
+	fmt.Println("set partners config")
 	partnersInfo = partnersInfoList
 	partnersMap = make(map[string]*MemberDetailInfo)
 	for _, p := range partnersInfo.PartnerDetailList.PartnerDetailInfo {

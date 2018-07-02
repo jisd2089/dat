@@ -13,7 +13,6 @@ import (
 	"fmt"
 	"time"
 	"strings"
-	"drcs/dep/or"
 )
 
 func init() {
@@ -71,9 +70,10 @@ func pingRedisFunc(ctx *Context) {
 	fmt.Println("pingRedisFunc ...")
 
 	dr := &request.DataRequest{
-		Rule:          "qrySeqNo",
-		Method:        "PING",
+		Rule:   "qrySeqNo",
+		Method: "PING",
 		TransferType:  request.REDIS,
+		//TransferType:  request.NONETYPE, // TEST
 		Reloadable:    true,
 		CommandParams: ctx.GetDataBox().Params,
 	}
@@ -91,9 +91,10 @@ func qrySeqNoFunc(ctx *Context) {
 	}
 
 	r := &request.DataRequest{
-		Rule:         "pullRespFile",
-		Method:       "HGET_STRING",
+		Rule:   "pullRespFile",
+		Method: "HGET_STRING",
 		TransferType: request.REDIS,
+		//TransferType: request.NONETYPE, // TEST
 		Reloadable:   true,
 	}
 
@@ -144,12 +145,12 @@ func pullResponseFileFunc(ctx *Context) {
 	ctx.GetDataBox().SetDataFilePath(path.Join(fsAddress.LocalDir, dataFile))
 
 	ctx.AddQueue(&request.DataRequest{
-		Rule:   "setBatchResp",
-		Method: "GET",
+		Rule:         "setBatchResp",
+		Method:       "GET",
 		//TransferType: request.NONETYPE, // TEST
 		TransferType: request.SFTP,
-		FileCatalog:  fileCatalog,
-		Reloadable:   true,
+		FileCatalog: fileCatalog,
+		Reloadable:  true,
 	})
 }
 
@@ -188,24 +189,37 @@ func getRespDataMD5Func(ctx *Context) {
 func postBatchRespDataFunc(ctx *Context) {
 	fmt.Println("postBatchRespDataFunc ...")
 
-	jobId := ctx.GetDataBox().Param("jobId")
+	//jobId := ctx.GetDataBox().Param("jobId")
+	nodeMemberId := ctx.GetDataBox().Param("NodeMemberId")
+
+	//orderInfo, ok := order.GetOrderInfoMap()[jobId]
+	//if !ok {
+	//	errEnd(ctx)
+	//	return
+	//}
+
 	// 根据jobid获取orderroute map
-	orPolicyMap, ok := or.OrderRoutePolicyMap[jobId]
-	if !ok {
+	//orPolicyMap, ok := or.OrderRoutePolicyMap[jobId]
+	//if !ok {
+	//	errEnd(ctx)
+	//	return
+	//}
+
+	//svcUrls, demMemIds := getMemberUrls(orPolicyMap.MemTaskIdMap)
+	targetUrl, demMemberId, err := getPartnerUrl(nodeMemberId)
+	if err != nil {
 		errEnd(ctx)
 		return
 	}
 
-	svcUrls, supMemIds := getMemberUrls(orPolicyMap.MemTaskIdMap)
-
-	targetUrl := svcUrls[0]
+	//targetUrl := svcUrls[0]
 	//for _, targetUrl := range svcUrls {
 	fmt.Println(targetUrl)
 	dataRequest := &request.DataRequest{
-		Rule: "sendRespRecord",
+		Rule:         "sendRespRecord",
 		//TransferType: request.NONETYPE, // TEST
 		TransferType: request.FASTHTTP,
-		Url:          targetUrl,
+		Url: targetUrl,
 		//Url:        "http://127.0.0.1:8095/api/rcv/batch", // TEST
 		Method:     "FILESTREAM",
 		Priority:   1,
@@ -213,7 +227,7 @@ func postBatchRespDataFunc(ctx *Context) {
 		Reloadable: true,
 	}
 
-	batchResponseInfo.UserId = supMemIds[0]
+	batchResponseInfo.UserId = demMemberId
 
 	dataRequest.SetParam("seqNo", batchResponseInfo.SeqNo)
 	dataRequest.SetParam("taskId", batchResponseInfo.TaskIdStr)

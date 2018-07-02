@@ -39,6 +39,8 @@ func initMemberConfig(configDir string) {
 	for {
 		changeEvent := <-event
 
+		fmt.Println("initMemberConfig")
+
 		changesCnt := changeEvent.Changes["content"]
 		value := changesCnt.NewValue
 
@@ -72,6 +74,8 @@ func initPartnersConfig(configDir string) {
 	event := newAgollo.ListenChangeEvent()
 	for {
 		changeEvent := <-event
+
+		fmt.Println("initPartnersConfig")
 
 		changesCnt := changeEvent.Changes["content"]
 		value := changesCnt.NewValue

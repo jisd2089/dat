@@ -141,3 +141,11 @@ func getMemberUrls(taskInfoMap map[string]string) ([]string, []string) {
 	}
 	return svcUrls, supMemId
 }
+
+func getPartnerUrl(memberId string) (string, string, error) {
+	p, err := member.GetPartnerInfoById(memberId)
+	if err != nil {
+		return "", "", err
+	}
+	return p.SvrURL, p.MemberId, nil
+}

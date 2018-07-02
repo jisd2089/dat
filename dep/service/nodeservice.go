@@ -27,6 +27,7 @@ import (
 var (
 	once        sync.Once
 	SettingPath string
+	wg          sync.WaitGroup
 )
 
 type NodeService struct {
@@ -34,7 +35,6 @@ type NodeService struct {
 	sshClient  *SSH.SSHClient
 	SftpClient *sftp.SFTPClient
 	lock       sync.RWMutex
-
 }
 
 func NewNodeService() *NodeService {
@@ -50,7 +50,7 @@ func (s *NodeService) Init() {
 	NewRouteService().Init()
 
 	s.init()
-	fmt.Println("init end")
+	//fmt.Println("init end")
 }
 
 func (s *NodeService) init() {
@@ -88,6 +88,8 @@ func (s *NodeService) initApollo(configDir string) {
 	event := newAgollo.ListenChangeEvent()
 	for {
 		changeEvent := <-event
+
+		fmt.Println("initApollo")
 
 		changesCnt := changeEvent.Changes["content"]
 		value := changesCnt.NewValue

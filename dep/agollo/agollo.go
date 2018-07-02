@@ -35,6 +35,7 @@ func NewAgollo(configFileName string) Agollo {
 }
 
 func (a *agollo) Start() {
+
 	//if loggerInterface != nil {
 	//	initLogger(loggerInterface)
 	//}

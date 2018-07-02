@@ -20,7 +20,6 @@ import (
 	"github.com/valyala/fasthttp"
 	"drcs/core/databox"
 	"fmt"
-	"github.com/micro/misc/lib/ctx"
 )
 
 type DepService struct {
@@ -99,6 +98,8 @@ func initTransConfig(configDir string) {
 	event := newAgollo.ListenChangeEvent()
 	for {
 		changeEvent := <-event
+
+		fmt.Println("initTransConfig")
 
 		changesCnt := changeEvent.Changes["content"]
 		value := changesCnt.NewValue

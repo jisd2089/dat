@@ -275,7 +275,7 @@ func (this OrderRoute) LoadOrderRouteXml(policy OrderRoutePolicy, orderRoute Ord
 }
 
 func (or *OrderRoute) LoadOrderRouteMap(jobId string) (*errors.MeanfulError) {
-
+	fmt.Println("set order route config")
 	memTaskIdMap := make(map[string]string)
 	memConnObjIdMap := make(map[string]string)
 	memKeyQryTypeMap := make(map[string][]*TaskIdInfo)

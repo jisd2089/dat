@@ -1,5 +1,7 @@
 package order
 
+import "fmt"
+
 /**
     Author: luzequan
     Created: 2018-05-08 17:27:55
@@ -57,6 +59,7 @@ type OrderData struct {
 }
 
 func SetOrderInfos(orderInfos *OrderInfoList) *OrderInfoList {
+	fmt.Println("set order info config")
 	orderInfoList = orderInfos
 	SetOrderInfoMap(orderInfos)
 	return orderInfoList

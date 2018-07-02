@@ -7,6 +7,7 @@ import (
 	"drcs/dep/agollo"
 	"drcs/dep/order"
 	"path/filepath"
+	"fmt"
 )
 
 /**
@@ -33,6 +34,8 @@ func initOrderConfig(configDir string) {
 	event := newAgollo.ListenChangeEvent()
 	for {
 		changeEvent := <-event
+
+		fmt.Println("initOrderConfig")
 
 		changesCnt := changeEvent.Changes["content"]
 		value := changesCnt.NewValue

@@ -223,6 +223,7 @@ func singleRouteSendFunc(ctx *Context) {
 	svcUrls, _ := getMemberUrls(orPolicyMap.MemTaskIdMap)
 
 	targetUrl := svcUrls[0]
+	ctx.GetDataBox().DetailCount = 1
 
 	dataRequest := &request.DataRequest{
 		Rule: "sendRecord",

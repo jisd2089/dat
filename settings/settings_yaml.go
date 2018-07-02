@@ -22,7 +22,7 @@ func CreateSettingsFromYAML(yamlPath string) (*DefaultSettings, error) {
 func parseYAML(yamlPath string) (map[interface{}]interface{}, error) {
 	fd, err := os.Open(yamlPath)
 	if err != nil {
-		fmt.Printf("setting file not found:%s", yamlPath)
+		fmt.Println("setting file not found:%s", yamlPath)
 		return nil, fmt.Errorf("setting file not found:%s error:%s", yamlPath, err.Error())
 	}
 

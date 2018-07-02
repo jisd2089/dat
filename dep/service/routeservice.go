@@ -12,6 +12,7 @@ import (
 	"drcs/dep/agollo"
 	"drcs/dep/or"
 	"path/filepath"
+	"fmt"
 )
 
 type RouteService struct {
@@ -35,6 +36,8 @@ func initRouteConfig(configDir string) {
 	for {
 		changeEvent := <-event
 
+		fmt.Println("initRouteConfig")
+
 		changesCnt := changeEvent.Changes["content"]
 		value := changesCnt.NewValue
 
@@ -45,7 +48,7 @@ func initRouteConfig(configDir string) {
 			if err != nil {
 			}
 
-			orderRoute.LoadOrderRouteMap("ODN20161222000000071")
+			orderRoute.LoadOrderRouteMap("JON20180516000000431")
 
 			//order.SetOrderInfos(orderInfoList)
 		case 1:
@@ -54,6 +57,7 @@ func initRouteConfig(configDir string) {
 			if err != nil {
 			}
 			//order.SetOrderInfos(orderInfoList)
+			orderRoute.LoadOrderRouteMap("JON20180516000000431")
 		}
 	}
 }
