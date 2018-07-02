@@ -107,8 +107,8 @@ func pullRequestFileFunc(ctx *Context) {
 	ctx.AddQueue(&request.DataRequest{
 		Rule:         "getPolicy",
 		Method:       "GET",
-		TransferType: request.NONETYPE, // TEST
-		//TransferType: request.SFTP,
+		//TransferType: request.NONETYPE, // TEST
+		TransferType: request.SFTP,
 		FileCatalog: fileCatalog,
 		Reloadable:  true,
 	})
@@ -269,8 +269,8 @@ func staticRouteSendFunc(ctx *Context) {
 			Rule: "sendRecord",
 			//TransferType: request.NONETYPE, // TEST
 			TransferType: request.FASTHTTP,
-			//Url:          targetUrl,
-			Url:        "http://127.0.0.1:8096/api/rcv/batch",
+			Url:          targetUrl,
+			//Url:        "http://127.0.0.1:8096/api/rcv/batch", // TEST
 			Method:     "FILESTREAM",
 			Priority:   1,
 			PostData:   ctx.GetDataBox().DataFilePath,
@@ -285,7 +285,7 @@ func staticRouteSendFunc(ctx *Context) {
 		dataRequest.SetParam("dataRange", batchRequestInfo.DataRange)
 		dataRequest.SetParam("maxDelay", string(batchRequestInfo.MaxDelay))
 		dataRequest.SetParam("md5", batchRequestInfo.MD5)
-
+		dataRequest.SetParam("boxName", "batch_sup_rcv")
 
 		dataRequest.SetParam("targetMemberId", supMemId[i])
 
@@ -304,14 +304,6 @@ func sendRecordFunc(ctx *Context) {
 	fmt.Println(ctx.DataRequest.Param("targetMemberId"))
 
 	ctx.GetDataBox().TsfSuccCount ++
-
-	stepInfoM := []map[string]interface{}{}
-	stepInfo1 := map[string]interface{}{"no": 1, "memID": "0000161", "stepStatus": "1", "signature": "407a6871ef5d1bd043322c2c5da35401bf9bf4a0afcaf7b899a57d262ca0f3d39097a7ec8e1da4548b124c7f374c6598da94533b9541549647417f1739aa0630"}
-	stepInfo2 := map[string]interface{}{"no": 2, "memID": "0000162", "stepStatus": "1", "signature": "407a6871ef5d1bd043322c2c5da35401bf9bf4a0afcaf7b899a57d262ca0f3d39097a7ec8e1da4548b124c7f374c6598da94533b9541549647417f1739aa0630"}
-	stepInfo3 := map[string]interface{}{"no": 3, "memID": "0000163", "stepStatus": "1", "signature": "407a6871ef5d1bd043322c2c5da35401bf9bf4a0afcaf7b899a57d262ca0f3d39097a7ec8e1da4548b124c7f374c6598da94533b9541549647417f1739aa0630"}
-	stepInfoM = append(stepInfoM, stepInfo1)
-	stepInfoM = append(stepInfoM, stepInfo2)
-	stepInfoM = append(stepInfoM, stepInfo3)
 
 	errCode := "031008"
 	if batchRequestInfo.LineCount == 0 {

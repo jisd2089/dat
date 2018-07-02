@@ -71,13 +71,14 @@ func pingRedisFunc(ctx *Context) {
 	fmt.Println("pingRedisFunc ...")
 
 	dr := &request.DataRequest{
-		Rule:         "qrySeqNo",
-		Method:       "PING",
-		TransferType: request.REDIS,
-		Reloadable:   true,
+		Rule:          "qrySeqNo",
+		Method:        "PING",
+		TransferType:  request.REDIS,
+		Reloadable:    true,
+		CommandParams: ctx.GetDataBox().Params,
 	}
 
-	dr.SetParam("redisAddrs", "10.101.12.45:6379")
+	//dr.SetParam("redisAddrs", ctx.GetDataBox().Param("redisAddr"))
 
 	ctx.AddQueue(dr)
 }
@@ -142,14 +143,13 @@ func pullResponseFileFunc(ctx *Context) {
 
 	ctx.GetDataBox().SetDataFilePath(path.Join(fsAddress.LocalDir, dataFile))
 
-	fmt.Println("NodeAddress: %s", ctx.GetDataBox().GetNodeAddress())
 	ctx.AddQueue(&request.DataRequest{
-		Rule:         "setBatchResp",
-		Method:       "GET",
-		TransferType: request.NONETYPE, // TEST
-		//TransferType: request.SFTP,
-		FileCatalog: fileCatalog,
-		Reloadable:  true,
+		Rule:   "setBatchResp",
+		Method: "GET",
+		//TransferType: request.NONETYPE, // TEST
+		TransferType: request.SFTP,
+		FileCatalog:  fileCatalog,
+		Reloadable:   true,
 	})
 }
 
@@ -200,44 +200,37 @@ func postBatchRespDataFunc(ctx *Context) {
 
 	targetUrl := svcUrls[0]
 	//for _, targetUrl := range svcUrls {
-		fmt.Println(targetUrl)
-		dataRequest := &request.DataRequest{
-			Rule: "sendRespRecord",
-			//TransferType: request.NONETYPE, // TEST
-			TransferType: request.FASTHTTP,
-			//Url:          targetUrl,
-			Url:        "http://127.0.0.1:8095/api/rcv/batch",
-			Method:     "FILESTREAM",
-			Priority:   1,
-			PostData:   ctx.GetDataBox().DataFilePath,
-			Reloadable: true,
-		}
+	fmt.Println(targetUrl)
+	dataRequest := &request.DataRequest{
+		Rule: "sendRespRecord",
+		//TransferType: request.NONETYPE, // TEST
+		TransferType: request.FASTHTTP,
+		Url:          targetUrl,
+		//Url:        "http://127.0.0.1:8095/api/rcv/batch", // TEST
+		Method:     "FILESTREAM",
+		Priority:   1,
+		PostData:   ctx.GetDataBox().DataFilePath,
+		Reloadable: true,
+	}
 
 	batchResponseInfo.UserId = supMemIds[0]
 
-		dataRequest.SetParam("seqNo", batchResponseInfo.SeqNo)
-		dataRequest.SetParam("taskId", batchResponseInfo.TaskIdStr)
-		dataRequest.SetParam("orderId", batchResponseInfo.JobId)
-		dataRequest.SetParam("userId", batchResponseInfo.UserId)
-		dataRequest.SetParam("idType", batchResponseInfo.IdType)
-		dataRequest.SetParam("dataRange", batchResponseInfo.DataRange)
-		dataRequest.SetParam("maxDelay", string(batchResponseInfo.MaxDelay))
-		dataRequest.SetParam("md5", batchResponseInfo.MD5)
+	dataRequest.SetParam("seqNo", batchResponseInfo.SeqNo)
+	dataRequest.SetParam("taskId", batchResponseInfo.TaskIdStr)
+	dataRequest.SetParam("orderId", batchResponseInfo.JobId)
+	dataRequest.SetParam("userId", batchResponseInfo.UserId)
+	dataRequest.SetParam("idType", batchResponseInfo.IdType)
+	dataRequest.SetParam("dataRange", batchResponseInfo.DataRange)
+	dataRequest.SetParam("maxDelay", string(batchResponseInfo.MaxDelay))
+	dataRequest.SetParam("md5", batchResponseInfo.MD5)
+	dataRequest.SetParam("boxName", "batch_dem_rcv")
 
-		ctx.AddQueue(dataRequest)
+	ctx.AddQueue(dataRequest)
 	//}
 }
 
 func sendRespRecordFunc(ctx *Context) {
 	fmt.Println("sendRespRecordFunc ...")
-
-	stepInfoM := []map[string]interface{}{}
-	stepInfo1 := map[string]interface{}{"no": 1, "memID": "0000161", "stepStatus": "1", "signature": "407a6871ef5d1bd043322c2c5da35401bf9bf4a0afcaf7b899a57d262ca0f3d39097a7ec8e1da4548b124c7f374c6598da94533b9541549647417f1739aa0630"}
-	stepInfo2 := map[string]interface{}{"no": 2, "memID": "0000162", "stepStatus": "1", "signature": "407a6871ef5d1bd043322c2c5da35401bf9bf4a0afcaf7b899a57d262ca0f3d39097a7ec8e1da4548b124c7f374c6598da94533b9541549647417f1739aa0630"}
-	stepInfo3 := map[string]interface{}{"no": 3, "memID": "0000163", "stepStatus": "1", "signature": "407a6871ef5d1bd043322c2c5da35401bf9bf4a0afcaf7b899a57d262ca0f3d39097a7ec8e1da4548b124c7f374c6598da94533b9541549647417f1739aa0630"}
-	stepInfoM = append(stepInfoM, stepInfo1)
-	stepInfoM = append(stepInfoM, stepInfo2)
-	stepInfoM = append(stepInfoM, stepInfo3)
 
 	ctx.Output(map[string]interface{}{
 		"exID":       "",

@@ -93,9 +93,10 @@ func rcvPingRedisFunc(ctx *Context) {
 		Method:       "PING",
 		TransferType: request.REDIS,
 		Reloadable:   true,
+		CommandParams: ctx.GetDataBox().Params,
 	}
 
-	dr.SetParam("redisAddrs", "10.101.12.45:6379")
+	//dr.SetParam("redisAddrs", ctx.GetDataBox().Param("redisAddr"))
 
 	ctx.AddQueue(dr)
 }
@@ -128,8 +129,8 @@ func pushToServerFunc(ctx *Context) {
 	ctx.AddQueue(&request.DataRequest{
 		Rule:         "saveSeqNo",
 		Method:       "PUT",
-		TransferType: request.NONETYPE,
-		//TransferType: request.SFTP,
+		//TransferType: request.NONETYPE, // TEST
+		TransferType: request.SFTP,
 		FileCatalog:  fileCatalog,
 		Reloadable:   true,
 	})

@@ -267,14 +267,13 @@ func (n *NodeHandler) RunProcess(ctx *fasthttp.RequestCtx) {
 }
 
 func (n *NodeHandler) RunBatchProcess(ctx *fasthttp.RequestCtx) {
-	reqFilePath := string(ctx.FormValue("reqFilePath"))
-	service.NewDepService().ProcessBatchDis(reqFilePath)
+	service.NewDepService().ProcessBatchDis(ctx)
 }
 
 func (n *NodeHandler) RunBatchRcv(ctx *fasthttp.RequestCtx) {
 
 	if len(ctx.Request.Header.Peek("dataFile")) == 0 {
-
+		logger.Error("data file name is null")
 		return
 	}
 	dataFile := string(ctx.Request.Header.Peek("dataFile"))
@@ -284,7 +283,7 @@ func (n *NodeHandler) RunBatchRcv(ctx *fasthttp.RequestCtx) {
 	//hdfsInputDir := common.Hdfs.InputDir
 	//hdfsOutputDir := common.Hdfs.OutputDir
 	targetFileDir := common.Sftp.LocalDir
-	targetFileDir = "D:/dds_receive/tmp"
+	//targetFileDir = "D:/dds_receive/tmp"
 
 	targetFilePath := path.Join(targetFileDir, dataFile)
 

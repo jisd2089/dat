@@ -20,6 +20,7 @@ import (
 	"github.com/valyala/fasthttp"
 	"drcs/core/databox"
 	"fmt"
+	"github.com/micro/misc/lib/ctx"
 )
 
 type DepService struct {
@@ -138,8 +139,19 @@ func runDataBox(addrs []*Dest, boxName string, nodeMemberId string, fsAddress *r
 	}
 }
 
-// 处理批量配送
-func (s *DepService) ProcessBatchDis(reqFilePath string) {
+// 处理批量配送——发送
+func (s *DepService) ProcessBatchDis(ctx *fasthttp.RequestCtx) {
+
+	reqFilePath := string(ctx.FormValue("reqFilePath"))
+	if reqFilePath == "" {
+		logger.Error("reqFilePath missing")
+		return
+	}
+	boxName := string(ctx.FormValue("boxName"))
+	if boxName == "" {
+		logger.Error("box name missing")
+		return
+	}
 
 	reqFileName := path.Base(reqFilePath)
 
@@ -168,8 +180,8 @@ func (s *DepService) ProcessBatchDis(reqFilePath string) {
 		RemoteDir: common.Sftp.RemoteDir,
 	}
 
-	//boxName := "batch_sup_send"
-	boxName := "batch_dem_send"
+	//boxName = "batch_sup_send"
+	//boxName := "batch_dem_send"
 	b := assetnode.AssetNodeEntity.GetDataBoxByName(boxName)
 	if b == nil {
 		logger.Error("databox is nil!")
@@ -182,13 +194,21 @@ func (s *DepService) ProcessBatchDis(reqFilePath string) {
 	b.SetParam("fileNo", fileNo)
 	b.SetParam("NodeMemberId", common.Node.MemberId)
 
+	b.Params = common.Redis.Addr
+
 	b.FileServerAddress = fsAddress
 
 	setDataBoxQueue(b)
 }
 
-// 处理批量配送
+// 处理批量配送——接收
 func (s *DepService) ProcessBatchRcv(ctx *fasthttp.RequestCtx, targetFilePath string) {
+
+	boxName := string(ctx.FormValue("boxName"))
+	if boxName == "" {
+		logger.Error("box name missing")
+		return
+	}
 
 	respFileName := path.Base(targetFilePath)
 
@@ -198,8 +218,8 @@ func (s *DepService) ProcessBatchRcv(ctx *fasthttp.RequestCtx, targetFilePath st
 		return
 	}
 
-	//boxName := "batch_dem_rcv"
-	boxName := "batch_sup_rcv"
+	//boxName = "batch_dem_rcv"
+	//boxName := "batch_sup_rcv"
 	b := assetnode.AssetNodeEntity.GetDataBoxByName(boxName)
 	if b == nil {
 		logger.Error("databox is nil!")
@@ -230,6 +250,8 @@ func (s *DepService) ProcessBatchRcv(ctx *fasthttp.RequestCtx, targetFilePath st
 	b.SetParam("batchNo", dataFileName.BatchNo)
 	b.SetParam("fileNo", dataFileName.FileNo)
 	b.SetParam("NodeMemberId", common.Node.MemberId)
+
+	b.Params = common.Redis.Addr
 
 	setDataBoxQueue(b)
 

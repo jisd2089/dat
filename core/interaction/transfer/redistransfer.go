@@ -117,10 +117,10 @@ func (rt *RedisTransfer) connect(req Request) {
 		//if err != nil {
 		//	return
 		//}
-		addrStr := req.Param("redisAddrs")
-		addrList := strings.Split(addrStr, ",")
+		//addrStr := req.Param("redisAddrs")
+		//addrList := strings.Split(addrStr, ",")
 		o := &redisLib.ConnectOptions{
-			AddressList: addrList,
+			AddressList: req.GetCommandParams(),
 			Password:    req.Param("redisPwd"),
 			DBIndex:     dbIndex,
 			PoolSize:    redisPoolSize,
@@ -134,26 +134,26 @@ func (rt *RedisTransfer) connect(req Request) {
 
 func (rt *RedisTransfer) refresh(req Request) {
 	redRtOnce.Do(func() {
-		dbIndex, err := strconv.Atoi(req.Param("redisDB"))
-		if err != nil {
-			return
-		}
-		redisPoolSize, err := strconv.Atoi(req.Param("redisPoolSize"))
-		if err != nil {
-			return
-		}
-		addrStr := req.Param("redisAddrs")
-		addrList := strings.Split(addrStr, ",")
+		dbIndex, _ := strconv.Atoi(req.Param("redisDB"))
+		//if err != nil {
+		//	return
+		//}
+		redisPoolSize, _ := strconv.Atoi(req.Param("redisPoolSize"))
+		//if err != nil {
+		//	return
+		//}
+		//addrStr := req.Param("redisAddrs")
+		//addrList := strings.Split(addrStr, ",")
 		o := &redisLib.ConnectOptions{
-			AddressList: addrList,
+			AddressList: req.GetCommandParams(),
 			Password:    req.Param("redisPwd"),
 			DBIndex:     dbIndex,
 			PoolSize:    redisPoolSize,
 		}
-		rt.redisCli, err = redisLib.GetRedisClient(o)
-		if err != nil {
-			return
-		}
+		rt.redisCli, _ = redisLib.GetRedisClient(o)
+		//if err != nil {
+		//	return
+		//}
 	})
 }
 

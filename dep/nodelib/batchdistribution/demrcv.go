@@ -103,8 +103,8 @@ func pushToDemServerFunc(ctx *Context) {
 	ctx.AddQueue(&request.DataRequest{
 		Rule:         "sendRecord",
 		Method:       "PUT",
-		TransferType: request.NONETYPE,
-		//TransferType: request.SFTP,
+		//TransferType: request.NONETYPE, // TEST
+		TransferType: request.SFTP,
 		FileCatalog:  fileCatalog,
 		Reloadable:   true,
 	})

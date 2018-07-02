@@ -74,11 +74,11 @@ type Conf struct {
 }
 
 type Redis struct {
-	Addr       string `yaml:"addr"`
-	DB         int    `yaml:"db"`
-	PoolSize   int    `yaml:"poolSize"`
-	ReadOnly   bool   `yaml:"readOnly"`
-	BucketSize int    `yaml:"bucketSize"`
+	Addr       []string `yaml:"addr"`
+	DB         int      `yaml:"db"`
+	PoolSize   int      `yaml:"poolSize"`
+	ReadOnly   bool     `yaml:"readOnly"`
+	BucketSize int      `yaml:"bucketSize"`
 
 	ReadTimeout  int `yaml:"readTimeout"`
 	WriteTimeout int `yaml:"writeTimeout"`
