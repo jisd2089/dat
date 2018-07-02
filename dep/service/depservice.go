@@ -229,6 +229,7 @@ func (s *DepService) ProcessBatchRcv(ctx *fasthttp.RequestCtx, targetFilePath st
 	b.SetParam("jobId", dataFileName.JobId)
 	b.SetParam("batchNo", dataFileName.BatchNo)
 	b.SetParam("fileNo", dataFileName.FileNo)
+	b.SetParam("NodeMemberId", common.Node.MemberId)
 
 	setDataBoxQueue(b)
 

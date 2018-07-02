@@ -167,6 +167,13 @@ func sendRcvRecordFunc(ctx *Context) {
 		return
 	}
 
+	taskIdStr := ctx.GetDataBox().Param("TaskId")
+	succNumStr := "1"
+	taskIdList := strings.Split(taskIdStr, "|@|")
+	for i := 1; i < len(taskIdList); i ++ {
+		succNumStr += "." + succNumStr
+	}
+
 	dataFilePath := ctx.GetDataBox().GetDataFilePath()
 
 	dataFile, err := os.Open(dataFilePath)
@@ -196,19 +203,18 @@ func sendRcvRecordFunc(ctx *Context) {
 			continue
 		}
 
-
 		ctx.Output(map[string]interface{}{
 			"exID":       string(line),
 			"demMemID":   ctx.GetDataBox().Param("UserId"),
-			"supMemID":   "0000140",
+			"supMemID":   ctx.GetDataBox().Param("NodeMemberId"),
 			"taskID":     strings.Replace(ctx.GetDataBox().Param("TaskId"), "|@|", ".", -1),
 			"seqNo":      ctx.GetDataBox().Param("seqNo"),
-			"dmpSeqNo":   "",
+			"dmpSeqNo":   ctx.GetDataBox().Param("fileNo"),
 			"recordType": "2",
-			"succCount":  "0.0.0",
-			"flowStatus": "01",
+			"succCount":  succNumStr,
+			"flowStatus": "11",
 			"usedTime":   11,
-			"errCode":    "031008",
+			"errCode":    "031014",
 			//"stepInfoM":  stepInfoM,
 		})
 	}

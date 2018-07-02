@@ -163,10 +163,10 @@ func setBatchResponseFunc(ctx *Context) {
 	batchResponseInfo = &BatchRequest{
 		SeqNo:     ctx.GetDataBox().Param("seqNo"),
 		DmpSeqNo:  dmpSeqNo,
-		TaskIdStr:    ctx.GetDataBox().Param("batchNo"),
+		TaskIdStr: ctx.GetDataBox().Param("batchNo"),
 		JobId:     jobId,
 		IdType:    "sup",
-		UserId:    ctx.GetDataBox().Param("NodeMemberId"),
+		//UserId:    ctx.GetDataBox().Param("NodeMemberId"),
 		DataRange: "sup",
 		MaxDelay:  0,
 	}
@@ -196,9 +196,10 @@ func postBatchRespDataFunc(ctx *Context) {
 		return
 	}
 
-	svcUrls, _ := getMemberUrls(orPolicyMap.MemTaskIdMap)
+	svcUrls, supMemIds := getMemberUrls(orPolicyMap.MemTaskIdMap)
 
-	for _, targetUrl := range svcUrls {
+	targetUrl := svcUrls[0]
+	//for _, targetUrl := range svcUrls {
 		fmt.Println(targetUrl)
 		dataRequest := &request.DataRequest{
 			Rule: "sendRespRecord",
@@ -212,6 +213,8 @@ func postBatchRespDataFunc(ctx *Context) {
 			Reloadable: true,
 		}
 
+	batchResponseInfo.UserId = supMemIds[0]
+
 		dataRequest.SetParam("seqNo", batchResponseInfo.SeqNo)
 		dataRequest.SetParam("taskId", batchResponseInfo.TaskIdStr)
 		dataRequest.SetParam("orderId", batchResponseInfo.JobId)
@@ -222,7 +225,7 @@ func postBatchRespDataFunc(ctx *Context) {
 		dataRequest.SetParam("md5", batchResponseInfo.MD5)
 
 		ctx.AddQueue(dataRequest)
-	}
+	//}
 }
 
 func sendRespRecordFunc(ctx *Context) {
@@ -239,15 +242,15 @@ func sendRespRecordFunc(ctx *Context) {
 	ctx.Output(map[string]interface{}{
 		"exID":       "",
 		"demMemID":   batchResponseInfo.UserId,
-		"supMemID":   "0000140",
+		"supMemID":   ctx.GetDataBox().Param("NodeMemberId"),
 		"taskID":     strings.Replace(batchResponseInfo.TaskIdStr, "|@|", ".", -1),
 		"seqNo":      batchResponseInfo.SeqNo,
-		"dmpSeqNo":   "",
+		"dmpSeqNo":   ctx.GetDataBox().Param("fileNo"),
 		"recordType": "2",
 		"succCount":  "0.0.0",
-		"flowStatus": "01",
+		"flowStatus": "11",
 		"usedTime":   11,
-		"errCode":    "031008",
+		"errCode":    "031012",
 		//"stepInfoM":  stepInfoM,
 	})
 

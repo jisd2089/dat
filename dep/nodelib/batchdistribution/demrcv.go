@@ -115,6 +115,23 @@ func sendDemRcvRecordFunc(ctx *Context) {
 
 	dataFilePath := ctx.GetDataBox().GetDataFilePath()
 
+	taskIdStr := ctx.GetDataBox().Param("TaskId")
+	succNumStr := "1"
+	taskIdList := strings.Split(taskIdStr, "|@|")
+	for i := 1; i < len(taskIdList); i ++ {
+		succNumStr += "." + succNumStr
+	}
+
+	demMemberId := ctx.GetDataBox().Param("NodeMemberId")
+
+	stepInfoM := []map[string]interface{}{}
+	stepInfo1 := map[string]interface{}{"no": 1, "memID": demMemberId, "stepStatus": "1", "signature": ""}
+	stepInfo2 := map[string]interface{}{"no": 2, "memID": "", "stepStatus": "1", "signature": ""}
+	stepInfo3 := map[string]interface{}{"no": 3, "memID": demMemberId, "stepStatus": "1", "signature": ""}
+	stepInfoM = append(stepInfoM, stepInfo1)
+	stepInfoM = append(stepInfoM, stepInfo2)
+	stepInfoM = append(stepInfoM, stepInfo3)
+
 	dataFile, err := os.Open(dataFilePath)
 	defer dataFile.Close()
 	if err != nil {
@@ -144,17 +161,17 @@ func sendDemRcvRecordFunc(ctx *Context) {
 
 		ctx.Output(map[string]interface{}{
 			"exID":       string(line),
-			"demMemID":   ctx.GetDataBox().Param("UserId"),
-			"supMemID":   "0000140",
+			"demMemID":   ctx.GetDataBox().Param("NodeMemberId"),
+			"supMemID":   ctx.GetDataBox().Param("UserId"),
 			"taskID":     strings.Replace(ctx.GetDataBox().Param("TaskId"), "|@|", ".", -1),
 			"seqNo":      ctx.GetDataBox().Param("seqNo"),
-			"dmpSeqNo":   "",
+			"dmpSeqNo":   ctx.GetDataBox().Param("fileNo"),
 			"recordType": "2",
-			"succCount":  "0.0.0",
-			"flowStatus": "01",
+			"succCount":  succNumStr,
+			"flowStatus": "21",
 			"usedTime":   11,
-			"errCode":    "031008",
-			//"stepInfoM":  stepInfoM,
+			"errCode":    "031010",
+			"stepInfoM":  stepInfoM,
 		})
 	}
 
