@@ -277,7 +277,11 @@ func (n *NodeHandler) RunBatchRcv(ctx *fasthttp.RequestCtx) {
 		return
 	}
 	dataFile := string(ctx.Request.Header.Peek("dataFile"))
+	boxName := string(ctx.Request.Header.Peek("boxName"))
 	logger.Info("filePath***********: ", dataFile)
+	seqNo := string(ctx.Request.Header.Peek("seqNo"))
+	logger.Info("filePath***********: ", seqNo)
+	logger.Info("boxName***********: ", boxName)
 
 	common := GetCommonSettings()
 	//hdfsInputDir := common.Hdfs.InputDir

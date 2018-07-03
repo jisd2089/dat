@@ -107,8 +107,8 @@ func pullRequestFileFunc(ctx *Context) {
 	ctx.AddQueue(&request.DataRequest{
 		Rule:         "getPolicy",
 		Method:       "GET",
-		//TransferType: request.NONETYPE, // TEST
-		TransferType: request.SFTP,
+		TransferType: request.NONETYPE, // TEST
+		//TransferType: request.SFTP,
 		FileCatalog: fileCatalog,
 		Reloadable:  true,
 	})
@@ -245,6 +245,7 @@ func singleRouteSendFunc(ctx *Context) {
 	dataRequest.SetParam("dataRange", batchRequestInfo.DataRange)
 	dataRequest.SetParam("maxDelay", string(batchRequestInfo.MaxDelay))
 	dataRequest.SetParam("md5", batchRequestInfo.MD5)
+	dataRequest.SetParam("boxName", "batch_sup_rcv")
 
 	ctx.AddQueue(dataRequest)
 }

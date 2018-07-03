@@ -91,7 +91,8 @@ func rcvPingRedisFunc(ctx *Context) {
 	dr := &request.DataRequest{
 		Rule:         "pushToServer",
 		Method:       "PING",
-		TransferType: request.REDIS,
+		//TransferType: request.REDIS,
+		TransferType: request.NONETYPE,
 		Reloadable:   true,
 		CommandParams: ctx.GetDataBox().Params,
 	}
@@ -129,8 +130,8 @@ func pushToServerFunc(ctx *Context) {
 	ctx.AddQueue(&request.DataRequest{
 		Rule:         "saveSeqNo",
 		Method:       "PUT",
-		//TransferType: request.NONETYPE, // TEST
-		TransferType: request.SFTP,
+		TransferType: request.NONETYPE, // TEST
+		//TransferType: request.SFTP,
 		FileCatalog:  fileCatalog,
 		Reloadable:   true,
 	})
@@ -142,7 +143,8 @@ func saveSeqNoFunc(ctx *Context) {
 	r := &request.DataRequest{
 		Rule:         "sendRecord",
 		Method:       "HSET_STRING",
-		TransferType: request.REDIS,
+		//TransferType: request.REDIS,
+		TransferType: request.NONETYPE,
 		Reloadable:   true,
 	}
 

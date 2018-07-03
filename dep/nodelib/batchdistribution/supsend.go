@@ -190,7 +190,7 @@ func postBatchRespDataFunc(ctx *Context) {
 	fmt.Println("postBatchRespDataFunc ...")
 
 	//jobId := ctx.GetDataBox().Param("jobId")
-	nodeMemberId := ctx.GetDataBox().Param("NodeMemberId")
+	//nodeMemberId := ctx.GetDataBox().Param("NodeMemberId")
 
 	//orderInfo, ok := order.GetOrderInfoMap()[jobId]
 	//if !ok {
@@ -206,7 +206,7 @@ func postBatchRespDataFunc(ctx *Context) {
 	//}
 
 	//svcUrls, demMemIds := getMemberUrls(orPolicyMap.MemTaskIdMap)
-	targetUrl, demMemberId, err := getPartnerUrl(nodeMemberId)
+	targetUrl, demMemberId, err := getPartnerUrl()
 	if err != nil {
 		errEnd(ctx)
 		return

@@ -205,7 +205,7 @@ func (s *DepService) ProcessBatchDis(ctx *fasthttp.RequestCtx) {
 // 处理批量配送——接收
 func (s *DepService) ProcessBatchRcv(ctx *fasthttp.RequestCtx, targetFilePath string) {
 
-	boxName := string(ctx.FormValue("boxName"))
+	boxName := string(ctx.Request.Header.Peek("boxName"))
 	if boxName == "" {
 		logger.Error("box name missing")
 		return
