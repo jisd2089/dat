@@ -41,7 +41,7 @@ const (
 	thread      int    = 20           // 全局最大并发量
 	pause       int64  = 300          // 暂停时长参考/ms(随机: Pausetime/2 ~ Pausetime*2)
 	outtype     string = "posixmq"    // 输出方式
-	dockercap   int    = 100         // 分段转储容器容量
+	dockercap   int    = 1         // 分段转储容器容量
 	limit       int64  = 0            // 采集上限，0为不限，若在规则中设置初始值为LIMIT则为自定义限制，否则默认限制请求数
 	proxyminute int64  = 0            // 代理IP更换的间隔分钟数
 	success     bool   = true         // 继承历史成功记录

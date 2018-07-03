@@ -28,12 +28,13 @@ type Context struct {
 	DataRequest  *request.DataRequest   // 原始请求
 	DataResponse *response.DataResponse // 响应流，其中URL拷贝自*request.DataRequest
 	text         []byte                 // 下载内容Body的字节流格式
-	//dom          *goquery.Document      // 下载内容Body为html时，可转换为Dom的对象
 	items        []data.DataCell        // 存放以文本形式输出的结果数据
+	ItemsChan    chan data.DataCell     // 输出队列
 	files        []data.FileCell        // 存放欲直接输出的文件("Name": string; "Body": io.ReadCloser)
 	Reflector    realback.Reflector     // 同步 DataRequest执行器　
 	err          error                  // 错误标记
 	sync.Mutex
+	//dom          *goquery.Document      // 下载内容Body为html时，可转换为Dom的对象
 }
 
 var (
@@ -42,6 +43,7 @@ var (
 			return &Context{
 				Reflector: realback.ReflectHandler,
 				items:     []data.DataCell{},
+				ItemsChan: make(chan data.DataCell),
 				files:     []data.FileCell{},
 			}
 		},
@@ -50,7 +52,7 @@ var (
 
 //**************************************** 初始化 *******************************************\\
 
-func  GetContext(df *DataBox, req *request.DataRequest) *Context {
+func GetContext(df *DataBox, req *request.DataRequest) *Context {
 	ctx := contextPool.Get().(*Context)
 	ctx.dataBox = df
 	ctx.DataRequest = req
@@ -246,12 +248,13 @@ func (self *Context) Output(item interface{}, ruleName ...string) {
 		_item = item2
 	}
 	self.Lock()
-	if self.dataBox.NotDefaultField {
-		self.items = append(self.items, data.GetDataCell(_ruleName, _item, "", "", ""))
-	} else {
-		self.items = append(self.items, data.GetDataCell(_ruleName, _item, self.GetUrl(), "", time.Now().Format("2006-01-02 15:04:05")))
-		//self.items = append(self.items, data.GetDataCell(_ruleName, _item, self.GetUrl(), self.GetReferer(), time.Now().Format("2006-01-02 15:04:05")))
-	}
+	//if self.dataBox.NotDefaultField {
+	//	self.items = append(self.items, data.GetDataCell(_ruleName, _item, "", "", ""))
+	//} else {
+	//	self.items = append(self.items, data.GetDataCell(_ruleName, _item, self.GetUrl(), "", time.Now().Format("2006-01-02 15:04:05")))
+	//	//self.items = append(self.items, data.GetDataCell(_ruleName, _item, self.GetUrl(), self.GetReferer(), time.Now().Format("2006-01-02 15:04:05")))
+	//}
+	self.ItemsChan <- data.GetDataCell(_ruleName, _item, self.GetUrl(), "", time.Now().Format("2006-01-02 15:04:05"))
 	self.Unlock()
 }
 

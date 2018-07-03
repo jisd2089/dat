@@ -405,6 +405,8 @@ func (m *dataMan) Process(req *request.DataRequest) {
 		return
 	}
 
+	go m.pullItems(ctx)
+
 	// 过程处理，提炼数据
 	ctx.Parse(req.GetRuleName())
 
@@ -415,11 +417,11 @@ func (m *dataMan) Process(req *request.DataRequest) {
 		}
 	}
 	// 该条请求文本结果存入pipeline
-	for _, item := range ctx.PullItems() {
-		if m.Pipeline.CollectData(item) != nil {
-			break
-		}
-	}
+	//for _, item := range ctx.PullItems() {
+	//	if m.Pipeline.CollectData(item) != nil {
+	//		break
+	//	}
+	//}
 
 	// 处理成功请求记录
 	b.DoHistory(req, true)
@@ -434,6 +436,14 @@ func (m *dataMan) Process(req *request.DataRequest) {
 	databox.PutContext(ctx)
 
 	req.TimeOutCh <- fmt.Sprintf("process data request success")
+}
+
+func (m *dataMan) pullItems(ctx *databox.Context) {
+	for dataCell := range ctx.ItemsChan {
+		if m.Pipeline.CollectData(dataCell) != nil {
+			break
+		}
+	}
 }
 
 // core processer
