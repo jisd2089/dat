@@ -258,6 +258,77 @@ func (s *DepService) ProcessBatchRcv(ctx *fasthttp.RequestCtx, targetFilePath st
 
 }
 
+// 金融消费
+func (s *DepService) ProcessCrpTrans(ctx *fasthttp.RequestCtx) {
+
+	//boxName := string(ctx.Request.Header.Peek("boxName"))
+	//if boxName == "" {
+	//	logger.Error("box name missing")
+	//	return
+	//}
+	//
+	//respFileName := path.Base(targetFilePath)
+	//
+	//dataFileName := &nodelib.DataFileName{}
+	//if err := dataFileName.ParseAndValidFileName(respFileName); err != nil {
+	//	logger.Error("Parse and valid fileName: [%s] error: %s", respFileName, err)
+	//	return
+	//}
+	skip := false
+
+	//boxName = "batch_dem_rcv"
+	boxName := "dem_request"
+	b := assetnode.AssetNodeEntity.GetDataBoxByName(boxName)
+	if b == nil {
+		logger.Error("databox is nil!")
+		return
+	}
+
+	//if err := setRcvParams(ctx, b); err != nil {
+	//	logger.Error("rcv params err [%s]", err.Error())
+	//	return
+	//}
+
+	//common := st.GetCommonSettings()
+	//logger.Info("common setting", common)
+	//
+	//fsAddress := &request.FileServerAddress{
+	//	Host:      common.Sftp.Hosts,
+	//	Port:      common.Sftp.Port,
+	//	UserName:  common.Sftp.Username,
+	//	Password:  common.Sftp.Password,
+	//	TimeOut:   common.Sftp.DefualtTimeout,
+	//	LocalDir:  common.Sftp.LocalDir,
+	//	RemoteDir: common.Sftp.RemoteDir,
+	//}
+	//
+	//b.SetDataFilePath(targetFilePath)
+	//b.FileServerAddress = fsAddress
+	//b.SetParam("jobId", dataFileName.JobId)
+	//b.SetParam("batchNo", dataFileName.BatchNo)
+	//b.SetParam("fileNo", dataFileName.FileNo)
+	//b.SetParam("NodeMemberId", common.Node.MemberId)
+	//
+	//b.Params = common.Redis.Addr
+
+	b.HttpRequestBody = ctx.Request.Body()
+
+	b.Callback = func(response []byte) {
+		ctx.SetBody(response)
+		skip = true
+	}
+
+	setDataBoxQueue(b)
+
+	for {
+		if skip {
+			break
+		}
+	}
+
+	fmt.Println("depservice end")
+}
+
 func setRcvParams(ctx *fasthttp.RequestCtx, b *databox.DataBox) error {
 
 	batchParams := &BatchParams{

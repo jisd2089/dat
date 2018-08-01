@@ -6,6 +6,9 @@ import (
 	"github.com/valyala/fasthttp"
 
 	. "drcs/settings"
+	"net/http"
+
+	_ "net/http/pprof"
 )
 
 /**
@@ -36,8 +39,13 @@ func (s *HttpServer) Run() {
 		MaxRequestBodySize: 20 * 1024 * 1024 * 1024, //set maxbody size = 20G
 	}
 
+
+	uri1 := fmt.Sprintf("%s:%d", host, 9000)
+	go http.ListenAndServe(uri1, nil)
+
 	if err = server.Serve(ln); err != nil {
 	}
+
 }
 
 func (s *HttpServer) RunTest(port int) {

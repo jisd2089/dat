@@ -3,7 +3,6 @@ import:
 - package: bitbucket.org/avd/go-ipc
   subpackages:
   - mq
-- package: dds/log
 - package: github.com/Shopify/sarama
 - package: github.com/astaxie/beego
   subpackages:

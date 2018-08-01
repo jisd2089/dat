@@ -54,6 +54,8 @@ type (
 		IsParentBox        bool                                                        // 是否父databox
 		ChildBox           *DataBox                                                    // child box
 		ParentBox          *DataBox                                                    // parent box
+		HttpRequestBody    []byte                                                      // http request body
+		Callback           func([]byte)                                                // 回调
 
 		// 以下字段系统自动赋值
 		id        int               // 自动分配的DataBoxQueue中的索引
@@ -390,6 +392,8 @@ func (self *DataBox) Copy() *DataBox {
 	ghost.IsParentBox = self.IsParentBox
 	ghost.ChildBoxChan = self.ChildBoxChan
 	ghost.ChildActiveBoxChan = self.ChildActiveBoxChan
+	ghost.Callback = self.Callback
+	ghost.HttpRequestBody = self.HttpRequestBody
 
 	return ghost
 }

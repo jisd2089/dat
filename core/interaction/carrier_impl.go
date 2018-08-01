@@ -21,6 +21,9 @@ type Cross struct {
 	shellTsf    transfer.Transfer
 	sshTsf      transfer.Transfer
 	redisTsf    transfer.Transfer
+	encryptTsf  transfer.Transfer
+	encodeTsf   transfer.Transfer
+	depauthTsf  transfer.Transfer
 	sync.RWMutex
 }
 
@@ -34,6 +37,9 @@ func NewCross() Carrier {
 		shellTsf:    transfer.NewShellTransfer(),
 		sshTsf:      transfer.NewSshTransfer(),
 		redisTsf:    transfer.NewRedisTransfer(),
+		encryptTsf:  transfer.NewEncryptTransfer(),
+		encodeTsf:   transfer.NewEncodeTransfer(),
+		depauthTsf:  transfer.NewDepAuthTransfer(),
 	}
 }
 
@@ -74,6 +80,14 @@ func (c *Cross) Handle(b *databox.DataBox, cReq *request.DataRequest) *databox.C
 		resp = c.sshTsf.ExecuteMethod(cReq).(*response.DataResponse)
 	case request.REDIS:
 		resp = c.redisTsf.ExecuteMethod(cReq).(*response.DataResponse)
+	case request.ENCRYPT:
+		resp = c.encryptTsf.ExecuteMethod(cReq).(*response.DataResponse)
+	case request.ENCODE:
+		resp = c.encodeTsf.ExecuteMethod(cReq).(*response.DataResponse)
+	case request.DEPAUTH:
+		resp = c.depauthTsf.ExecuteMethod(cReq).(*response.DataResponse)
+	default:
+		resp = c.noneTsf.ExecuteMethod(cReq).(*response.DataResponse)
 	}
 
 	if resp.GetStatusCode() >= 400 {

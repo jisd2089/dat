@@ -105,12 +105,12 @@ func pullRequestFileFunc(ctx *Context) {
 
 	fmt.Println("NodeAddress: %s", ctx.GetDataBox().GetNodeAddress())
 	ctx.AddQueue(&request.DataRequest{
-		Rule:         "getPolicy",
 		Method:       "GET",
-		TransferType: request.NONETYPE, // TEST
-		//TransferType: request.SFTP,
+		//TransferType: request.NONETYPE, // TEST
+		TransferType: request.SFTP,
 		FileCatalog: fileCatalog,
 		Reloadable:  true,
+		Rule:        "getPolicy",
 	})
 }
 

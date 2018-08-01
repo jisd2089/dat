@@ -270,6 +270,10 @@ func (n *NodeHandler) RunBatchProcess(ctx *fasthttp.RequestCtx) {
 	service.NewDepService().ProcessBatchDis(ctx)
 }
 
+func (n *NodeHandler) RunCRPProcess(ctx *fasthttp.RequestCtx) {
+	service.NewDepService().ProcessCrpTrans(ctx)
+}
+
 func (n *NodeHandler) RunBatchRcv(ctx *fasthttp.RequestCtx) {
 
 	if len(ctx.Request.Header.Peek("dataFile")) == 0 {
@@ -277,11 +281,7 @@ func (n *NodeHandler) RunBatchRcv(ctx *fasthttp.RequestCtx) {
 		return
 	}
 	dataFile := string(ctx.Request.Header.Peek("dataFile"))
-	boxName := string(ctx.Request.Header.Peek("boxName"))
 	logger.Info("filePath***********: ", dataFile)
-	seqNo := string(ctx.Request.Header.Peek("seqNo"))
-	logger.Info("filePath***********: ", seqNo)
-	logger.Info("boxName***********: ", boxName)
 
 	common := GetCommonSettings()
 	//hdfsInputDir := common.Hdfs.InputDir
