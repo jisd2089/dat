@@ -110,7 +110,7 @@ func (x *XidGenerator) GenXID() (string, error) {
 	}
 }
 
-func (x *XidGenerator) ConvertXID(app_id_s, regcode_s, app_id_d, regcode_d, appxidcode_s string) (string, error) {
+func (x *XidGenerator) ConvertXID() (string, error) {
 	//xid_dealer := settings.GetDemSettings().XidDealer
 	if hasUsb {
 		logger.Info("---will convert xid by usb_key---")
@@ -122,7 +122,7 @@ func (x *XidGenerator) ConvertXID(app_id_s, regcode_s, app_id_d, regcode_d, appx
 			return convertXidRemoteSansuo(x.SrcAppId, x.SrcRegCode, x.DesAppId, x.DesXregCode, x.AppXidCode, x.XidIp, x.AppKey)
 		default:
 			logger.Info("---will convert xid by chinadep---")
-			return convertXidRemoteChinadep(app_id_s, regcode_s, app_id_d, regcode_d, appxidcode_s, x.XidIp)
+			return convertXidRemoteChinadep(x.SrcAppId, x.SrcRegCode, x.DesAppId, x.DesXregCode, x.AppXidCode, x.XidIp)
 		}
 	}
 }

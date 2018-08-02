@@ -329,6 +329,34 @@ func (s *DepService) ProcessCrpTrans(ctx *fasthttp.RequestCtx) {
 	fmt.Println("depservice end")
 }
 
+func (s *DepService) ProcessCrpResponse(ctx *fasthttp.RequestCtx) {
+	skip := false
+
+	boxName := "sup_response"
+	b := assetnode.AssetNodeEntity.GetDataBoxByName(boxName)
+	if b == nil {
+		logger.Error("databox is nil!")
+		return
+	}
+
+	b.HttpRequestBody = ctx.Request.Body()
+
+	b.Callback = func(response []byte) {
+		ctx.SetBody(response)
+		skip = true
+	}
+
+	setDataBoxQueue(b)
+
+	for {
+		if skip {
+			break
+		}
+	}
+
+	fmt.Println("depservice end")
+}
+
 func setRcvParams(ctx *fasthttp.RequestCtx, b *databox.DataBox) error {
 
 	batchParams := &BatchParams{

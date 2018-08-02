@@ -39,6 +39,7 @@ type (
 		GetCommandName() string
 		GetCommandParams() []string
 		GetCommandLine() string
+		GetXidParams() map[string]interface{}
 
 		Param(key string) string
 		ParamKeys() []string

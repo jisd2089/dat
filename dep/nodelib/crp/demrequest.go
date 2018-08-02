@@ -16,6 +16,7 @@ import (
 	"strconv"
 	"os"
 	"drcs/dep/or"
+	"drcs/dep/order"
 )
 
 func init() {
@@ -52,15 +53,15 @@ var DEMREQUEST = &DataBox{
 			//"getpolicy": {
 			//	ParseFunc: getOrderRoutePolicyFunc,
 			//},
-			"aesencrypt": {
-				ParseFunc: aesEncryptParamFunc,
-			},
-			"base64encode": {
-				ParseFunc: base64EncodeFunc,
-			},
-			"urlencode": {
-				ParseFunc: urlEncodeFunc,
-			},
+			//"aesencrypt": {
+			//	ParseFunc: aesEncryptParamFunc,
+			//},
+			//"base64encode": {
+			//	ParseFunc: base64EncodeFunc,
+			//},
+			//"urlencode": {
+			//	ParseFunc: urlEncodeFunc,
+			//},
 			"singlequery": {
 				ParseFunc: singleQueryFunc,
 			},
@@ -108,16 +109,10 @@ func parseReqParamFunc(ctx *Context) {
 	}
 	fmt.Println(commonRequestData)
 
-	ctx.GetDataBox().SetParam("demMemberId", commonRequestData.PubReqInfo.MemId)
-	ctx.GetDataBox().SetParam("demMemberId", commonRequestData.PubReqInfo.MemId)
-	ctx.GetDataBox().SetParam("demMemberId", commonRequestData.PubReqInfo.MemId)
-	ctx.GetDataBox().SetParam("demMemberId", commonRequestData.PubReqInfo.MemId)
-	ctx.GetDataBox().SetParam("demMemberId", commonRequestData.PubReqInfo.MemId)
-
 	dataReq := &request.DataRequest{
 		Rule:         "depauth",
-		Method:       "GET",
 		TransferType: request.DEPAUTH,
+		Method:       "APPKEY",
 		Reloadable:   true,
 		Bobject:      commonRequestData.BusiInfo,
 	}
@@ -126,6 +121,7 @@ func parseReqParamFunc(ctx *Context) {
 	dataReq.SetParam("serialNo", commonRequestData.PubReqInfo.SerialNo)
 	dataReq.SetParam("reqSign", commonRequestData.PubReqInfo.ReqSign)
 	dataReq.SetParam("appkey", ctx.GetDataBox().Param("appkey"))
+	dataReq.SetParam("jobId", commonRequestData.PubReqInfo.JobId)
 
 	ctx.AddQueue(dataReq)
 }
@@ -149,9 +145,9 @@ func depAuthFunc(ctx *Context) {
 	}
 
 	ctx.AddQueue(&request.DataRequest{
-		Rule:         "aesencrypt",
-		Method:       "AESEncrypt",
-		TransferType: request.ENCRYPT,
+		Rule:         "applybalance",
+		Method:       "GET",
+		TransferType: request.NONETYPE,
 		Reloadable:   true,
 		Parameters:   reqDataJson,
 	})
@@ -160,11 +156,24 @@ func depAuthFunc(ctx *Context) {
 func applyBalanceFunc(ctx *Context) {
 	fmt.Println("applyBalance rule...")
 
+	jobId := ctx.GetDataBox().Param("jobId")
+	orderRoutePolicy := or.OrderRoutePolicyMap[jobId]
+	supMemberId := orderRoutePolicy.Calllist[0]
+	taskId := orderRoutePolicy.MemTaskIdMap[supMemberId]
+
+	orderData := order.GetOrderInfoMap()[jobId]
+
+	orderDetailInfo := orderData.TaskInfoMapById[taskId]
+
+	unitPriceStr := orderDetailInfo.ValuationPrice
+
+	ctx.GetDataBox().SetParam("unitPrice", unitPriceStr)
+
 	memberId := ctx.GetDataBox().Param("memberId")
-	unitPriceStr := ctx.GetDataBox().Param("unitPrice")
+	//unitPriceStr := ctx.GetDataBox().Param("unitPrice")
 	balanceUrl := ctx.GetDataBox().Param("balanceUrl")
 
-	unitPrice, err := strconv.ParseFloat(unitPriceStr,64)
+	unitPrice, err := strconv.ParseFloat(unitPriceStr, 64)
 	if err != nil {
 		fmt.Println("apply balance failed", err.Error())
 		errEnd(ctx)
@@ -209,7 +218,7 @@ func updateRedisQuatoFunc(ctx *Context) {
 	memberId := ctx.GetDataBox().Param("memberId")
 	unitPriceStr := ctx.GetDataBox().Param("unitPrice")
 
-	unitPrice, err := strconv.ParseFloat(unitPriceStr,64)
+	unitPrice, err := strconv.ParseFloat(unitPriceStr, 64)
 	if err != nil {
 		fmt.Println("apply balance failed", err.Error())
 		errEnd(ctx)
@@ -257,93 +266,6 @@ func reduceRedisQuatoFunc(ctx *Context) {
 
 func getOrderRoutePolicyFunc(ctx *Context) {
 	fmt.Println("getOrderRoutePolicyFunc rule...")
-
-
-}
-
-func aesEncryptParamFunc(ctx *Context) {
-	fmt.Println("aesEncryptParamFunc rule...")
-
-	if ctx.DataResponse.StatusCode == 200 && !strings.EqualFold(ctx.DataResponse.ReturnCode, "000000") {
-		fmt.Println("aes encrypt failed")
-		errEnd(ctx)
-		return
-	}
-
-	ctx.AddQueue(&request.DataRequest{
-		Rule:         "base64encode",
-		Method:       "Base64Encode",
-		TransferType: request.ENCODE,
-		Reloadable:   true,
-		Parameters:   ctx.DataResponse.Body,
-	})
-}
-
-func base64EncodeFunc(ctx *Context) {
-	fmt.Println("base64EncodeFunc rule...")
-
-	if ctx.DataResponse.StatusCode == 200 && !strings.EqualFold(ctx.DataResponse.ReturnCode, "000000") {
-		fmt.Println("base encode failed")
-		errEnd(ctx)
-		return
-	}
-
-	dataRequest := &request.DataRequest{
-		Rule:         "urlencode",
-		Method:       "URLEncode",
-		TransferType: request.ENCODE,
-		Reloadable:   true,
-	}
-
-	dataRequest.SetParam("urlstr", ctx.DataResponse.BodyStr)
-
-	ctx.AddQueue(dataRequest)
-}
-
-func urlEncodeFunc(ctx *Context) {
-	fmt.Println("urlEncodeFunc rule...")
-
-	if ctx.DataResponse.StatusCode == 200 && !strings.EqualFold(ctx.DataResponse.ReturnCode, "000000") {
-		fmt.Println("url encode failed")
-		errEnd(ctx)
-		return
-	}
-
-
-	jobId := ctx.GetDataBox().Param("jobId")
-
-	// 根据jobid获取orderroute map
-	orPolicyMap, ok := or.OrderRoutePolicyMap[jobId]
-	if !ok {
-		errEnd(ctx)
-		return
-	}
-
-	var nextRule string
-	switch orPolicyMap.RouteMethod {
-	case 1: // 单一路由
-		nextRule = "singlequery"
-	case 2: // 静态路由
-		nextRule = "staticquery"
-	case 3: // 动态路由
-
-	}
-
-	dataRequest := &request.DataRequest{
-		Rule:         nextRule,
-		Method:       "POST",
-		Url:          "http://api.edunwang.com/test/black_check?appid=xxxx&secret_id=xxxx&seq_no=xxx&product_id=xxx&req_data=xxxx",
-		TransferType: request.NONETYPE,
-		Reloadable:   true,
-	}
-
-	dataRequest.SetParam("appid", ctx.DataResponse.BodyStr)
-	dataRequest.SetParam("secret_id", ctx.DataResponse.BodyStr)
-	dataRequest.SetParam("seq_no", ctx.DataResponse.BodyStr)
-	dataRequest.SetParam("product_id", ctx.DataResponse.BodyStr)
-	dataRequest.SetParam("req_data", ctx.DataResponse.BodyStr)
-
-	ctx.AddQueue(dataRequest)
 
 }
 
@@ -438,34 +360,3 @@ func queryResponseFunc(ctx *Context) {
 
 	ctx.AddQueue(dataRequest)
 }
-
-func aesDecryptFunc(ctx *Context) {
-	fmt.Println("aesDecryptFunc rule...")
-
-	if ctx.DataResponse.StatusCode == 200 && !strings.EqualFold(ctx.DataResponse.ReturnCode, "000000") {
-		fmt.Println("exec edunwang query failed")
-		errEnd(ctx)
-		return
-	}
-
-	respData := &RspData{}
-	if err := json.Unmarshal(ctx.DataResponse.Body, respData); err != nil {
-		fmt.Println("convert respData to struct failed")
-		errEnd(ctx)
-		return
-	}
-	pubRespMsg := &PubResProductMsg_0_000_000{}
-	pubRespMsg.DetailInfo.Tag = respData.Tag
-	pubRespMsg.DetailInfo.EvilScore = respData.EvilScore
-
-	ctx.AddQueue(&request.DataRequest{
-		Rule:         "buildresp",
-		Method:       "Get",
-		TransferType: request.NONETYPE,
-		Reloadable:   true,
-		Bobject:      pubRespMsg,
-	})
-
-}
-
-

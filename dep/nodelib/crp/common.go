@@ -42,12 +42,11 @@ func buildResponseFunc(ctx *Context) {
 	pubRespMsg := ctx.DataResponse.Bobject
 	pubResInfo := &PubResInfo{
 		ResCode: "",
-		ResMsg: "",
-
+		ResMsg:  "",
 	}
 
 	responseInfo := &ResponseInfo{
-		PubResInfo: pubResInfo,
+		PubResInfo:  pubResInfo,
 		BusiResInfo: pubRespMsg.(map[string]interface{}),
 	}
 
@@ -155,12 +154,12 @@ type CommonRequestData struct {
 }
 
 type PubReqInfo struct {
-	MemId     string `json:"memId"`
-	SerialNo  string `json:"serialNo"`
-	JobId     string `json:"jobId"`
-	AuthMode  string `json:"authMode"`
-	TimeStamp string `json:"timeStamp"`
-	ReqSign   string `json:"reqSign"`
+	MemId        string `json:"memId"`
+	SerialNo     string `json:"serialNo"`
+	JobId        string `json:"jobId"`
+	AuthMode     string `json:"authMode"`
+	TimeStamp    string `json:"timeStamp"`
+	ReqSign      string `json:"reqSign"`
 }
 
 type PubAnsInfo struct {
@@ -172,7 +171,7 @@ type PubAnsInfo struct {
 }
 
 type ResponseInfo struct {
-	PubResInfo  *PubResInfo             `json:"PubResInfo"`
+	PubResInfo  *PubResInfo            `json:"PubResInfo"`
 	BusiResInfo map[string]interface{} `json:"PubResInfo"`
 }
 

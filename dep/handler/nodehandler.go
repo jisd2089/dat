@@ -274,6 +274,10 @@ func (n *NodeHandler) RunCRPProcess(ctx *fasthttp.RequestCtx) {
 	service.NewDepService().ProcessCrpTrans(ctx)
 }
 
+func (n *NodeHandler) RunCRPResponse(ctx *fasthttp.RequestCtx) {
+
+}
+
 func (n *NodeHandler) RunBatchRcv(ctx *fasthttp.RequestCtx) {
 
 	if len(ctx.Request.Header.Peek("dataFile")) == 0 {
