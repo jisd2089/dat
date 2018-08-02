@@ -22,7 +22,7 @@ func NewRedisTransfer() Transfer {
 }
 
 var (
-	redOnce sync.Once
+	redOnce   sync.Once
 	redRtOnce sync.Once
 )
 
@@ -40,11 +40,11 @@ func (rt *RedisTransfer) ExecuteMethod(req Request) Response {
 	rt.connect(req)
 
 	var (
-		value     string
-		byteValue []byte
-		values    []string
-		isExist   bool
-		retCode = "000000"
+		value      string
+		byteValue  []byte
+		values     []string
+		isExist    bool
+		retCode    = "000000"
 		err        error
 		retryTimes = 0
 	)
@@ -80,6 +80,16 @@ RETRY:
 		byteValue, err = rt.redisCli.Get(req.GetPostData())
 	case "GET_STRINGS":
 		values, err = rt.redisCli.Keys(req.GetPostData())
+	case "HIncrBy":
+		incr, errmsg := strconv.ParseInt(req.Param("incr"), 10, 64)
+		if errmsg != nil {
+			return &DataResponse{
+				StatusCode: 200,
+				ReturnCode: "000002",
+				ReturnMsg:  errmsg.Error(),
+			}
+		}
+		err = rt.redisCli.HIncrBy(req.Param("key"), req.Param("field"), incr)
 	case "EXIST":
 		isExist, err = rt.redisCli.HExistString(req.GetPostData())
 		if !isExist {
@@ -93,7 +103,7 @@ RETRY:
 		return &DataResponse{
 			StatusCode: 200,
 			ReturnCode: "000002",
-			ReturnMsg: err.Error(),
+			ReturnMsg:  err.Error(),
 		}
 	}
 
@@ -155,7 +165,6 @@ func (rt *RedisTransfer) refresh(req Request) {
 		//}
 	})
 }
-
 
 func (rt *RedisTransfer) Close() {
 

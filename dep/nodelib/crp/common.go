@@ -13,6 +13,7 @@ import (
 	"bytes"
 	"io"
 	"encoding/json"
+	"strings"
 )
 
 /**
@@ -59,7 +60,20 @@ func buildResponseFunc(ctx *Context) {
 
 	ctx.GetDataBox().Callback(responseByte)
 
-
+	ctx.Output(map[string]interface{}{
+		//"exID":       string(line),
+		"demMemID":   ctx.GetDataBox().Param("UserId"),
+		"supMemID":   ctx.GetDataBox().Param("NodeMemberId"),
+		"taskID":     strings.Replace(ctx.GetDataBox().Param("TaskId"), "|@|", ".", -1),
+		"seqNo":      ctx.GetDataBox().Param("seqNo"),
+		"dmpSeqNo":   ctx.GetDataBox().Param("fileNo"),
+		"recordType": "2",
+		"succCount":  "1",
+		"flowStatus": "11",
+		"usedTime":   11,
+		"errCode":    "031014",
+		//"stepInfoM":  stepInfoM,
+	})
 }
 
 func isDirExists(path string) bool {

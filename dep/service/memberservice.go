@@ -8,6 +8,7 @@ import (
 	"drcs/dep/member"
 	"fmt"
 	"path/filepath"
+	"drcs/common/balance"
 )
 
 /**
@@ -17,6 +18,7 @@ import (
 
 type MemberService struct {
 	lock       sync.RWMutex
+	memCh     chan bool
 }
 
 func NewMemberService() *MemberService {
@@ -24,14 +26,22 @@ func NewMemberService() *MemberService {
 }
 
 func (o *MemberService) Init() {
+	o.memCh = make(chan bool, 1)
 
 	memberPath := filepath.Join(SettingPath, "member.properties")
 	partnersPath := filepath.Join(SettingPath, "partners.properties")
-	go initMemberConfig(filepath.Clean(memberPath))
+	go o.initMemberConfig(filepath.Clean(memberPath))
 	go initPartnersConfig(filepath.Clean(partnersPath))
+
+	select {
+	case ret := <-o.memCh:
+		fmt.Println("balance init", ret)
+		balance.InitBalanceMutex()
+		break
+	}
 }
 
-func initMemberConfig(configDir string) {
+func (o *MemberService)initMemberConfig(configDir string) {
 	newAgollo := agollo.NewAgollo(configDir)
 	go newAgollo.Start()
 
@@ -62,8 +72,8 @@ func initMemberConfig(configDir string) {
 		}
 
 		fmt.Println(member.GetMemberInfoList())
-		//bytes, _ := json.Marshal(changeEvent)
-		//fmt.Println("event:", string(bytes))
+
+		o.memCh <- true
 	}
 }
 

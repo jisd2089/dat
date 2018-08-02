@@ -80,6 +80,7 @@ const (
 	NONETYPE  = "NONETYPE"
 	FILETYPE  = "FILETYPE"
 	SHELLTYPE = "SHELLTYPE"
+	XIDTYPE   = "XIDTYPE"
 )
 
 // 发送请求前的准备工作，设置一系列默认值

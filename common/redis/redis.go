@@ -24,6 +24,7 @@ type (
 		HMSetStrings(key string, fields map[string]string) error
 		Expire(key string, expiration time.Duration) error
 		HExistString(key string) (bool, error)
+		HIncrBy(key, field string, incr int64) error
 		Keys(pattern string) ([]string, error)
 		PipeLineSetString(kvs []PipeKeyValue) error
 		ConfigSet(password string) error
@@ -281,6 +282,16 @@ func (rc *redisClient) HExistString(key string) (bool, error) {
 		return false, nil
 	}
 	return true, nil
+}
+
+func (rc *redisClient) HIncrBy(key, field string, incr int64) error {
+	var err error
+	if rc.isSingle {
+		err = rc.client.HIncrBy(key, field, incr).Err()
+	} else {
+		err = rc.clusterClient.HIncrBy(key, field, incr).Err()
+	}
+	return err
 }
 
 func (rc *redisClient) Keys(pattern string) ([]string, error) {

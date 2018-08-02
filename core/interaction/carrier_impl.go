@@ -24,6 +24,7 @@ type Cross struct {
 	encryptTsf  transfer.Transfer
 	encodeTsf   transfer.Transfer
 	depauthTsf  transfer.Transfer
+	xidTsf      transfer.Transfer
 	sync.RWMutex
 }
 
@@ -40,6 +41,7 @@ func NewCross() Carrier {
 		encryptTsf:  transfer.NewEncryptTransfer(),
 		encodeTsf:   transfer.NewEncodeTransfer(),
 		depauthTsf:  transfer.NewDepAuthTransfer(),
+		xidTsf:      transfer.NewXidTransfer(),
 	}
 }
 
@@ -86,6 +88,8 @@ func (c *Cross) Handle(b *databox.DataBox, cReq *request.DataRequest) *databox.C
 		resp = c.encodeTsf.ExecuteMethod(cReq).(*response.DataResponse)
 	case request.DEPAUTH:
 		resp = c.depauthTsf.ExecuteMethod(cReq).(*response.DataResponse)
+	case request.XIDTYPE:
+		resp = c.xidTsf.ExecuteMethod(cReq).(*response.DataResponse)
 	default:
 		resp = c.noneTsf.ExecuteMethod(cReq).(*response.DataResponse)
 	}

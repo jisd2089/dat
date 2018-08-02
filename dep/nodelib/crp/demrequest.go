@@ -11,11 +11,18 @@ import (
 	"strings"
 	"encoding/json"
 	. "drcs/dep/nodelib/crp/edunwang"
+	"drcs/common/balance"
+	"sync"
+	"strconv"
+	"os"
+	"drcs/dep/or"
 )
 
 func init() {
 	DEMREQUEST.Register()
 }
+
+var lock sync.Mutex
 
 var DEMREQUEST = &DataBox{
 	Name:        "dem_request",
@@ -30,6 +37,21 @@ var DEMREQUEST = &DataBox{
 			"depauth": {
 				ParseFunc: depAuthFunc,
 			},
+			"getorderinfo": {
+				ParseFunc: depAuthFunc,
+			},
+			"applybalance": {
+				ParseFunc: applyBalanceFunc,
+			},
+			"updateredisquato": {
+				ParseFunc: updateRedisQuatoFunc,
+			},
+			"reduceredisquato": {
+				ParseFunc: reduceRedisQuatoFunc,
+			},
+			//"getpolicy": {
+			//	ParseFunc: getOrderRoutePolicyFunc,
+			//},
 			"aesencrypt": {
 				ParseFunc: aesEncryptParamFunc,
 			},
@@ -39,8 +61,14 @@ var DEMREQUEST = &DataBox{
 			"urlencode": {
 				ParseFunc: urlEncodeFunc,
 			},
-			"execquery": {
-				ParseFunc: execQueryFunc,
+			"singlequery": {
+				ParseFunc: singleQueryFunc,
+			},
+			"staticquery": {
+				ParseFunc: staticQueryFunc,
+			},
+			"queryresponse": {
+				ParseFunc: queryResponseFunc,
 			},
 			"aesdecrypt": {
 				ParseFunc: aesDecryptFunc,
@@ -79,6 +107,12 @@ func parseReqParamFunc(ctx *Context) {
 		return
 	}
 	fmt.Println(commonRequestData)
+
+	ctx.GetDataBox().SetParam("demMemberId", commonRequestData.PubReqInfo.MemId)
+	ctx.GetDataBox().SetParam("demMemberId", commonRequestData.PubReqInfo.MemId)
+	ctx.GetDataBox().SetParam("demMemberId", commonRequestData.PubReqInfo.MemId)
+	ctx.GetDataBox().SetParam("demMemberId", commonRequestData.PubReqInfo.MemId)
+	ctx.GetDataBox().SetParam("demMemberId", commonRequestData.PubReqInfo.MemId)
 
 	dataReq := &request.DataRequest{
 		Rule:         "depauth",
@@ -121,6 +155,110 @@ func depAuthFunc(ctx *Context) {
 		Reloadable:   true,
 		Parameters:   reqDataJson,
 	})
+}
+
+func applyBalanceFunc(ctx *Context) {
+	fmt.Println("applyBalance rule...")
+
+	memberId := ctx.GetDataBox().Param("memberId")
+	unitPriceStr := ctx.GetDataBox().Param("unitPrice")
+	balanceUrl := ctx.GetDataBox().Param("balanceUrl")
+
+	unitPrice, err := strconv.ParseFloat(unitPriceStr,64)
+	if err != nil {
+		fmt.Println("apply balance failed", err.Error())
+		errEnd(ctx)
+		return
+	}
+
+	lock.Lock()
+	defer lock.Unlock()
+	hasBalance := balance.Hasbalance(memberId, unitPrice)
+	if !hasBalance {
+		if err := balance.ApplyBalance(memberId, unitPrice, 100, balanceUrl); err != nil {
+			fmt.Println("apply balance failed", err.Error())
+			errEnd(ctx)
+			return
+		}
+	}
+
+	dataRequest := &request.DataRequest{
+		Rule:         "updateredisquato",
+		Method:       "HIncrBy",
+		TransferType: request.REDIS,
+		Reloadable:   true,
+		Parameters:   ctx.DataResponse.Body,
+	}
+
+	dataRequest.SetParam("key", strconv.Itoa(os.Getpid()))
+	dataRequest.SetParam("field", memberId)
+	dataRequest.SetParam("incr", unitPriceStr)
+
+	ctx.AddQueue(dataRequest)
+}
+
+func updateRedisQuatoFunc(ctx *Context) {
+	fmt.Println("updateRedisQuatoFunc rule...")
+
+	if ctx.DataResponse.StatusCode == 200 && !strings.EqualFold(ctx.DataResponse.ReturnCode, "000000") {
+		fmt.Println("update redis quato failed")
+		errEnd(ctx)
+		return
+	}
+
+	memberId := ctx.GetDataBox().Param("memberId")
+	unitPriceStr := ctx.GetDataBox().Param("unitPrice")
+
+	unitPrice, err := strconv.ParseFloat(unitPriceStr,64)
+	if err != nil {
+		fmt.Println("apply balance failed", err.Error())
+		errEnd(ctx)
+		return
+	}
+
+	if err := balance.UpdateBalance(memberId, -unitPrice); err != nil {
+		fmt.Println("apply balance failed", err.Error())
+		errEnd(ctx)
+		return
+	}
+
+	dataRequest := &request.DataRequest{
+		Rule:         "reduceredisquato",
+		Method:       "HIncrBy",
+		TransferType: request.REDIS,
+		Reloadable:   true,
+		Parameters:   ctx.DataResponse.Body,
+	}
+
+	dataRequest.SetParam("key", strconv.Itoa(os.Getpid()))
+	dataRequest.SetParam("field", memberId)
+	dataRequest.SetParam("incr", unitPriceStr)
+
+	ctx.AddQueue(dataRequest)
+}
+
+func reduceRedisQuatoFunc(ctx *Context) {
+	fmt.Println("reduceRedisQuatoFunc rule...")
+
+	if ctx.DataResponse.StatusCode == 200 && !strings.EqualFold(ctx.DataResponse.ReturnCode, "000000") {
+		fmt.Println("update redis quato failed")
+		errEnd(ctx)
+		return
+	}
+
+	ctx.AddQueue(&request.DataRequest{
+		Rule:         "aesencrypt",
+		Method:       "AESEncrypt",
+		TransferType: request.ENCRYPT,
+		Reloadable:   true,
+		Parameters:   ctx.DataResponse.Body,
+	})
+}
+
+func getOrderRoutePolicyFunc(ctx *Context) {
+	fmt.Println("getOrderRoutePolicyFunc rule...")
+
+
 }
 
 func aesEncryptParamFunc(ctx *Context) {
@@ -171,8 +309,49 @@ func urlEncodeFunc(ctx *Context) {
 		return
 	}
 
+
+	jobId := ctx.GetDataBox().Param("jobId")
+
+	// 根据jobid获取orderroute map
+	orPolicyMap, ok := or.OrderRoutePolicyMap[jobId]
+	if !ok {
+		errEnd(ctx)
+		return
+	}
+
+	var nextRule string
+	switch orPolicyMap.RouteMethod {
+	case 1: // 单一路由
+		nextRule = "singlequery"
+	case 2: // 静态路由
+		nextRule = "staticquery"
+	case 3: // 动态路由
+
+	}
+
 	dataRequest := &request.DataRequest{
-		Rule:         "execquery",
+		Rule:         nextRule,
+		Method:       "POST",
+		Url:          "http://api.edunwang.com/test/black_check?appid=xxxx&secret_id=xxxx&seq_no=xxx&product_id=xxx&req_data=xxxx",
+		TransferType: request.NONETYPE,
+		Reloadable:   true,
+	}
+
+	dataRequest.SetParam("appid", ctx.DataResponse.BodyStr)
+	dataRequest.SetParam("secret_id", ctx.DataResponse.BodyStr)
+	dataRequest.SetParam("seq_no", ctx.DataResponse.BodyStr)
+	dataRequest.SetParam("product_id", ctx.DataResponse.BodyStr)
+	dataRequest.SetParam("req_data", ctx.DataResponse.BodyStr)
+
+	ctx.AddQueue(dataRequest)
+
+}
+
+func singleQueryFunc(ctx *Context) {
+	fmt.Println("singleQueryFunc rule...")
+
+	dataRequest := &request.DataRequest{
+		Rule:         "queryresponse",
 		Method:       "POST",
 		Url:          "http://api.edunwang.com/test/black_check?appid=xxxx&secret_id=xxxx&seq_no=xxx&product_id=xxx&req_data=xxxx",
 		TransferType: request.FASTHTTP,
@@ -188,8 +367,39 @@ func urlEncodeFunc(ctx *Context) {
 	ctx.AddQueue(dataRequest)
 }
 
-func execQueryFunc(ctx *Context) {
-	fmt.Println("execQueryFunc rule...")
+func staticQueryFunc(ctx *Context) {
+	fmt.Println("staticQueryFunc rule...")
+
+	if ctx.DataResponse.StatusCode == 200 && strings.EqualFold(ctx.DataResponse.ReturnCode, "000000") {
+		ctx.AddQueue(&request.DataRequest{
+			Rule:         "queryresponse",
+			Method:       "POST",
+			Url:          "http://api.edunwang.com/test/black_check?appid=xxxx&secret_id=xxxx&seq_no=xxx&product_id=xxx&req_data=xxxx",
+			TransferType: request.NONETYPE,
+			Reloadable:   true,
+		})
+		return
+	}
+
+	dataRequest := &request.DataRequest{
+		Rule:         "staticquery",
+		Method:       "POST",
+		Url:          "http://api.edunwang.com/test/black_check?appid=xxxx&secret_id=xxxx&seq_no=xxx&product_id=xxx&req_data=xxxx",
+		TransferType: request.FASTHTTP,
+		Reloadable:   true,
+	}
+
+	dataRequest.SetParam("appid", ctx.DataResponse.BodyStr)
+	dataRequest.SetParam("secret_id", ctx.DataResponse.BodyStr)
+	dataRequest.SetParam("seq_no", ctx.DataResponse.BodyStr)
+	dataRequest.SetParam("product_id", ctx.DataResponse.BodyStr)
+	dataRequest.SetParam("req_data", ctx.DataResponse.BodyStr)
+
+	ctx.AddQueue(dataRequest)
+}
+
+func queryResponseFunc(ctx *Context) {
+	fmt.Println("queryResponseFunc rule...")
 
 	if ctx.DataResponse.StatusCode == 200 && !strings.EqualFold(ctx.DataResponse.ReturnCode, "000000") {
 		fmt.Println("exec edunwang query failed")
