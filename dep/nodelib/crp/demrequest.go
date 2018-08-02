@@ -233,7 +233,7 @@ func updateRedisQuatoFunc(ctx *Context) {
 
 	dataRequest := &request.DataRequest{
 		Rule:         "reduceredisquato",
-		Method:       "HIncrBy",
+		Method:       "HDecrBy",
 		TransferType: request.REDIS,
 		Reloadable:   true,
 		Parameters:   ctx.DataResponse.Body,
@@ -255,18 +255,31 @@ func reduceRedisQuatoFunc(ctx *Context) {
 		return
 	}
 
+	jobId := ctx.GetDataBox().Param("jobId")
+
+	// 根据jobid获取orderroute map
+	orPolicyMap, ok := or.OrderRoutePolicyMap[jobId]
+	if !ok {
+		errEnd(ctx)
+		return
+	}
+
+	var nextRule string
+
+	switch orPolicyMap.RouteMethod {
+	case 0:
+		nextRule = "singlequery"
+	case 1:
+		nextRule = "staticquery"
+	}
+
 	ctx.AddQueue(&request.DataRequest{
-		Rule:         "aesencrypt",
-		Method:       "AESEncrypt",
-		TransferType: request.ENCRYPT,
+		Rule:         nextRule,
+		Method:       "GET",
+		TransferType: request.NONETYPE,
 		Reloadable:   true,
 		Parameters:   ctx.DataResponse.Body,
 	})
-}
-
-func getOrderRoutePolicyFunc(ctx *Context) {
-	fmt.Println("getOrderRoutePolicyFunc rule...")
-
 }
 
 func singleQueryFunc(ctx *Context) {

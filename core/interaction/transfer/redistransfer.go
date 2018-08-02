@@ -90,6 +90,16 @@ RETRY:
 			}
 		}
 		err = rt.redisCli.HIncrBy(req.Param("key"), req.Param("field"), incr)
+	case "HDecrBy":
+		incr, errmsg := strconv.ParseInt(req.Param("incr"), 10, 64)
+		if errmsg != nil {
+			return &DataResponse{
+				StatusCode: 200,
+				ReturnCode: "000002",
+				ReturnMsg:  errmsg.Error(),
+			}
+		}
+		err = rt.redisCli.HIncrBy(req.Param("key"), req.Param("field"), -incr)
 	case "EXIST":
 		isExist, err = rt.redisCli.HExistString(req.GetPostData())
 		if !isExist {
