@@ -1,6 +1,6 @@
 package security
 
-import "drcs/dep/cncrypt"
+import "drcs/common/cncrypt"
 
 // Signature 数字签名函数
 func Signature(content []byte) (string, error) {

@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"strings"
+	"fmt"
 )
 
 /**
@@ -24,13 +25,14 @@ func (ft *DepAuthTransfer) ExecuteMethod(req Request) Response {
 	memberId := req.Param("memberId")
 	serialNo := req.Param("serialNo")
 	reqSign := req.Param("reqSign")
-	appkey := req.Param("appkey")
+	pubkey := req.Param("pubkey")
+	jobId := req.Param("jobId")
 
 	retCode := "000000"
 
 	switch req.GetMethod() {
 	case "APPKEY":
-		if !appKeyAuthentication(memberId, serialNo, reqSign, appkey) {
+		if !appKeyAuthentication(memberId, serialNo, reqSign, pubkey, jobId) {
 			retCode = "000004"
 		}
 	case "Prikey":
@@ -44,13 +46,15 @@ func (ft *DepAuthTransfer) ExecuteMethod(req Request) Response {
 	}
 }
 
-func appKeyAuthentication(memId, serialNo, reqSign, appkey string) bool {
+func appKeyAuthentication(memId, serialNo, reqSign, pubkey, jobId string) bool {
 
-	authenticationInfo := memId + serialNo + appkey
+	authenticationInfo := memId + serialNo + jobId + pubkey
 	hash := sha256.New()
 	hash.Write([]byte(authenticationInfo))
 	md := hash.Sum(nil)
 	authenticationHash := hex.EncodeToString(md)
+
+	fmt.Println(string(authenticationHash))
 	return strings.EqualFold(string(authenticationHash), reqSign)
 }
 

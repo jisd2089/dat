@@ -20,6 +20,7 @@ import (
 	"github.com/valyala/fasthttp"
 	"drcs/core/databox"
 	"fmt"
+	"drcs/dep/member"
 )
 
 type DepService struct {
@@ -284,6 +285,8 @@ func (s *DepService) ProcessCrpTrans(ctx *fasthttp.RequestCtx) {
 		return
 	}
 
+	pubkey := member.GetMemberInfoList().MemberDetailList.MemberDetailInfo[0].PubKey
+
 	//if err := setRcvParams(ctx, b); err != nil {
 	//	logger.Error("rcv params err [%s]", err.Error())
 	//	return
@@ -310,6 +313,8 @@ func (s *DepService) ProcessCrpTrans(ctx *fasthttp.RequestCtx) {
 	//b.SetParam("NodeMemberId", common.Node.MemberId)
 	//
 	//b.Params = common.Redis.Addr
+
+	b.SetParam("pubkey", pubkey)
 
 	b.HttpRequestBody = ctx.Request.Body()
 
@@ -339,9 +344,12 @@ func (s *DepService) ProcessCrpResponse(ctx *fasthttp.RequestCtx) {
 		return
 	}
 
+	fmt.Println(string(ctx.Request.Body()))
+
 	b.HttpRequestBody = ctx.Request.Body()
 
 	b.Callback = func(response []byte) {
+		fmt.Println("response: ", string(response))
 		ctx.SetBody(response)
 		skip = true
 	}

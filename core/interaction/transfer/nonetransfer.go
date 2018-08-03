@@ -20,7 +20,7 @@ func NewNoneTransfer() *NoneTransfer {
 // 封装NoneType服务
 func (nt *NoneTransfer) ExecuteMethod(req Request) Response {
 
-	return &DataResponse{StatusCode: 200, ReturnCode: "000000", Bobject: req.GetBobject()}
+	return &DataResponse{StatusCode: 200, ReturnCode: "000000", Bobject: req.GetBobject(), Body: req.GetParameters()}
 }
 
 func (ft *NoneTransfer) Close() {

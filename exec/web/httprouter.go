@@ -38,7 +38,8 @@ func (r *HttpRouter) Register() {
 	r.Router.POST("/api/fusion/run", NewNodeHandler().RunProcess)
 	r.Router.POST("/api/dis/batch", NewNodeHandler().RunBatchProcess)
 	r.Router.POST("/api/rcv/batch", NewNodeHandler().RunBatchRcv)
-	r.Router.POST("/api/crp", NewNodeHandler().RunCRPProcess)
+	r.Router.POST("/api/crp/dem", NewNodeHandler().RunCRPProcess)
+	r.Router.POST("/api/crp/sup", NewNodeHandler().RunCRPResponse)
 
 	// 生产业务流程
 	//r.Router.POST("/api/dmp/orderRouteQry/", demander.HTTPService{}.DoService)

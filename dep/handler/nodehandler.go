@@ -275,7 +275,7 @@ func (n *NodeHandler) RunCRPProcess(ctx *fasthttp.RequestCtx) {
 }
 
 func (n *NodeHandler) RunCRPResponse(ctx *fasthttp.RequestCtx) {
-
+	service.NewDepService().ProcessCrpResponse(ctx)
 }
 
 func (n *NodeHandler) RunBatchRcv(ctx *fasthttp.RequestCtx) {

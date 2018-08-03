@@ -5,7 +5,7 @@ package edunwang
     Created: 2018-08-01 11:37:14
 */
 import (
-	. "drcs/dep/nodelib/crp"
+	. "drcs/dep/nodelib/crp/common"
 )
 
 //报文1-003-006：手机实名认证（详版）

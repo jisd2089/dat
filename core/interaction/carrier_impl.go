@@ -54,6 +54,10 @@ var CrossHandler = &Cross{
 	shellTsf:    transfer.NewShellTransfer(),
 	sshTsf:      transfer.NewSshTransfer(),
 	redisTsf:    transfer.NewRedisTransfer(),
+	encryptTsf:  transfer.NewEncryptTransfer(),
+	encodeTsf:   transfer.NewEncodeTransfer(),
+	depauthTsf:  transfer.NewDepAuthTransfer(),
+	xidTsf:      transfer.NewXidTransfer(),
 }
 
 func (c *Cross) Handle(b *databox.DataBox, cReq *request.DataRequest) *databox.Context {

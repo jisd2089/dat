@@ -1,7 +1,7 @@
 package security
 
 import (
-	"drcs/dep/cncrypt"
+	"drcs/common/cncrypt"
 	"testing"
 )
 

@@ -19,8 +19,6 @@ func NewEncodeTransfer() Transfer {
 // 封装encode服务
 func (ft *EncodeTransfer) ExecuteMethod(req Request) Response {
 
-
-
 	var (
 		err        error
 		body       string
@@ -28,16 +26,16 @@ func (ft *EncodeTransfer) ExecuteMethod(req Request) Response {
 	)
 
 	switch req.GetMethod() {
-	case "Base64Encode":
+	case "BASE64ENCODE":
 		requestTxt := req.GetParameters()
 		body = Base64Encode(requestTxt)
-	case "Base64Decode":
+	case "BASE64DECODE":
 		ciphertext := ""
 		base64.StdEncoding.DecodeString(ciphertext)
-	case "URLEncode":
-		urlstr := ""
+	case "URLENCODE":
+		urlstr := req.Param("urlstr")
 		body, err = URLEncode(urlstr)
-	case "URLDecode":
+	case "URLDECODE":
 		compressFile(req)
 	}
 

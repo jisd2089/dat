@@ -14,6 +14,7 @@ import (
 	"crypto/x509"
 	"crypto/rsa"
 	"crypto/rand"
+	"fmt"
 )
 
 type EncryptTransfer struct{}
@@ -26,7 +27,7 @@ func NewEncryptTransfer() Transfer {
 func (ft *EncryptTransfer) ExecuteMethod(req Request) Response {
 
 	requestTxt := req.GetParameters()
-	key := []byte{}
+	key := []byte(req.Param("encryptKey"))
 
 	var (
 		err        error
@@ -35,19 +36,21 @@ func (ft *EncryptTransfer) ExecuteMethod(req Request) Response {
 	)
 
 	switch req.GetMethod() {
-	case "AESEncrypt":
+	case "AESENCRYPT":
 		body, err = aesEncrypt(requestTxt, key)
-	case "AESDecrypt":
+	case "AESDECRYPT":
 		body, err = aesDecrypt(requestTxt, key)
-	case "RSAEncrypt":
-		uncompressFile(req)
-	case "RSADecrypt":
-		uncompressFile(req)
+	case "RSAENCRYPT":
+		body, err = rsaEncrypt(requestTxt, key)
+	case "RSADECRYPT":
+		body, err = rsaDecrypt(requestTxt, key)
 	}
 
 	if err != nil {
 		returnCode = "000005"
 	}
+
+	fmt.Println("body ", string(body))
 
 	return &response.DataResponse{
 		StatusCode: 200,
@@ -116,7 +119,7 @@ func PKCS7UnPadding(plantText []byte) []byte {
 }
 
 // RSA 加解密 #######################################################################
-func RsaEncrypt(origData []byte) ([]byte, error) {
+func rsaEncrypt(origData, publicKey []byte) ([]byte, error) {
 	block, _ := pem.Decode(publicKey) //将密钥解析成公钥实例
 	if block == nil {
 		return nil, errors.New("public key error")
@@ -130,7 +133,7 @@ func RsaEncrypt(origData []byte) ([]byte, error) {
 }
 
 // 解密
-func RsaDecrypt(ciphertext []byte) ([]byte, error) {
+func rsaDecrypt(ciphertext, privateKey []byte) ([]byte, error) {
 	block, _ := pem.Decode(privateKey) //将密钥解析成私钥实例
 	if block == nil {
 		return nil, errors.New("private key error!")

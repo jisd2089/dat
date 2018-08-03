@@ -7,10 +7,11 @@ package crp
 import (
 	"drcs/core/interaction/request"
 	. "drcs/core/databox"
+	. "drcs/dep/nodelib/crp/common"
+	. "drcs/dep/nodelib/crp/edunwang"
 	"fmt"
 	"strings"
 	"encoding/json"
-	. "drcs/dep/nodelib/crp/edunwang"
 	"drcs/common/balance"
 	"sync"
 	"strconv"
@@ -69,13 +70,13 @@ var DEMREQUEST = &DataBox{
 				ParseFunc: staticQueryFunc,
 			},
 			"queryresponse": {
-				ParseFunc: queryResponseFunc,
+				ParseFunc: callResponseFunc,
 			},
 			"aesdecrypt": {
 				ParseFunc: aesDecryptFunc,
 			},
 			"buildresp": {
-				ParseFunc: buildResponseFunc,
+				ParseFunc: callResponseFunc,
 			},
 			"end": {
 				ParseFunc: procEndFunc,
@@ -120,8 +121,10 @@ func parseReqParamFunc(ctx *Context) {
 	dataReq.SetParam("memberId", commonRequestData.PubReqInfo.MemId)
 	dataReq.SetParam("serialNo", commonRequestData.PubReqInfo.SerialNo)
 	dataReq.SetParam("reqSign", commonRequestData.PubReqInfo.ReqSign)
-	dataReq.SetParam("appkey", ctx.GetDataBox().Param("appkey"))
+	dataReq.SetParam("pubkey", ctx.GetDataBox().Param("pubkey"))
 	dataReq.SetParam("jobId", commonRequestData.PubReqInfo.JobId)
+
+	ctx.GetDataBox().SetParam("jobId", commonRequestData.PubReqInfo.JobId)
 
 	ctx.AddQueue(dataReq)
 }
@@ -145,7 +148,8 @@ func depAuthFunc(ctx *Context) {
 	}
 
 	ctx.AddQueue(&request.DataRequest{
-		Rule:         "applybalance",
+		//Rule:         "applybalance",
+		Rule:         "reduceredisquato",
 		Method:       "GET",
 		TransferType: request.NONETYPE,
 		Reloadable:   true,
@@ -267,9 +271,9 @@ func reduceRedisQuatoFunc(ctx *Context) {
 	var nextRule string
 
 	switch orPolicyMap.RouteMethod {
-	case 0:
-		nextRule = "singlequery"
 	case 1:
+		nextRule = "singlequery"
+	case 2:
 		nextRule = "staticquery"
 	}
 
@@ -288,16 +292,17 @@ func singleQueryFunc(ctx *Context) {
 	dataRequest := &request.DataRequest{
 		Rule:         "queryresponse",
 		Method:       "POST",
-		Url:          "http://api.edunwang.com/test/black_check?appid=xxxx&secret_id=xxxx&seq_no=xxx&product_id=xxx&req_data=xxxx",
+		Url:          "http://127.0.0.1:8096/api/crp/sup",
 		TransferType: request.FASTHTTP,
 		Reloadable:   true,
+		Parameters:   ctx.DataResponse.Body,
 	}
 
-	dataRequest.SetParam("appid", ctx.DataResponse.BodyStr)
-	dataRequest.SetParam("secret_id", ctx.DataResponse.BodyStr)
-	dataRequest.SetParam("seq_no", ctx.DataResponse.BodyStr)
-	dataRequest.SetParam("product_id", ctx.DataResponse.BodyStr)
-	dataRequest.SetParam("req_data", ctx.DataResponse.BodyStr)
+	//dataRequest.SetParam("appid", ctx.DataResponse.BodyStr)
+	//dataRequest.SetParam("secret_id", ctx.DataResponse.BodyStr)
+	//dataRequest.SetParam("seq_no", ctx.DataResponse.BodyStr)
+	//dataRequest.SetParam("product_id", ctx.DataResponse.BodyStr)
+	//dataRequest.SetParam("req_data", ctx.DataResponse.BodyStr)
 
 	ctx.AddQueue(dataRequest)
 }
@@ -333,43 +338,59 @@ func staticQueryFunc(ctx *Context) {
 	ctx.AddQueue(dataRequest)
 }
 
-func queryResponseFunc(ctx *Context) {
-	fmt.Println("queryResponseFunc rule...")
+func callResponseFunc(ctx *Context) {
+	fmt.Println("callResponseFunc rule...")
 
-	if ctx.DataResponse.StatusCode == 200 && !strings.EqualFold(ctx.DataResponse.ReturnCode, "000000") {
-		fmt.Println("exec edunwang query failed")
+	//pubRespMsg := ctx.DataResponse.Bobject
+	//pubResInfo := &PubResInfo{
+	//	ResCode: "",
+	//	ResMsg:  "",
+	//}
+	//
+	//responseInfo := &ResponseInfo{
+	//	PubResInfo:  pubResInfo,
+	//	BusiResInfo: pubRespMsg.(map[string]interface{}),
+	//}
+	//
+	//responseByte, err := json.Marshal(responseInfo)
+	//if err != nil {
+	//	fmt.Println("parse response info failed")
+	//	errEnd(ctx)
+	//	return
+	//}
+
+	respData := &RspData{}
+	if err := json.Unmarshal(ctx.DataResponse.Body, respData); err != nil {
 		errEnd(ctx)
 		return
 	}
 
-	responseData := &ResponseData{}
-	if err := json.Unmarshal(ctx.DataResponse.Body, responseData); err != nil {
-		fmt.Println("edunwang parse response failed")
+	pubRespMsg := &PubResProductMsg_0_000_000{}
+	pubRespMsg.DetailInfo.Tag = respData.Tag
+	pubRespMsg.DetailInfo.EvilScore = respData.EvilScore
+
+	responseByte, err := json.Marshal(pubRespMsg)
+	if err != nil {
 		errEnd(ctx)
 		return
 	}
 
-	if !strings.EqualFold(responseData.StatusCode, "100") {
-		fmt.Println("edunwang query response failed")
-		errEnd(ctx)
-		return
-	}
+	ctx.GetDataBox().Callback(responseByte)
 
-	if !strings.EqualFold(responseData.Message, "null") {
-		fmt.Println("edunwang query response err msg", responseData.Message)
-		errEnd(ctx)
-		return
-	}
+	ctx.Output(map[string]interface{}{
+		//"exID":       string(line),
+		"demMemID":   ctx.GetDataBox().Param("UserId"),
+		"supMemID":   ctx.GetDataBox().Param("NodeMemberId"),
+		"taskID":     strings.Replace(ctx.GetDataBox().Param("TaskId"), "|@|", ".", -1),
+		"seqNo":      ctx.GetDataBox().Param("seqNo"),
+		"dmpSeqNo":   ctx.GetDataBox().Param("fileNo"),
+		"recordType": "2",
+		"succCount":  "1",
+		"flowStatus": "11",
+		"usedTime":   11,
+		"errCode":    "031014",
+		//"stepInfoM":  stepInfoM,
+	})
 
-	dataRequest := &request.DataRequest{
-		Rule:         "urlencode",
-		Method:       "AESDecrypt",
-		TransferType: request.ENCODE,
-		Reloadable:   true,
-		Parameters:   []byte(responseData.RspData),
-	}
-
-	dataRequest.SetParam("urlstr", ctx.DataResponse.BodyStr)
-
-	ctx.AddQueue(dataRequest)
+	errEnd(ctx)
 }

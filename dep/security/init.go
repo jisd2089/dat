@@ -4,7 +4,7 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/sha256"
-	"drcs/dep/cncrypt"
+	"drcs/common/cncrypt"
 	"drcs/dep/errors"
 	logger "drcs/log"
 	"drcs/settings"

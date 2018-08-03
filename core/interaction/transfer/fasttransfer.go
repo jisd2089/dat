@@ -47,32 +47,43 @@ func (ft *FastTransfer) ExecuteMethod(req Request) Response {
 
 func execPost(req Request, dataResponse *DataResponse) {
 
-	timeout := 30 * 1000
-
 	freq := fasthttp.AcquireRequest()
 	fresp := fasthttp.AcquireResponse()
 	defer fasthttp.ReleaseRequest(freq)
 	defer fasthttp.ReleaseResponse(fresp)
 
-	freq.SetRequestURI(req.GetUrl())
+	freq.Header.SetContentType("application/json")
 	freq.Header.SetMethod("POST")
+	freq.SetRequestURI(req.GetUrl())
 	freq.SetBody(req.GetParameters())
 
-	pipelineClient := getPipelineClient(req.GetUrl())
-	for {
-		if err := pipelineClient.DoTimeout(freq, fresp, time.Duration(timeout)*time.Millisecond); err != nil {
-			if err == fasthttp.ErrPipelineOverflow {
-				//time.Sleep(1 * time.Millisecond)
-				continue
-			}
-			dataResponse.SetStatusCode(400)
-		}
-		dataResponse.SetHeader(&fresp.Header)
-		dataResponse.SetBody(fresp.Body())
-		dataResponse.SetStatusCode(fresp.StatusCode())
-		dataResponse.ReturnCode = "000000"
-		break
+	err := fasthttp.DoTimeout(freq, fresp, time.Duration(300) * time.Second)
+	if err != nil {
+		dataResponse.SetStatusCode(200)
+		dataResponse.ReturnCode = "000009"
+		return
 	}
+	fmt.Println(string(fresp.Body()))
+
+	dataResponse.SetStatusCode(200)
+	dataResponse.ReturnCode = "000000"
+	dataResponse.Body = fresp.Body()
+
+	//pipelineClient := getPipelineClient(req.GetUrl())
+	//for {
+	//	if err := pipelineClient.DoTimeout(freq, fresp, time.Duration(timeout)*time.Millisecond); err != nil {
+	//		if err == fasthttp.ErrPipelineOverflow {
+	//			//time.Sleep(1 * time.Millisecond)
+	//			continue
+	//		}
+	//		dataResponse.SetStatusCode(400)
+	//	}
+	//	dataResponse.SetHeader(&fresp.Header)
+	//	dataResponse.SetBody(fresp.Body())
+	//	dataResponse.SetStatusCode(fresp.StatusCode())
+	//	dataResponse.ReturnCode = "000000"
+	//	break
+	//}
 }
 
 func execPostFile(req Request, dataResponse *DataResponse) error {

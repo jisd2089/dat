@@ -1,6 +1,6 @@
 package security
 
-import "drcs/dep/cncrypt"
+import "drcs/common/cncrypt"
 
 type DigitalEnvelope struct {
 	// 使用公钥加密过的秘钥,hex16

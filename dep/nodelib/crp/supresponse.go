@@ -11,6 +11,7 @@ import (
 	. "drcs/dep/nodelib/crp/edunwang"
 	"encoding/json"
 	"strings"
+	"strconv"
 )
 
 func init() {
@@ -40,7 +41,7 @@ var SUPRESPONSE = &DataBox{
 				ParseFunc: urlEncodeFunc,
 			},
 			"execquery": {
-				ParseFunc: callResponseFunc,
+				ParseFunc: queryResponseFunc,
 			},
 			"aesdecrypt": {
 				ParseFunc: aesDecryptFunc,
@@ -71,33 +72,64 @@ func parseRespParamFunc(ctx *Context) {
 
 	reqBody := ctx.GetDataBox().HttpRequestBody
 
-	commonRequestData := &CommonRequestData{}
-	err := json.Unmarshal(reqBody, &commonRequestData)
+	busiInfo := map[string]interface{}{}
+	err := json.Unmarshal(reqBody, &busiInfo)
 	if err != nil {
 		fmt.Println(err.Error())
 		errEnd(ctx)
 		return
 	}
-	fmt.Println(commonRequestData)
 
-	ctx.GetDataBox().SetParam("demMemberId", commonRequestData.PubReqInfo.MemId)
-	ctx.GetDataBox().SetParam("demMemberId", commonRequestData.PubReqInfo.MemId)
-	ctx.GetDataBox().SetParam("demMemberId", commonRequestData.PubReqInfo.MemId)
-	ctx.GetDataBox().SetParam("demMemberId", commonRequestData.PubReqInfo.MemId)
-	ctx.GetDataBox().SetParam("demMemberId", commonRequestData.PubReqInfo.MemId)
+	fmt.Println(busiInfo)
+
+	requestData := &RequestData{}
+	idNum, ok := busiInfo["identityNumber"]
+	if !ok {
+		errEnd(ctx)
+		return
+	}
+	requestData.IdNum = idNum.(string)
+	name, ok := busiInfo["fullName"]
+	if !ok {
+		errEnd(ctx)
+		return
+	}
+	requestData.Name = name.(string)
+	phoneNumber, ok := busiInfo["phoneNumber"]
+	if !ok {
+		errEnd(ctx)
+		return
+	}
+	requestData.PhoneNum = phoneNumber.(string)
+	timestampstr, ok := busiInfo["timestamp"]
+	if !ok {
+		errEnd(ctx)
+		return
+	}
+	timestamp, err := strconv.Atoi(timestampstr.(string))
+	if err != nil {
+		errEnd(ctx)
+		return
+	}
+	requestData.TimeStamp = timestamp
+
+	requestDataByte, err := json.Marshal(requestData)
+	if err != nil {
+		errEnd(ctx)
+		return
+	}
 
 	dataReq := &request.DataRequest{
 		Rule:         "aesencrypt",
-		Method:       "AESEncrypt",
+		Method:       "AESENCRYPT",
 		TransferType: request.ENCRYPT,
 		Reloadable:   true,
-		Bobject:      commonRequestData.BusiInfo,
+		Parameters:   requestDataByte,
 	}
 
-	dataReq.SetParam("memberId", commonRequestData.PubReqInfo.MemId)
-	dataReq.SetParam("serialNo", commonRequestData.PubReqInfo.SerialNo)
-	dataReq.SetParam("reqSign", commonRequestData.PubReqInfo.ReqSign)
-	dataReq.SetParam("appkey", ctx.GetDataBox().Param("appkey"))
+	encryptKey := "0102030405060708"
+
+	dataReq.SetParam("encryptKey", encryptKey)
 
 	ctx.AddQueue(dataReq)
 }
@@ -113,7 +145,7 @@ func aesEncryptParamFunc(ctx *Context) {
 
 	ctx.AddQueue(&request.DataRequest{
 		Rule:         "base64encode",
-		Method:       "Base64Encode",
+		Method:       "BASE64ENCODE",
 		TransferType: request.ENCODE,
 		Reloadable:   true,
 		Parameters:   ctx.DataResponse.Body,
@@ -131,7 +163,7 @@ func base64EncodeFunc(ctx *Context) {
 
 	dataRequest := &request.DataRequest{
 		Rule:         "urlencode",
-		Method:       "URLEncode",
+		Method:       "URLENCODE",
 		TransferType: request.ENCODE,
 		Reloadable:   true,
 	}
@@ -154,7 +186,7 @@ func urlEncodeFunc(ctx *Context) {
 		Rule:         "execquery",
 		Method:       "POST",
 		Url:          "http://api.edunwang.com/test/black_check?appid=xxxx&secret_id=xxxx&seq_no=xxx&product_id=xxx&req_data=xxxx",
-		TransferType: request.FASTHTTP,
+		TransferType: request.NONETYPE,
 		Reloadable:   true,
 	}
 
@@ -168,44 +200,49 @@ func urlEncodeFunc(ctx *Context) {
 
 }
 
-func callResponseFunc(ctx *Context) {
-	fmt.Println("buildResponseFunc rule...")
+func queryResponseFunc(ctx *Context) {
+	fmt.Println("queryResponseFunc rule...")
 
-	pubRespMsg := ctx.DataResponse.Bobject
-	pubResInfo := &PubResInfo{
-		ResCode: "",
-		ResMsg: "",
-
-	}
-
-	responseInfo := &ResponseInfo{
-		PubResInfo: pubResInfo,
-		BusiResInfo: pubRespMsg.(map[string]interface{}),
-	}
-
-	responseByte, err := json.Marshal(responseInfo)
-	if err != nil {
-		fmt.Println("parse response info failed")
+	if ctx.DataResponse.StatusCode == 200 && !strings.EqualFold(ctx.DataResponse.ReturnCode, "000000") {
+		fmt.Println("exec edunwang query failed")
 		errEnd(ctx)
 		return
 	}
 
-	ctx.GetDataBox().Callback(responseByte)
+	responseData := &ResponseData{}
+	//if err := json.Unmarshal(ctx.DataResponse.Body, responseData); err != nil {
+	//	fmt.Println("edunwang parse response failed")
+	//	errEnd(ctx)
+	//	return
+	//}
 
-	ctx.Output(map[string]interface{}{
-		//"exID":       string(line),
-		"demMemID":   ctx.GetDataBox().Param("UserId"),
-		"supMemID":   ctx.GetDataBox().Param("NodeMemberId"),
-		"taskID":     strings.Replace(ctx.GetDataBox().Param("TaskId"), "|@|", ".", -1),
-		"seqNo":      ctx.GetDataBox().Param("seqNo"),
-		"dmpSeqNo":   ctx.GetDataBox().Param("fileNo"),
-		"recordType": "2",
-		"succCount":  "1",
-		"flowStatus": "11",
-		"usedTime":   11,
-		"errCode":    "031014",
-		//"stepInfoM":  stepInfoM,
-	})
+	responseData.StatusCode = "100"
+	responseData.Message = "null"
+	responseData.RspData = ""
+
+	if !strings.EqualFold(responseData.StatusCode, "100") {
+		fmt.Println("edunwang query response failed")
+		errEnd(ctx)
+		return
+	}
+
+	if !strings.EqualFold(responseData.Message, "null") {
+		fmt.Println("edunwang query response err msg", responseData.Message)
+		errEnd(ctx)
+		return
+	}
+
+	dataRequest := &request.DataRequest{
+		Rule:         "aesdecrypt",
+		Method:       "AESDECRYPT",
+		TransferType: request.NONETYPE,
+		Reloadable:   true,
+		Parameters:   []byte(responseData.RspData),
+	}
+
+	//dataRequest.SetParam("urlstr", ctx.DataResponse.BodyStr)
+
+	ctx.AddQueue(dataRequest)
 }
 
 func aesDecryptFunc(ctx *Context) {
@@ -218,21 +255,32 @@ func aesDecryptFunc(ctx *Context) {
 	}
 
 	respData := &RspData{}
-	if err := json.Unmarshal(ctx.DataResponse.Body, respData); err != nil {
-		fmt.Println("convert respData to struct failed")
+	respData.Tag = "疑似仿冒包装"
+	respData.EvilScore = 77
+
+	//if err := json.Unmarshal(ctx.DataResponse.Body, respData); err != nil {
+	//	fmt.Println("convert respData to struct failed")
+	//	errEnd(ctx)
+	//	return
+	//}
+
+
+	pubRespMsgByte, err := json.Marshal(respData)
+	if err != nil {
 		errEnd(ctx)
 		return
 	}
-	pubRespMsg := &PubResProductMsg_0_000_000{}
-	pubRespMsg.DetailInfo.Tag = respData.Tag
-	pubRespMsg.DetailInfo.EvilScore = respData.EvilScore
 
-	ctx.AddQueue(&request.DataRequest{
-		Rule:         "buildresp",
-		Method:       "Get",
-		TransferType: request.NONETYPE,
-		Reloadable:   true,
-		Bobject:      pubRespMsg,
-	})
+	ctx.GetDataBox().Callback(pubRespMsgByte)
+
+
+	errEnd(ctx)
+	//ctx.AddQueue(&request.DataRequest{
+	//	Rule:         "buildresp",
+	//	Method:       "Get",
+	//	TransferType: request.NONETYPE,
+	//	Reloadable:   true,
+	//	Bobject:      pubRespMsg,
+	//})
 
 }
