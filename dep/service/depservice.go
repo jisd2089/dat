@@ -12,6 +12,7 @@ import (
 	"drcs/dep/agollo"
 	"drcs/core"
 	"drcs/core/interaction/request"
+	. "drcs/dep/nodelib/crp/common"
 	st "drcs/settings"
 	"path/filepath"
 	"drcs/dep/nodelib"
@@ -21,6 +22,9 @@ import (
 	"drcs/core/databox"
 	"fmt"
 	"drcs/dep/member"
+	"encoding/json"
+	"drcs/dep/order"
+	"time"
 )
 
 type DepService struct {
@@ -262,23 +266,17 @@ func (s *DepService) ProcessBatchRcv(ctx *fasthttp.RequestCtx, targetFilePath st
 // 金融消费
 func (s *DepService) ProcessCrpTrans(ctx *fasthttp.RequestCtx) {
 
-	//boxName := string(ctx.Request.Header.Peek("boxName"))
-	//if boxName == "" {
-	//	logger.Error("box name missing")
-	//	return
-	//}
-	//
-	//respFileName := path.Base(targetFilePath)
-	//
-	//dataFileName := &nodelib.DataFileName{}
-	//if err := dataFileName.ParseAndValidFileName(respFileName); err != nil {
-	//	logger.Error("Parse and valid fileName: [%s] error: %s", respFileName, err)
-	//	return
-	//}
-	skip := false
+	bodyChan := make(chan[]byte)
+	defer close(bodyChan)
+
+	timeOut := time.Duration(3000) * time.Millisecond
+
+	boxName, err := getCrpBoxName(ctx.Request.Body())
+	if err != nil {
+		return
+	}
 
 	//boxName = "batch_dem_rcv"
-	boxName := "dem_request"
 	b := assetnode.AssetNodeEntity.GetDataBoxByName(boxName)
 	if b == nil {
 		logger.Error("databox is nil!")
@@ -286,56 +284,25 @@ func (s *DepService) ProcessCrpTrans(ctx *fasthttp.RequestCtx) {
 	}
 
 	pubkey := member.GetMemberInfoList().MemberDetailList.MemberDetailInfo[0].PubKey
-
-	//if err := setRcvParams(ctx, b); err != nil {
-	//	logger.Error("rcv params err [%s]", err.Error())
-	//	return
-	//}
-
-	//common := st.GetCommonSettings()
-	//logger.Info("common setting", common)
-	//
-	//fsAddress := &request.FileServerAddress{
-	//	Host:      common.Sftp.Hosts,
-	//	Port:      common.Sftp.Port,
-	//	UserName:  common.Sftp.Username,
-	//	Password:  common.Sftp.Password,
-	//	TimeOut:   common.Sftp.DefualtTimeout,
-	//	LocalDir:  common.Sftp.LocalDir,
-	//	RemoteDir: common.Sftp.RemoteDir,
-	//}
-	//
-	//b.SetDataFilePath(targetFilePath)
-	//b.FileServerAddress = fsAddress
-	//b.SetParam("jobId", dataFileName.JobId)
-	//b.SetParam("batchNo", dataFileName.BatchNo)
-	//b.SetParam("fileNo", dataFileName.FileNo)
-	//b.SetParam("NodeMemberId", common.Node.MemberId)
-	//
-	//b.Params = common.Redis.Addr
-
 	b.SetParam("pubkey", pubkey)
+	b.BodyChan = bodyChan
 
 	b.HttpRequestBody = ctx.Request.Body()
 
-	b.Callback = func(response []byte) {
-		ctx.SetBody(response)
-		skip = true
-	}
-
 	setDataBoxQueue(b)
 
-	for {
-		if skip {
-			break
-		}
+	select {
+	case body := <- bodyChan:
+		ctx.SetBody(body)
+	case <-time.After(timeOut):
+		logger.Error("http response timeout")
+		break
 	}
 
 	fmt.Println("depservice end")
 }
 
 func (s *DepService) ProcessCrpResponse(ctx *fasthttp.RequestCtx) {
-	skip := false
 
 	boxName := "sup_response"
 	b := assetnode.AssetNodeEntity.GetDataBoxByName(boxName)
@@ -348,18 +315,16 @@ func (s *DepService) ProcessCrpResponse(ctx *fasthttp.RequestCtx) {
 
 	b.HttpRequestBody = ctx.Request.Body()
 
-	b.Callback = func(response []byte) {
-		fmt.Println("response: ", string(response))
-		ctx.SetBody(response)
-		skip = true
-	}
+	bodyChan := make(chan[]byte)
+	defer close(bodyChan)
+
+	b.BodyChan = bodyChan
 
 	setDataBoxQueue(b)
 
-	for {
-		if skip {
-			break
-		}
+	select {
+	case body := <- bodyChan:
+		ctx.SetBody(body)
 	}
 
 	fmt.Println("depservice end")
@@ -426,4 +391,35 @@ func checkRcvParams(p *BatchParams) error {
 	}
 
 	return nil
+}
+
+
+func getCrpBoxName(requestBody []byte) (string, error) {
+
+	commonRequestData := &CommonRequestData{}
+	if err := json.Unmarshal(requestBody, &commonRequestData); err != nil {
+		logger.Error("marshal request body err ", )
+		return "", fmt.Errorf("marshal request body err ")
+	}
+
+	jobId := commonRequestData.PubReqInfo.JobId
+
+	common := st.GetCommonSettings()
+	memberId := common.Node.MemberId
+
+	var prdtIdCd string
+
+	orderInfoMap := order.GetOrderInfoMap()
+
+	orderData, ok := orderInfoMap[jobId]
+	if !ok {
+		logger.Error("marshal request body err ", )
+		return "", fmt.Errorf("marshal request body err ")
+	}
+	for _, v := range orderData.TaskInfoMapById {
+		prdtIdCd = v.PrdtIdCd
+		break
+	}
+
+	return fmt.Sprint("%s_%s", memberId, prdtIdCd), nil
 }

@@ -22,6 +22,7 @@ import (
 	"drcs/common/sftp"
 	"mime/multipart"
 	"gopkg.in/redis.v5"
+	"github.com/valyala/fasthttp"
 )
 
 type (
@@ -40,6 +41,8 @@ type (
 		GetCommandParams() []string
 		GetCommandLine() string
 		GetXidParams() map[string]interface{}
+		GetPostArgs() map[string]string
+		GetHeaderArgs() *fasthttp.RequestHeader
 
 		Param(key string) string
 		ParamKeys() []string

@@ -14,38 +14,41 @@ import (
 	"drcs/common/sftp"
 	"mime/multipart"
 	"gopkg.in/redis.v5"
+	"github.com/valyala/fasthttp"
 )
 
 // DataRequest represents object waiting for being crawled.
 type DataRequest struct {
-	DataBox       string                 // 规则名，自动设置，禁止人为填写
-	DataBoxId     int                    // databox id
-	TransferType  string                 // 传输类型
-	Url           string                 // 目标URL，必须设置
-	Rule          string                 // 用于解析响应的规则节点名，必须设置
-	Method        string                 // GET POST POST-M HEAD
-	Header        http.Header            // 请求头信息
-	EnableCookie  bool                   // 是否使用cookies，在DataBox的EnableCookie设置
-	Parameters    []byte                 // 传参
-	CommandName   string                 // command命令名称
-	CommandParams []string               // command参数
-	Bobject       interface{}            // 业务参数
-	PostData      string                 // POST values
-	XidParams     map[string]interface{} // xid专用参数
-	DialTimeout   time.Duration          // 创建连接超时 dial tcp: i/o timeout
-	ConnTimeout   time.Duration          // 连接状态超时 WSARecv tcp: i/o timeout
-	TryTimes      int                    // 尝试下载的最大次数
-	RetryPause    time.Duration          // 下载失败后，下次尝试下载的等待时间
-	RedirectTimes int                    // 重定向的最大次数，为0时不限，小于0时禁止重定向
-	Temp          Temp                   // 临时数据
-	TempIsJson    map[string]bool        // 将Temp中以JSON存储的字段标记为true，自动设置，禁止人为填写
-	Priority      int                    // 指定调度优先级，默认为0（最小优先级为0）
-	Reloadable    bool                   // 是否允许重复该链接下载
-	FileCatalog   *sftp.FileCatalog      // SFTP使用
-	RedisOptions  *redis.Options         // Redis 连接参数
-	DataFile      *multipart.FileHeader  // http传输文件
-	DownloaderID  int
-	TimeOutCh     chan string // 超时channel
+	DataBox       string                  // 规则名，自动设置，禁止人为填写
+	DataBoxId     int                     // databox id
+	TransferType  string                  // 传输类型
+	Url           string                  // 目标URL，必须设置
+	Rule          string                  // 用于解析响应的规则节点名，必须设置
+	Method        string                  // GET POST POST-M HEAD
+	Header        http.Header             // 请求头信息
+	EnableCookie  bool                    // 是否使用cookies，在DataBox的EnableCookie设置
+	Parameters    []byte                  // 传参
+	CommandName   string                  // command命令名称
+	CommandParams []string                // command参数
+	Bobject       interface{}             // 业务参数
+	PostData      string                  // POST values
+	XidParams     map[string]interface{}  // xid专用参数
+	PostArgs      map[string]string       // post 请求参数
+	HeaderArgs    *fasthttp.RequestHeader // http head 参数
+	DialTimeout   time.Duration           // 创建连接超时 dial tcp: i/o timeout
+	ConnTimeout   time.Duration           // 连接状态超时 WSARecv tcp: i/o timeout
+	TryTimes      int                     // 尝试下载的最大次数
+	RetryPause    time.Duration           // 下载失败后，下次尝试下载的等待时间
+	RedirectTimes int                     // 重定向的最大次数，为0时不限，小于0时禁止重定向
+	Temp          Temp                    // 临时数据
+	TempIsJson    map[string]bool         // 将Temp中以JSON存储的字段标记为true，自动设置，禁止人为填写
+	Priority      int                     // 指定调度优先级，默认为0（最小优先级为0）
+	Reloadable    bool                    // 是否允许重复该链接下载
+	FileCatalog   *sftp.FileCatalog       // SFTP使用
+	RedisOptions  *redis.Options          // Redis 连接参数
+	DataFile      *multipart.FileHeader   // http传输文件
+	DownloaderID  int                     // 下载id
+	TimeOutCh     chan string             // 超时channel
 	//Surfer下载器内核ID
 	//0为Surf高并发下载器，各种控制功能齐全
 	//1为PhantomJS下载器，特点破防力强，速度慢，低并发
@@ -441,6 +444,14 @@ func (dq *DataRequest) SetParam(key, val string) {
 
 func (dq *DataRequest) GetXidParams() map[string]interface{} {
 	return dq.XidParams
+}
+
+func (dq *DataRequest) GetPostArgs() map[string]string {
+	return dq.PostArgs
+}
+
+func (dq *DataRequest) GetHeaderArgs() *fasthttp.RequestHeader {
+	return dq.HeaderArgs
 }
 
 func (dq *DataRequest) ResetParams() {

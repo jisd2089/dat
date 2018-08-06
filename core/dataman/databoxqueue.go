@@ -37,7 +37,7 @@ type (
 func NewDataBoxQueue() DataBoxQueue {
 	return &dbq{
 		idInc:             util.NewAutoInc(10000, 1),
-		dataBoxChan:       make(chan *DataBox),
+		dataBoxChan:       make(chan *DataBox, 100),
 		activeDataBoxChan: make(chan *DataBox),
 		list:              []*DataBox{},
 	}

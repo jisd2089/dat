@@ -56,6 +56,7 @@ type (
 		ParentBox          *DataBox                                                    // parent box
 		HttpRequestBody    []byte                                                      // http request body
 		Callback           func([]byte)                                                // 回调
+		BodyChan           chan []byte                                                 // http response body
 
 		// 以下字段系统自动赋值
 		id        int               // 自动分配的DataBoxQueue中的索引
@@ -394,6 +395,7 @@ func (self *DataBox) Copy() *DataBox {
 	ghost.ChildActiveBoxChan = self.ChildActiveBoxChan
 	ghost.Callback = self.Callback
 	ghost.HttpRequestBody = self.HttpRequestBody
+	ghost.BodyChan = self.BodyChan
 
 	return ghost
 }

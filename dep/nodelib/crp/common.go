@@ -29,6 +29,9 @@ func procEndFunc(ctx *Context) {
 }
 
 func errEnd(ctx *Context) {
+
+	responseByte := []byte("response error")
+	ctx.GetDataBox().BodyChan <- responseByte
 	ctx.AddQueue(&request.DataRequest{
 		Rule:         "end",
 		TransferType: request.NONETYPE,

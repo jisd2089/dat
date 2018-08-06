@@ -8,10 +8,10 @@ import (
 	. "drcs/core/databox"
 	"fmt"
 	"drcs/core/interaction/request"
-	. "drcs/dep/nodelib/crp/smartsail"
+	."drcs/dep/nodelib/crp/smartsail"
 	"encoding/json"
 	"strings"
-	"strconv"
+	"github.com/valyala/fasthttp"
 )
 
 func init() {
@@ -22,32 +22,20 @@ var SMARTRESPONSE = &DataBox{
 	Name:        "smart_response",
 	Description: "smart_response",
 	RuleTree: &RuleTree{
-		Root: supResponseRootFunc,
+		Root: smartResponseRootFunc,
 
 		Trunk: map[string]*Rule{
 			"parseparam": {
-				ParseFunc: parseRespParamFunc,
+				ParseFunc: parseResponseParamFunc,
 			},
-			//"getorderinfo": {
-			//	ParseFunc: depAuthFunc,
-			//},
-			"aesencrypt": {
-				ParseFunc: aesEncryptParamFunc,
-			},
-			"base64encode": {
-				ParseFunc: base64EncodeFunc,
-			},
-			"urlencode": {
-				ParseFunc: urlEncodeFunc,
+			"rsaencrypt": {
+				ParseFunc: rsaEncryptParamFunc,
 			},
 			"execquery": {
-				ParseFunc: queryResponseFunc,
+				ParseFunc: querySmartResponseFunc,
 			},
-			"aesdecrypt": {
-				ParseFunc: aesDecryptFunc,
-			},
-			"buildresp": {
-				ParseFunc: buildResponseFunc,
+			"rsadecrypt": {
+				ParseFunc: rsaDecryptFunc,
 			},
 			"end": {
 				ParseFunc: procEndFunc,
@@ -56,8 +44,8 @@ var SMARTRESPONSE = &DataBox{
 	},
 }
 
-func supResponseRootFunc(ctx *Context) {
-	fmt.Println("supResponseRootFunc root...")
+func smartResponseRootFunc(ctx *Context) {
+	fmt.Println("smartResponseRootFunc root...")
 
 	ctx.AddQueue(&request.DataRequest{
 		Rule:         "parseparam",
@@ -67,8 +55,8 @@ func supResponseRootFunc(ctx *Context) {
 	})
 }
 
-func parseRespParamFunc(ctx *Context) {
-	fmt.Println("parseRespParamFunc rule...")
+func parseResponseParamFunc(ctx *Context) {
+	fmt.Println("parseResponseParamFunc rule...")
 
 	reqBody := ctx.GetDataBox().HttpRequestBody
 
@@ -83,12 +71,6 @@ func parseRespParamFunc(ctx *Context) {
 	fmt.Println(busiInfo)
 
 	requestData := &RequestData{}
-	idNum, ok := busiInfo["identityNumber"]
-	if !ok {
-		errEnd(ctx)
-		return
-	}
-	requestData.IdNum = idNum.(string)
 	name, ok := busiInfo["fullName"]
 	if !ok {
 		errEnd(ctx)
@@ -100,18 +82,13 @@ func parseRespParamFunc(ctx *Context) {
 		errEnd(ctx)
 		return
 	}
-	requestData.PhoneNum = phoneNumber.(string)
-	timestampstr, ok := busiInfo["timestamp"]
+	requestData.Phone = phoneNumber.(string)
+	starttime, ok := busiInfo["starttime"]
 	if !ok {
 		errEnd(ctx)
 		return
 	}
-	timestamp, err := strconv.Atoi(timestampstr.(string))
-	if err != nil {
-		errEnd(ctx)
-		return
-	}
-	requestData.TimeStamp = timestamp
+	requestData.StartTime = starttime.(string)
 
 	requestDataByte, err := json.Marshal(requestData)
 	if err != nil {
@@ -134,73 +111,36 @@ func parseRespParamFunc(ctx *Context) {
 	ctx.AddQueue(dataReq)
 }
 
-func aesEncryptParamFunc(ctx *Context) {
-	fmt.Println("aesEncryptParamFunc rule...")
+func rsaEncryptParamFunc(ctx *Context) {
+	fmt.Println("rsaEncryptParamFunc rule...")
 
 	if ctx.DataResponse.StatusCode == 200 && !strings.EqualFold(ctx.DataResponse.ReturnCode, "000000") {
-		fmt.Println("aes encrypt failed")
+		fmt.Println("rsa encrypt failed")
 		errEnd(ctx)
 		return
 	}
 
+	header := &fasthttp.RequestHeader{}
+	header.SetContentType("application/json;charset=UTF-8")
+	header.SetMethod("POST")
+
+	args := make(map[string]string, 0)
+	args["cliKey"] = ""
+	args["data"] = string(ctx.DataResponse.Body)
+
 	ctx.AddQueue(&request.DataRequest{
-		Rule:         "base64encode",
-		Method:       "BASE64ENCODE",
-		TransferType: request.ENCODE,
+		Rule:         "execquery",
+		Method:       "POSTARGS",
+		TransferType: request.FASTHTTP,
+		Url:          "",
 		Reloadable:   true,
-		Parameters:   ctx.DataResponse.Body,
+		HeaderArgs:   header,
+		PostArgs:     args,
+		//Parameters:   ctx.DataResponse.Body,
 	})
 }
 
-func base64EncodeFunc(ctx *Context) {
-	fmt.Println("base64EncodeFunc rule...")
-
-	if ctx.DataResponse.StatusCode == 200 && !strings.EqualFold(ctx.DataResponse.ReturnCode, "000000") {
-		fmt.Println("base encode failed")
-		errEnd(ctx)
-		return
-	}
-
-	dataRequest := &request.DataRequest{
-		Rule:         "urlencode",
-		Method:       "URLENCODE",
-		TransferType: request.ENCODE,
-		Reloadable:   true,
-	}
-
-	dataRequest.SetParam("urlstr", ctx.DataResponse.BodyStr)
-
-	ctx.AddQueue(dataRequest)
-}
-
-func urlEncodeFunc(ctx *Context) {
-	fmt.Println("urlEncodeFunc rule...")
-
-	if ctx.DataResponse.StatusCode == 200 && !strings.EqualFold(ctx.DataResponse.ReturnCode, "000000") {
-		fmt.Println("url encode failed")
-		errEnd(ctx)
-		return
-	}
-
-	dataRequest := &request.DataRequest{
-		Rule:         "execquery",
-		Method:       "POST",
-		Url:          "http://api.edunwang.com/test/black_check?appid=xxxx&secret_id=xxxx&seq_no=xxx&product_id=xxx&req_data=xxxx",
-		TransferType: request.NONETYPE,
-		Reloadable:   true,
-	}
-
-	dataRequest.SetParam("appid", ctx.DataResponse.BodyStr)
-	dataRequest.SetParam("secret_id", ctx.DataResponse.BodyStr)
-	dataRequest.SetParam("seq_no", ctx.DataResponse.BodyStr)
-	dataRequest.SetParam("product_id", ctx.DataResponse.BodyStr)
-	dataRequest.SetParam("req_data", ctx.DataResponse.BodyStr)
-
-	ctx.AddQueue(dataRequest)
-
-}
-
-func queryResponseFunc(ctx *Context) {
+func querySmartResponseFunc(ctx *Context) {
 	fmt.Println("queryResponseFunc rule...")
 
 	if ctx.DataResponse.StatusCode == 200 && !strings.EqualFold(ctx.DataResponse.ReturnCode, "000000") {
@@ -209,44 +149,21 @@ func queryResponseFunc(ctx *Context) {
 		return
 	}
 
-	responseData := &ResponseData{}
-	//if err := json.Unmarshal(ctx.DataResponse.Body, responseData); err != nil {
-	//	fmt.Println("edunwang parse response failed")
-	//	errEnd(ctx)
-	//	return
-	//}
-
-	responseData.StatusCode = "100"
-	responseData.Message = "null"
-	responseData.RspData = ""
-
-	if !strings.EqualFold(responseData.StatusCode, "100") {
-		fmt.Println("edunwang query response failed")
-		errEnd(ctx)
-		return
-	}
-
-	if !strings.EqualFold(responseData.Message, "null") {
-		fmt.Println("edunwang query response err msg", responseData.Message)
-		errEnd(ctx)
-		return
-	}
-
 	dataRequest := &request.DataRequest{
-		Rule:         "aesdecrypt",
-		Method:       "AESDECRYPT",
-		TransferType: request.NONETYPE,
+		Rule:         "rsadecrypt",
+		Method:       "RSADECRYPT",
+		TransferType: request.ENCRYPT,
 		Reloadable:   true,
-		Parameters:   []byte(responseData.RspData),
+		Parameters:   ctx.DataResponse.Body,
 	}
 
-	//dataRequest.SetParam("urlstr", ctx.DataResponse.BodyStr)
+	dataRequest.SetParam("encryptKey", ctx.DataResponse.BodyStr)
 
 	ctx.AddQueue(dataRequest)
 }
 
-func aesDecryptFunc(ctx *Context) {
-	fmt.Println("aesDecryptFunc rule...")
+func rsaDecryptFunc(ctx *Context) {
+	fmt.Println("rsaDecryptFunc rule...")
 
 	if ctx.DataResponse.StatusCode == 200 && !strings.EqualFold(ctx.DataResponse.ReturnCode, "000000") {
 		fmt.Println("exec edunwang query failed")
@@ -254,16 +171,21 @@ func aesDecryptFunc(ctx *Context) {
 		return
 	}
 
-	respData := &RspData{}
-	respData.Tag = "疑似仿冒包装"
-	respData.EvilScore = 77
+	responseData := &ResponseData{}
+	if err := json.Unmarshal(ctx.DataResponse.Body, responseData); err != nil {
+		errEnd(ctx)
+		return
+	}
+
+	respData := &RespDetail{}
+	//respData.Tag = "疑似仿冒包装"
+	//respData.EvilScore = 77
 
 	//if err := json.Unmarshal(ctx.DataResponse.Body, respData); err != nil {
 	//	fmt.Println("convert respData to struct failed")
 	//	errEnd(ctx)
 	//	return
 	//}
-
 
 	pubRespMsgByte, err := json.Marshal(respData)
 	if err != nil {
@@ -272,7 +194,6 @@ func aesDecryptFunc(ctx *Context) {
 	}
 
 	ctx.GetDataBox().Callback(pubRespMsgByte)
-
 
 	errEnd(ctx)
 	//ctx.AddQueue(&request.DataRequest{

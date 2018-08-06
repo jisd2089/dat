@@ -8,6 +8,7 @@ import (
 	"drcs/core/interaction/request"
 	. "drcs/core/databox"
 	. "drcs/dep/nodelib/crp/common"
+	. "drcs/dep/nodelib/crp/smartsail"
 	"fmt"
 	"strings"
 	"encoding/json"

@@ -34,8 +34,10 @@ func (ft *FastTransfer) ExecuteMethod(req Request) Response {
 	dataResponse := &DataResponse{}
 
 	switch req.GetMethod() {
-	case "POST":
-		execPost(req, dataResponse)
+	case "POSTBODY":
+		execPostByBody(req, dataResponse)
+	case "POSTARGS":
+		execPostByArgs(req, dataResponse)
 	case "POSTFILE":
 		execPostFile(req, dataResponse)
 	case "FILESTREAM":
@@ -45,7 +47,37 @@ func (ft *FastTransfer) ExecuteMethod(req Request) Response {
 	return dataResponse
 }
 
-func execPost(req Request, dataResponse *DataResponse) {
+func execPostByArgs(req Request, dataResponse *DataResponse) {
+
+	freq := fasthttp.AcquireRequest()
+	fresp := fasthttp.AcquireResponse()
+	defer fasthttp.ReleaseRequest(freq)
+	defer fasthttp.ReleaseResponse(fresp)
+
+	//freq.Header.SetContentType("application/json;charset=UTF-8")
+	//freq.Header.SetMethod("POST")
+	freq.SetRequestURI(req.GetUrl())
+
+	freq.Header = *req.GetHeaderArgs()
+
+	for k, v := range req.GetPostArgs() {
+		freq.PostArgs().Set(k, v)
+	}
+
+	err := fasthttp.DoTimeout(freq, fresp, time.Duration(300) * time.Second)
+	if err != nil {
+		dataResponse.SetStatusCode(200)
+		dataResponse.ReturnCode = "000009"
+		return
+	}
+	fmt.Println(string(fresp.Body()))
+
+	dataResponse.SetStatusCode(200)
+	dataResponse.ReturnCode = "000000"
+	dataResponse.Body = fresp.Body()
+}
+
+func execPostByBody(req Request, dataResponse *DataResponse) {
 
 	freq := fasthttp.AcquireRequest()
 	fresp := fasthttp.AcquireResponse()

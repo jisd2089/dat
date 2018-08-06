@@ -271,7 +271,9 @@ func aesDecryptFunc(ctx *Context) {
 		return
 	}
 
-	ctx.GetDataBox().Callback(pubRespMsgByte)
+	//ctx.GetDataBox().Callback(pubRespMsgByte)
+
+	ctx.GetDataBox().BodyChan <- pubRespMsgByte
 
 
 	errEnd(ctx)

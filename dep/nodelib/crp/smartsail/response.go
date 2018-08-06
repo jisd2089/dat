@@ -5,10 +5,10 @@ package smartsail
     Created: 2018-08-03 14:59:59
 */
 type ResponseData struct {
-	RespCode    string `json:"code"`        // 返回状态码
-	RespMessage string `json:"codeMessage"` // 返回信息
-	ReqTime     string `json:"reqTime"`     // 请求时间
-	RespDetail  string `json:"varDetail"`   // 业务详细信息
+	RespCode    string        `json:"code"`        // 返回状态码
+	RespMessage string        `json:"codeMessage"` // 返回信息
+	ReqTime     string        `json:"reqTime"`     // 请求时间
+	RespDetail  []*RespDetail `json:"varDetail"`   // 业务详细信息
 }
 
 /**

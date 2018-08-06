@@ -52,7 +52,7 @@ func (s *HttpServer) RunTest(port int) {
 	router := NewHttpRouter()
 	router.Register()
 
-	host := "127.0.0.1"
+	host := "0.0.0.0"
 
 	uri := fmt.Sprintf("%s:%d", host, port)
 	ln, err := net.Listen("tcp4", uri)

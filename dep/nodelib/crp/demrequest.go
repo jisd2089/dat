@@ -27,7 +27,7 @@ func init() {
 var lock sync.Mutex
 
 var DEMREQUEST = &DataBox{
-	Name:        "dem_request",
+	Name:        "JON20180516000000431",
 	Description: "dem_request",
 	RuleTree: &RuleTree{
 		Root: demrequestRootFunc,
@@ -99,7 +99,23 @@ func demrequestRootFunc(ctx *Context) {
 func parseReqParamFunc(ctx *Context) {
 	fmt.Println("parseReqParamFunc rule...")
 
-	reqBody := ctx.GetDataBox().HttpRequestBody
+	//reqBody := ctx.GetDataBox().HttpRequestBody
+	reqBody := []byte(`{
+	"pubReqInfo": {
+		"timeStamp": "1469613279966",
+		"jobId": "JON20180516000000431",
+		"reqSign": "58ed911a7b6181e3220b077add2417237a3ce55ba91d3c88bc6d960e43823857",
+		"serialNo": "2201611161916567677531846",
+		"memId": "0000166",
+		"authMode": "00"
+	},
+	"busiInfo": {
+		"fullName": "高尚",
+		"identityNumber": "330123197507134199",
+		"phoneNumber": "13211109876",
+		"timestamp": "1531479822"
+	}
+}`)
 
 	commonRequestData := &CommonRequestData{}
 	err := json.Unmarshal(reqBody, &commonRequestData)
@@ -291,7 +307,7 @@ func singleQueryFunc(ctx *Context) {
 
 	dataRequest := &request.DataRequest{
 		Rule:         "queryresponse",
-		Method:       "POST",
+		Method:       "POSTBODY",
 		Url:          "http://127.0.0.1:8096/api/crp/sup",
 		TransferType: request.FASTHTTP,
 		Reloadable:   true,
@@ -313,7 +329,7 @@ func staticQueryFunc(ctx *Context) {
 	if ctx.DataResponse.StatusCode == 200 && strings.EqualFold(ctx.DataResponse.ReturnCode, "000000") {
 		ctx.AddQueue(&request.DataRequest{
 			Rule:         "queryresponse",
-			Method:       "POST",
+			Method:       "POSTBODY",
 			Url:          "http://api.edunwang.com/test/black_check?appid=xxxx&secret_id=xxxx&seq_no=xxx&product_id=xxx&req_data=xxxx",
 			TransferType: request.NONETYPE,
 			Reloadable:   true,
@@ -323,17 +339,18 @@ func staticQueryFunc(ctx *Context) {
 
 	dataRequest := &request.DataRequest{
 		Rule:         "staticquery",
-		Method:       "POST",
+		Method:       "POSTBODY",
 		Url:          "http://api.edunwang.com/test/black_check?appid=xxxx&secret_id=xxxx&seq_no=xxx&product_id=xxx&req_data=xxxx",
 		TransferType: request.FASTHTTP,
 		Reloadable:   true,
+		Parameters:   ctx.DataResponse.Body,
 	}
 
-	dataRequest.SetParam("appid", ctx.DataResponse.BodyStr)
-	dataRequest.SetParam("secret_id", ctx.DataResponse.BodyStr)
-	dataRequest.SetParam("seq_no", ctx.DataResponse.BodyStr)
-	dataRequest.SetParam("product_id", ctx.DataResponse.BodyStr)
-	dataRequest.SetParam("req_data", ctx.DataResponse.BodyStr)
+	//dataRequest.SetParam("appid", ctx.DataResponse.BodyStr)
+	//dataRequest.SetParam("secret_id", ctx.DataResponse.BodyStr)
+	//dataRequest.SetParam("seq_no", ctx.DataResponse.BodyStr)
+	//dataRequest.SetParam("product_id", ctx.DataResponse.BodyStr)
+	//dataRequest.SetParam("req_data", ctx.DataResponse.BodyStr)
 
 	ctx.AddQueue(dataRequest)
 }
@@ -375,22 +392,24 @@ func callResponseFunc(ctx *Context) {
 		return
 	}
 
-	ctx.GetDataBox().Callback(responseByte)
+	//ctx.GetDataBox().Callback(responseByte)
 
-	ctx.Output(map[string]interface{}{
-		//"exID":       string(line),
-		"demMemID":   ctx.GetDataBox().Param("UserId"),
-		"supMemID":   ctx.GetDataBox().Param("NodeMemberId"),
-		"taskID":     strings.Replace(ctx.GetDataBox().Param("TaskId"), "|@|", ".", -1),
-		"seqNo":      ctx.GetDataBox().Param("seqNo"),
-		"dmpSeqNo":   ctx.GetDataBox().Param("fileNo"),
-		"recordType": "2",
-		"succCount":  "1",
-		"flowStatus": "11",
-		"usedTime":   11,
-		"errCode":    "031014",
-		//"stepInfoM":  stepInfoM,
-	})
+	ctx.GetDataBox().BodyChan <- responseByte
 
-	errEnd(ctx)
+	//ctx.Output(map[string]interface{}{
+	//	//"exID":       string(line),
+	//	"demMemID":   ctx.GetDataBox().Param("UserId"),
+	//	"supMemID":   ctx.GetDataBox().Param("NodeMemberId"),
+	//	"taskID":     strings.Replace(ctx.GetDataBox().Param("TaskId"), "|@|", ".", -1),
+	//	"seqNo":      ctx.GetDataBox().Param("seqNo"),
+	//	"dmpSeqNo":   ctx.GetDataBox().Param("fileNo"),
+	//	"recordType": "2",
+	//	"succCount":  "1",
+	//	"flowStatus": "11",
+	//	"usedTime":   11,
+	//	"errCode":    "031014",
+	//	//"stepInfoM":  stepInfoM,
+	//})
+
+	procEndFunc(ctx)
 }
