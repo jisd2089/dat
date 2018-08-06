@@ -271,12 +271,12 @@ func (s *DepService) ProcessCrpTrans(ctx *fasthttp.RequestCtx) {
 
 	timeOut := time.Duration(3000) * time.Millisecond
 
-	boxName, err := getCrpBoxName(ctx.Request.Body())
-	if err != nil {
-		return
-	}
+	//boxName, err := getCrpBoxName(ctx.Request.Body())
+	//if err != nil {
+	//	return
+	//}
 
-	//boxName = "batch_dem_rcv"
+	boxName := "dem_request"
 	b := assetnode.AssetNodeEntity.GetDataBoxByName(boxName)
 	if b == nil {
 		logger.Error("databox is nil!")

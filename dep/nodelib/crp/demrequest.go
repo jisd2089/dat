@@ -27,7 +27,7 @@ func init() {
 var lock sync.Mutex
 
 var DEMREQUEST = &DataBox{
-	Name:        "JON20180516000000431",
+	Name:        "dem_request",
 	Description: "dem_request",
 	RuleTree: &RuleTree{
 		Root: demrequestRootFunc,

@@ -12,11 +12,19 @@ import (
 	"encoding/json"
 	"strings"
 	"strconv"
+	"github.com/valyala/fasthttp"
 )
 
 func init() {
 	SUPRESPONSE.Register()
 }
+
+const (
+	EDUN_URL        = "http://api.edunwang.com/test/black_check"
+	EDUN_SECRET_KEY = "46d4ead46317428b" // 正式环境
+	EDUN_APP_ID     = "422833408034"
+	EDUN_SECRET_ID  = "302fab9c7acc4209a328e81c3354"
+)
 
 var SUPRESPONSE = &DataBox{
 	Name:        "sup_response",
@@ -119,6 +127,9 @@ func parseRespParamFunc(ctx *Context) {
 		return
 	}
 
+	fmt.Println("requestDataByte: ",  requestDataByte)
+	fmt.Println("requestDataByte: ",  string(requestDataByte))
+
 	dataReq := &request.DataRequest{
 		Rule:         "aesencrypt",
 		Method:       "AESENCRYPT",
@@ -127,7 +138,8 @@ func parseRespParamFunc(ctx *Context) {
 		Parameters:   requestDataByte,
 	}
 
-	encryptKey := "0102030405060708"
+	//encryptKey := "0102030405060708" // TEST
+	encryptKey := EDUN_SECRET_KEY
 
 	dataReq.SetParam("encryptKey", encryptKey)
 
@@ -142,6 +154,8 @@ func aesEncryptParamFunc(ctx *Context) {
 		errEnd(ctx)
 		return
 	}
+
+	fmt.Println("aes encrypt response: ", ctx.DataResponse.Body)
 
 	ctx.AddQueue(&request.DataRequest{
 		Rule:         "base64encode",
@@ -160,6 +174,8 @@ func base64EncodeFunc(ctx *Context) {
 		errEnd(ctx)
 		return
 	}
+
+	fmt.Println("base encode response: ", ctx.DataResponse.BodyStr)
 
 	dataRequest := &request.DataRequest{
 		Rule:         "urlencode",
@@ -182,19 +198,32 @@ func urlEncodeFunc(ctx *Context) {
 		return
 	}
 
+	header := &fasthttp.RequestHeader{}
+	header.SetContentType("application/json;charset=UTF-8")
+	header.SetMethod("POST")
+
+	args := make(map[string]string, 0)
+	args["appid"] = EDUN_APP_ID
+	args["seq_no"] = ""
+	args["secret_id"] = EDUN_SECRET_ID
+	args["product_id"] = ""
+	args["req_data"] = ""
+
 	dataRequest := &request.DataRequest{
 		Rule:         "execquery",
-		Method:       "POST",
+		Method:       "POSTARGS",
 		Url:          "http://api.edunwang.com/test/black_check?appid=xxxx&secret_id=xxxx&seq_no=xxx&product_id=xxx&req_data=xxxx",
 		TransferType: request.NONETYPE,
 		Reloadable:   true,
+		HeaderArgs:   header,
+		PostArgs:     args,
 	}
 
-	dataRequest.SetParam("appid", ctx.DataResponse.BodyStr)
-	dataRequest.SetParam("secret_id", ctx.DataResponse.BodyStr)
-	dataRequest.SetParam("seq_no", ctx.DataResponse.BodyStr)
-	dataRequest.SetParam("product_id", ctx.DataResponse.BodyStr)
-	dataRequest.SetParam("req_data", ctx.DataResponse.BodyStr)
+	//dataRequest.SetParam("appid", ctx.DataResponse.BodyStr)
+	//dataRequest.SetParam("secret_id", ctx.DataResponse.BodyStr)
+	//dataRequest.SetParam("seq_no", ctx.DataResponse.BodyStr)
+	//dataRequest.SetParam("product_id", ctx.DataResponse.BodyStr)
+	//dataRequest.SetParam("req_data", ctx.DataResponse.BodyStr)
 
 	ctx.AddQueue(dataRequest)
 
@@ -264,7 +293,6 @@ func aesDecryptFunc(ctx *Context) {
 	//	return
 	//}
 
-
 	pubRespMsgByte, err := json.Marshal(respData)
 	if err != nil {
 		errEnd(ctx)
@@ -274,7 +302,6 @@ func aesDecryptFunc(ctx *Context) {
 	//ctx.GetDataBox().Callback(pubRespMsgByte)
 
 	ctx.GetDataBox().BodyChan <- pubRespMsgByte
-
 
 	errEnd(ctx)
 	//ctx.AddQueue(&request.DataRequest{

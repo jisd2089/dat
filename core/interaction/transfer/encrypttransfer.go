@@ -32,12 +32,14 @@ func (ft *EncryptTransfer) ExecuteMethod(req Request) Response {
 	var (
 		err        error
 		body       []byte
+		//bodyStr    string
 		returnCode = "000000"
 	)
 
 	switch req.GetMethod() {
 	case "AESENCRYPT":
 		body, err = aesEncrypt(requestTxt, key)
+		//bodyStr = base64.StdEncoding.EncodeToString(body)
 	case "AESDECRYPT":
 		body, err = aesDecrypt(requestTxt, key)
 	case "RSAENCRYPT":
@@ -50,12 +52,13 @@ func (ft *EncryptTransfer) ExecuteMethod(req Request) Response {
 		returnCode = "000005"
 	}
 
-	fmt.Println("body ", string(body))
+	//fmt.Println("body ", string(body))
 
 	return &response.DataResponse{
 		StatusCode: 200,
 		ReturnCode: returnCode,
 		Body:       body,
+		//BodyStr:    bodyStr,
 	}
 }
 
@@ -69,6 +72,7 @@ func aesEncrypt(plaintext []byte, key []byte) ([]byte, error) {
 	if err != nil {
 		return nil, errors.New("invalid decrypt key")
 	}
+	fmt.Println("block size: ", block.BlockSize())
 	plaintext = PKCS7Padding(plaintext, block.BlockSize())
 	iv := []byte(ivDefValue)
 	blockMode := cipher.NewCBCEncrypter(block, iv)

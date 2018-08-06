@@ -143,7 +143,7 @@ func callSmartResponseFunc(ctx *Context) {
 		return
 	}
 
-	ctx.GetDataBox().Callback(responseByte)
+	ctx.GetDataBox().BodyChan <- responseByte
 
 	ctx.Output(map[string]interface{}{
 		//"exID":       string(line),
