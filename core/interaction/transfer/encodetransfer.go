@@ -8,6 +8,7 @@ import (
 	"drcs/core/interaction/response"
 	"encoding/base64"
 	"net/url"
+	"fmt"
 )
 
 type EncodeTransfer struct{}
@@ -34,6 +35,7 @@ func (ft *EncodeTransfer) ExecuteMethod(req Request) Response {
 		base64.StdEncoding.DecodeString(ciphertext)
 	case "URLENCODE":
 		urlstr := req.Param("urlstr")
+		fmt.Println("URLENCODE:", urlstr)
 		body, err = URLEncode(urlstr)
 	case "URLDECODE":
 		compressFile(req)
@@ -62,11 +64,9 @@ func Base64Decode(ciphertext string) ([]byte, error) {
 
 // URL 编解码 #######################################################################
 func URLEncode(urlstr string) (string, error) {
-	uri, err := url.Parse(urlstr)
-	if err != nil {
-		return "", err
-	}
-	return uri.Query().Encode(), nil
+	urlVal := make(url.Values)
+	urlVal.Add(urlstr, "")
+	return urlVal.Encode()[:len(urlVal.Encode())-1], nil
 }
 
 func URLDecode(ciphertext []byte) ([]byte, error) {

@@ -198,6 +198,8 @@ func urlEncodeFunc(ctx *Context) {
 		return
 	}
 
+	fmt.Println("url encode response: ", ctx.DataResponse.BodyStr)
+
 	header := &fasthttp.RequestHeader{}
 	header.SetContentType("application/json;charset=UTF-8")
 	header.SetMethod("POST")
@@ -207,7 +209,7 @@ func urlEncodeFunc(ctx *Context) {
 	args["seq_no"] = ""
 	args["secret_id"] = EDUN_SECRET_ID
 	args["product_id"] = ""
-	args["req_data"] = ""
+	args["req_data"] = ctx.DataResponse.BodyStr
 
 	dataRequest := &request.DataRequest{
 		Rule:         "execquery",
