@@ -24,7 +24,6 @@ import (
 	"drcs/dep/member"
 	"encoding/json"
 	"drcs/dep/order"
-	"time"
 )
 
 type DepService struct {
@@ -267,9 +266,9 @@ func (s *DepService) ProcessBatchRcv(ctx *fasthttp.RequestCtx, targetFilePath st
 func (s *DepService) ProcessCrpTrans(ctx *fasthttp.RequestCtx) {
 
 	bodyChan := make(chan[]byte)
-	defer close(bodyChan)
+	//defer close(bodyChan)
 
-	timeOut := time.Duration(3000) * time.Millisecond
+	//timeOut := time.Duration(30000) * time.Millisecond
 
 	//boxName, err := getCrpBoxName(ctx.Request.Body())
 	//if err != nil {
@@ -294,12 +293,12 @@ func (s *DepService) ProcessCrpTrans(ctx *fasthttp.RequestCtx) {
 	select {
 	case body := <- bodyChan:
 		ctx.SetBody(body)
-	case <-time.After(timeOut):
-		logger.Error("http response timeout")
-		break
+	//case <-time.After(timeOut):
+	//	logger.Error("http response timeout")
+	//	break
 	}
 
-	fmt.Println("depservice end")
+	//fmt.Println("depservice end")
 }
 
 func (s *DepService) ProcessCrpResponse(ctx *fasthttp.RequestCtx) {
@@ -311,12 +310,12 @@ func (s *DepService) ProcessCrpResponse(ctx *fasthttp.RequestCtx) {
 		return
 	}
 
-	fmt.Println(string(ctx.Request.Body()))
+	//fmt.Println(string(ctx.Request.Body()))
 
 	b.HttpRequestBody = ctx.Request.Body()
 
 	bodyChan := make(chan[]byte)
-	defer close(bodyChan)
+	//defer close(bodyChan)
 
 	b.BodyChan = bodyChan
 
@@ -327,7 +326,7 @@ func (s *DepService) ProcessCrpResponse(ctx *fasthttp.RequestCtx) {
 		ctx.SetBody(body)
 	}
 
-	fmt.Println("depservice end")
+	//fmt.Println("depservice end")
 }
 
 func setRcvParams(ctx *fasthttp.RequestCtx, b *databox.DataBox) error {

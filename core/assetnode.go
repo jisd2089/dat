@@ -316,7 +316,7 @@ func (ne *NodeEntity) exec() {
 
 	// 设置数据信使队列
 	//dataManCap := ne.DataManPool.Reset(count)
-	dataManCap := ne.DataManPool.Reset(1000)
+	dataManCap := ne.DataManPool.Reset(10000)
 	//ne.CarrierPool.Reset(5)
 
 	fmt.Println(" *     DataManPool池容量为 %v\n", dataManCap)

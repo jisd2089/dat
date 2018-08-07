@@ -5,7 +5,6 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"strings"
-	"fmt"
 )
 
 /**
@@ -54,7 +53,6 @@ func appKeyAuthentication(memId, serialNo, reqSign, pubkey, jobId string) bool {
 	md := hash.Sum(nil)
 	authenticationHash := hex.EncodeToString(md)
 
-	fmt.Println(string(authenticationHash))
 	return strings.EqualFold(string(authenticationHash), reqSign)
 }
 

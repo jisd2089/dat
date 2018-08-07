@@ -14,7 +14,6 @@ import (
 	"crypto/x509"
 	"crypto/rsa"
 	"crypto/rand"
-	"fmt"
 )
 
 type EncryptTransfer struct{}
@@ -52,8 +51,6 @@ func (ft *EncryptTransfer) ExecuteMethod(req Request) Response {
 		returnCode = "000005"
 	}
 
-	//fmt.Println("body ", string(body))
-
 	return &response.DataResponse{
 		StatusCode: 200,
 		ReturnCode: returnCode,
@@ -72,7 +69,6 @@ func aesEncrypt(plaintext []byte, key []byte) ([]byte, error) {
 	if err != nil {
 		return nil, errors.New("invalid decrypt key")
 	}
-	fmt.Println("block size: ", block.BlockSize())
 	plaintext = PKCS7Padding(plaintext, block.BlockSize())
 	iv := []byte(ivDefValue)
 	blockMode := cipher.NewCBCEncrypter(block, iv)

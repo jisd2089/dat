@@ -52,7 +52,7 @@ func New(id int) DataMan {
 	return &dataMan{
 		id:      id,
 		status:  status.RUN,
-		Carrier: interaction.CrossHandler,
+		Carrier: interaction.NewCross(),
 	}
 }
 
@@ -92,8 +92,8 @@ func (m *dataMan) Run() {
 	//go func() {
 	var wg sync.WaitGroup
 	m.runWG = &wg
-	wg.Add(1)
-	go m.run()
+	//wg.Add(1)
+	//go m.run()
 
 	//for i := 0; i < 1; i++ {
 	wg.Add(1)
@@ -226,7 +226,7 @@ func (m *dataMan) runChanReq() {
 			//logs.Log.Error(err.Error())
 			continue
 		}
-		fmt.Println("run chan request: ", req.GetDataBoxName())
+		//fmt.Println("run chan request: ", req.GetDataBoxName())
 
 		// 自动设置Referer
 		//if req.GetReferer() == "" && self.DataResponse != nil {
@@ -250,6 +250,8 @@ func (m *dataMan) runChanReq() {
 
 // 超时控制
 func (m *dataMan) execProcess(req *request.DataRequest) {
+	m.RLock()
+	defer m.RUnlock()
 
 	m.UseOne()
 	req.TimeOutCh = make(chan string)
@@ -257,8 +259,8 @@ func (m *dataMan) execProcess(req *request.DataRequest) {
 	go m.Process(req)
 
 	select {
-	case ret := <-req.TimeOutCh:
-		fmt.Println(ret)
+	case <-req.TimeOutCh:
+		//fmt.Println(ret)
 		m.FreeOne()
 		break
 	case <-time.After(req.ConnTimeout):
@@ -367,6 +369,8 @@ func (m *dataMan) Process(req *request.DataRequest) {
 		if p := recover(); p != nil {
 			defer b.SetStatus(status.RUN)
 
+			fmt.Println("data man process recover ", p)
+
 			if b.IsStopping() {
 				// println("Process$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$")
 				return
@@ -387,6 +391,7 @@ func (m *dataMan) Process(req *request.DataRequest) {
 				stack = stack[:end]
 			}
 			stack = bytes.Replace(stack, []byte("\n"), []byte("\r\n"), -1)
+			fmt.Println(" *     Panic  [process][%s]: %s\r\n[TRACE]\r\n%s", "", p, string(stack))
 			//logs.Log.Error(" *     Panic  [process][%s]: %s\r\n[TRACE]\r\n%s", downUrl, p, stack)
 		}
 	}()

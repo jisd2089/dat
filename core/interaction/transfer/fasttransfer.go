@@ -70,7 +70,7 @@ func execPostByArgs(req Request, dataResponse *DataResponse) {
 		dataResponse.ReturnCode = "000009"
 		return
 	}
-	fmt.Println(string(fresp.Body()))
+	//fmt.Println(string(fresp.Body()))
 
 	dataResponse.SetStatusCode(200)
 	dataResponse.ReturnCode = "000000"
@@ -95,7 +95,7 @@ func execPostByBody(req Request, dataResponse *DataResponse) {
 		dataResponse.ReturnCode = "000009"
 		return
 	}
-	fmt.Println(string(fresp.Body()))
+	//fmt.Println(string(fresp.Body()))
 
 	dataResponse.SetStatusCode(200)
 	dataResponse.ReturnCode = "000000"

@@ -65,9 +65,9 @@ var SUPRESPONSE = &DataBox{
 }
 
 func supResponseRootFunc(ctx *Context) {
-	fmt.Println("supResponseRootFunc root...")
+	//fmt.Println("supResponseRootFunc root...")
 
-	ctx.AddQueue(&request.DataRequest{
+	ctx.AddChanQueue(&request.DataRequest{
 		Rule:         "parseparam",
 		Method:       "GET",
 		TransferType: request.NONETYPE,
@@ -76,7 +76,7 @@ func supResponseRootFunc(ctx *Context) {
 }
 
 func parseRespParamFunc(ctx *Context) {
-	fmt.Println("parseRespParamFunc rule...")
+	//fmt.Println("parseRespParamFunc rule...")
 
 	reqBody := ctx.GetDataBox().HttpRequestBody
 
@@ -88,7 +88,7 @@ func parseRespParamFunc(ctx *Context) {
 		return
 	}
 
-	fmt.Println(busiInfo)
+	//fmt.Println(busiInfo)
 
 	requestData := &RequestData{}
 	idNum, ok := busiInfo["identityNumber"]
@@ -127,8 +127,8 @@ func parseRespParamFunc(ctx *Context) {
 		return
 	}
 
-	fmt.Println("requestDataByte: ",  requestDataByte)
-	fmt.Println("requestDataByte: ",  string(requestDataByte))
+	//fmt.Println("requestDataByte: ",  requestDataByte)
+	//fmt.Println("requestDataByte: ",  string(requestDataByte))
 
 	dataReq := &request.DataRequest{
 		Rule:         "aesencrypt",
@@ -143,11 +143,11 @@ func parseRespParamFunc(ctx *Context) {
 
 	dataReq.SetParam("encryptKey", encryptKey)
 
-	ctx.AddQueue(dataReq)
+	ctx.AddChanQueue(dataReq)
 }
 
 func aesEncryptParamFunc(ctx *Context) {
-	fmt.Println("aesEncryptParamFunc rule...")
+	//fmt.Println("aesEncryptParamFunc rule...")
 
 	if ctx.DataResponse.StatusCode == 200 && !strings.EqualFold(ctx.DataResponse.ReturnCode, "000000") {
 		fmt.Println("aes encrypt failed")
@@ -155,9 +155,9 @@ func aesEncryptParamFunc(ctx *Context) {
 		return
 	}
 
-	fmt.Println("aes encrypt response: ", ctx.DataResponse.Body)
+	//fmt.Println("aes encrypt response: ", ctx.DataResponse.Body)
 
-	ctx.AddQueue(&request.DataRequest{
+	ctx.AddChanQueue(&request.DataRequest{
 		Rule:         "base64encode",
 		Method:       "BASE64ENCODE",
 		TransferType: request.ENCODE,
@@ -167,7 +167,7 @@ func aesEncryptParamFunc(ctx *Context) {
 }
 
 func base64EncodeFunc(ctx *Context) {
-	fmt.Println("base64EncodeFunc rule...")
+	//fmt.Println("base64EncodeFunc rule...")
 
 	if ctx.DataResponse.StatusCode == 200 && !strings.EqualFold(ctx.DataResponse.ReturnCode, "000000") {
 		fmt.Println("base encode failed")
@@ -175,7 +175,7 @@ func base64EncodeFunc(ctx *Context) {
 		return
 	}
 
-	fmt.Println("base encode response: ", ctx.DataResponse.BodyStr)
+	//fmt.Println("base encode response: ", ctx.DataResponse.BodyStr)
 
 	dataRequest := &request.DataRequest{
 		Rule:         "urlencode",
@@ -186,11 +186,11 @@ func base64EncodeFunc(ctx *Context) {
 
 	dataRequest.SetParam("urlstr", ctx.DataResponse.BodyStr)
 
-	ctx.AddQueue(dataRequest)
+	ctx.AddChanQueue(dataRequest)
 }
 
 func urlEncodeFunc(ctx *Context) {
-	fmt.Println("urlEncodeFunc rule...")
+	//fmt.Println("urlEncodeFunc rule...")
 
 	if ctx.DataResponse.StatusCode == 200 && !strings.EqualFold(ctx.DataResponse.ReturnCode, "000000") {
 		fmt.Println("url encode failed")
@@ -198,7 +198,7 @@ func urlEncodeFunc(ctx *Context) {
 		return
 	}
 
-	fmt.Println("url encode response: ", ctx.DataResponse.BodyStr)
+	//fmt.Println("url encode response: ", ctx.DataResponse.BodyStr)
 
 	header := &fasthttp.RequestHeader{}
 	header.SetContentType("application/json;charset=UTF-8")
@@ -227,12 +227,12 @@ func urlEncodeFunc(ctx *Context) {
 	//dataRequest.SetParam("product_id", ctx.DataResponse.BodyStr)
 	//dataRequest.SetParam("req_data", ctx.DataResponse.BodyStr)
 
-	ctx.AddQueue(dataRequest)
+	ctx.AddChanQueue(dataRequest)
 
 }
 
 func queryResponseFunc(ctx *Context) {
-	fmt.Println("queryResponseFunc rule...")
+	//fmt.Println("queryResponseFunc rule...")
 
 	if ctx.DataResponse.StatusCode == 200 && !strings.EqualFold(ctx.DataResponse.ReturnCode, "000000") {
 		fmt.Println("exec edunwang query failed")
@@ -273,11 +273,11 @@ func queryResponseFunc(ctx *Context) {
 
 	//dataRequest.SetParam("urlstr", ctx.DataResponse.BodyStr)
 
-	ctx.AddQueue(dataRequest)
+	ctx.AddChanQueue(dataRequest)
 }
 
 func aesDecryptFunc(ctx *Context) {
-	fmt.Println("aesDecryptFunc rule...")
+	//fmt.Println("aesDecryptFunc rule...")
 
 	if ctx.DataResponse.StatusCode == 200 && !strings.EqualFold(ctx.DataResponse.ReturnCode, "000000") {
 		fmt.Println("exec edunwang query failed")
@@ -305,13 +305,8 @@ func aesDecryptFunc(ctx *Context) {
 
 	ctx.GetDataBox().BodyChan <- pubRespMsgByte
 
-	errEnd(ctx)
-	//ctx.AddQueue(&request.DataRequest{
-	//	Rule:         "buildresp",
-	//	Method:       "Get",
-	//	TransferType: request.NONETYPE,
-	//	Reloadable:   true,
-	//	Bobject:      pubRespMsg,
-	//})
+	//defer close(ctx.GetDataBox().BodyChan)
+
+	procEndFunc(ctx)
 
 }
