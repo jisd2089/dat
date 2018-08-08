@@ -265,9 +265,9 @@ func (s *DepService) ProcessBatchRcv(ctx *fasthttp.RequestCtx, targetFilePath st
 
 // 金融消费
 func (s *DepService) ProcessCrpTrans(ctx *fasthttp.RequestCtx) {
+	logger.Info("DepService ProcessCrpTrans start")
 
 	bodyChan := make(chan []byte)
-	//defer close(bodyChan)
 
 	timeOut := time.Duration(30000) * time.Millisecond
 
@@ -279,7 +279,7 @@ func (s *DepService) ProcessCrpTrans(ctx *fasthttp.RequestCtx) {
 	boxName := "dem_request"
 	b := assetnode.AssetNodeEntity.GetDataBoxByName(boxName)
 	if b == nil {
-		logger.Error("databox is nil!")
+		logger.Error("databox [%s] is nil!", boxName)
 		return
 	}
 
@@ -302,6 +302,7 @@ func (s *DepService) ProcessCrpTrans(ctx *fasthttp.RequestCtx) {
 }
 
 func (s *DepService) ProcessCrpResponse(ctx *fasthttp.RequestCtx) {
+	logger.Info("DepService ProcessCrpResponse start")
 
 	timeOut := time.Duration(30000) * time.Millisecond
 

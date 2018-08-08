@@ -70,9 +70,6 @@ var DEMREQUEST = &DataBox{
 			"aesdecrypt": {
 				ParseFunc: aesDecryptFunc,
 			},
-			"buildresp": {
-				ParseFunc: callResponseFunc,
-			},
 			"returnbalance": {
 				ParseFunc: returnBalanceFunc,
 			},

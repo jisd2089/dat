@@ -6,17 +6,24 @@ package crp
 */
 import (
 	. "drcs/core/databox"
-	"fmt"
 	"drcs/core/interaction/request"
-	."drcs/dep/nodelib/crp/smartsail"
+	. "drcs/dep/nodelib/crp/smartsail"
+	. "drcs/dep/nodelib/crp/common"
 	"encoding/json"
 	"strings"
 	"github.com/valyala/fasthttp"
+	"github.com/ouqiang/gocron/modules/logger"
+	"strconv"
+	"time"
 )
 
 func init() {
 	SMARTRESPONSE.Register()
 }
+
+const (
+	SMARTSAIL_CLIKEY = ""
+)
 
 var SMARTRESPONSE = &DataBox{
 	Name:        "smart_response",
@@ -45,7 +52,7 @@ var SMARTRESPONSE = &DataBox{
 }
 
 func smartResponseRootFunc(ctx *Context) {
-	fmt.Println("smartResponseRootFunc root...")
+	logger.Info("smartResponseRootFunc start")
 
 	ctx.AddQueue(&request.DataRequest{
 		Rule:         "parseparam",
@@ -56,35 +63,36 @@ func smartResponseRootFunc(ctx *Context) {
 }
 
 func parseResponseParamFunc(ctx *Context) {
-	fmt.Println("parseResponseParamFunc rule...")
+	logger.Info("parseResponseParamFunc start")
 
 	reqBody := ctx.GetDataBox().HttpRequestBody
 
 	busiInfo := map[string]interface{}{}
 	err := json.Unmarshal(reqBody, &busiInfo)
 	if err != nil {
-		fmt.Println(err.Error())
+		logger.Error("[parseResponseParamFunc] unmarshal request body err [%s]", err.Error())
 		errEnd(ctx)
 		return
 	}
 
-	fmt.Println(busiInfo)
-
 	requestData := &RequestData{}
 	name, ok := busiInfo["fullName"]
 	if !ok {
+		logger.Error("[parseResponseParamFunc] request data param [%s] is nil", "fullName")
 		errEnd(ctx)
 		return
 	}
 	requestData.Name = name.(string)
 	phoneNumber, ok := busiInfo["phoneNumber"]
 	if !ok {
+		logger.Error("[parseResponseParamFunc] request data param [%s] is nil", "phoneNumber")
 		errEnd(ctx)
 		return
 	}
 	requestData.Phone = phoneNumber.(string)
 	starttime, ok := busiInfo["starttime"]
 	if !ok {
+		logger.Error("[parseResponseParamFunc] request data param [%s] is nil", "starttime")
 		errEnd(ctx)
 		return
 	}
@@ -92,13 +100,14 @@ func parseResponseParamFunc(ctx *Context) {
 
 	requestDataByte, err := json.Marshal(requestData)
 	if err != nil {
+		logger.Error("[parseResponseParamFunc] json marshal request data err [%v]", err.Error())
 		errEnd(ctx)
 		return
 	}
 
 	dataReq := &request.DataRequest{
-		Rule:         "aesencrypt",
-		Method:       "AESENCRYPT",
+		Rule:         "rsaencrypt",
+		Method:       "RSAENCRYPT",
 		TransferType: request.ENCRYPT,
 		Reloadable:   true,
 		Parameters:   requestDataByte,
@@ -112,10 +121,10 @@ func parseResponseParamFunc(ctx *Context) {
 }
 
 func rsaEncryptParamFunc(ctx *Context) {
-	fmt.Println("rsaEncryptParamFunc rule...")
+	logger.Info("rsaEncryptParamFunc start")
 
 	if ctx.DataResponse.StatusCode == 200 && !strings.EqualFold(ctx.DataResponse.ReturnCode, "000000") {
-		fmt.Println("rsa encrypt failed")
+		logger.Error("[rsaEncryptParamFunc] rsa encrypt failed [%s]", ctx.DataResponse.ReturnMsg)
 		errEnd(ctx)
 		return
 	}
@@ -125,7 +134,7 @@ func rsaEncryptParamFunc(ctx *Context) {
 	header.SetMethod("POST")
 
 	args := make(map[string]string, 0)
-	args["cliKey"] = ""
+	args["cliKey"] = SMARTSAIL_CLIKEY
 	args["data"] = string(ctx.DataResponse.Body)
 
 	ctx.AddQueue(&request.DataRequest{
@@ -136,15 +145,14 @@ func rsaEncryptParamFunc(ctx *Context) {
 		Reloadable:   true,
 		HeaderArgs:   header,
 		PostArgs:     args,
-		//Parameters:   ctx.DataResponse.Body,
 	})
 }
 
 func querySmartResponseFunc(ctx *Context) {
-	fmt.Println("queryResponseFunc rule...")
+	logger.Info("querySmartResponseFunc start")
 
 	if ctx.DataResponse.StatusCode == 200 && !strings.EqualFold(ctx.DataResponse.ReturnCode, "000000") {
-		fmt.Println("exec edunwang query failed")
+		logger.Error("[querySmartResponseFunc] execute query failed [%s]", ctx.DataResponse.ReturnMsg)
 		errEnd(ctx)
 		return
 	}
@@ -157,51 +165,53 @@ func querySmartResponseFunc(ctx *Context) {
 		Parameters:   ctx.DataResponse.Body,
 	}
 
-	dataRequest.SetParam("encryptKey", ctx.DataResponse.BodyStr)
+	encryptKey := "0102030405060708"
+	dataRequest.SetParam("encryptKey", encryptKey)
 
 	ctx.AddQueue(dataRequest)
 }
 
 func rsaDecryptFunc(ctx *Context) {
-	fmt.Println("rsaDecryptFunc rule...")
+	logger.Info("rsaDecryptFunc start")
 
 	if ctx.DataResponse.StatusCode == 200 && !strings.EqualFold(ctx.DataResponse.ReturnCode, "000000") {
-		fmt.Println("exec edunwang query failed")
+		logger.Error("[rsaDecryptFunc] rsa decrypt err [%s]", ctx.DataResponse.ReturnMsg)
 		errEnd(ctx)
 		return
 	}
 
 	responseData := &ResponseData{}
 	if err := json.Unmarshal(ctx.DataResponse.Body, responseData); err != nil {
+		logger.Error("[rsaDecryptFunc] json unmarshal response data err [%s]", err.Error())
 		errEnd(ctx)
 		return
 	}
 
-	respData := &RespDetail{}
-	//respData.Tag = "疑似仿冒包装"
-	//respData.EvilScore = 77
+	// 请求真实供方 成功返回
+	if strings.EqualFold(responseData.RespCode, "200") {
+		pubRespMsg := &PubResProductMsg_0_000_000{}
 
-	//if err := json.Unmarshal(ctx.DataResponse.Body, respData); err != nil {
-	//	fmt.Println("convert respData to struct failed")
-	//	errEnd(ctx)
-	//	return
-	//}
+		pubAnsInfo := &PubAnsInfo{}
+		pubAnsInfo.ResCode = ctx.GetDataBox().Param("resCode")
+		pubAnsInfo.ResMsg = "成功"
+		pubAnsInfo.SerialNo = ctx.GetDataBox().Param("serialNo")
+		pubAnsInfo.BusiSerialNo = ctx.GetDataBox().Param("busiSerialNo")
+		pubAnsInfo.TimeStamp = strconv.Itoa(int(time.Now().UnixNano() / 1e6))
 
-	pubRespMsgByte, err := json.Marshal(respData)
-	if err != nil {
-		errEnd(ctx)
+		pubRespMsg.PubAnsInfo = pubAnsInfo
+		pubRespMsg.DetailInfo = responseData.RespDetail
+
+		pubRespMsgByte, err := json.Marshal(pubRespMsg)
+		if err != nil {
+			logger.Error("[rsaDecryptFunc] json marshal PubResProductMsg_0_000_000 err [%s]", err.Error())
+			errEnd(ctx)
+			return
+		}
+
+		ctx.GetDataBox().BodyChan <- pubRespMsgByte
+
+		procEndFunc(ctx)
 		return
 	}
-
-	ctx.GetDataBox().BodyChan <- pubRespMsgByte
-
-	errEnd(ctx)
-	//ctx.AddQueue(&request.DataRequest{
-	//	Rule:         "buildresp",
-	//	Method:       "Get",
-	//	TransferType: request.NONETYPE,
-	//	Reloadable:   true,
-	//	Bobject:      pubRespMsg,
-	//})
 
 }

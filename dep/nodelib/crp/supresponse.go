@@ -6,7 +6,6 @@ package crp
 */
 import (
 	. "drcs/core/databox"
-	"fmt"
 	"drcs/core/interaction/request"
 	. "drcs/dep/nodelib/crp/edunwang"
 	. "drcs/dep/nodelib/crp/common"
@@ -15,6 +14,7 @@ import (
 	"strconv"
 	"github.com/valyala/fasthttp"
 	"time"
+	"github.com/ouqiang/gocron/modules/logger"
 )
 
 func init() {
@@ -64,7 +64,7 @@ var SUPRESPONSE = &DataBox{
 }
 
 func supResponseRootFunc(ctx *Context) {
-	//fmt.Println("supResponseRootFunc root...")
+	logger.Info("supResponseRootFunc start")
 
 	ctx.AddChanQueue(&request.DataRequest{
 		Rule:         "parseparam",
@@ -75,14 +75,14 @@ func supResponseRootFunc(ctx *Context) {
 }
 
 func parseRespParamFunc(ctx *Context) {
-	//fmt.Println("parseRespParamFunc rule...")
+	logger.Info("parseRespParamFunc start")
 
 	reqBody := ctx.GetDataBox().HttpRequestBody
 
 	busiInfo := map[string]interface{}{}
 	err := json.Unmarshal(reqBody, &busiInfo)
 	if err != nil {
-		fmt.Println(err.Error())
+		logger.Error("[parseRespParamFunc] unmarshal request body err [%s]", err.Error())
 		errEnd(ctx)
 		return
 	}
@@ -90,29 +90,34 @@ func parseRespParamFunc(ctx *Context) {
 	requestData := &RequestData{}
 	idNum, ok := busiInfo["identityNumber"]
 	if !ok {
+		logger.Error("[parseRespParamFunc] request data param [%s] is nil", "identityNumber")
 		errEnd(ctx)
 		return
 	}
 	requestData.IdNum = idNum.(string)
 	name, ok := busiInfo["fullName"]
 	if !ok {
+		logger.Error("[parseRespParamFunc] request data param [%s] is nil", "fullName")
 		errEnd(ctx)
 		return
 	}
 	requestData.Name = name.(string)
 	phoneNumber, ok := busiInfo["phoneNumber"]
 	if !ok {
+		logger.Error("[parseRespParamFunc] request data param [%s] is nil", "phoneNumber")
 		errEnd(ctx)
 		return
 	}
 	requestData.PhoneNum = phoneNumber.(string)
 	timestampstr, ok := busiInfo["timestamp"]
 	if !ok {
+		logger.Error("[parseRespParamFunc] request data param [%s] is nil", "timestamp")
 		errEnd(ctx)
 		return
 	}
 	timestamp, err := strconv.Atoi(timestampstr.(string))
 	if err != nil {
+		logger.Error("[parseRespParamFunc] convert timestamp string to int err [%v]", timestampstr)
 		errEnd(ctx)
 		return
 	}
@@ -120,6 +125,7 @@ func parseRespParamFunc(ctx *Context) {
 
 	requestDataByte, err := json.Marshal(requestData)
 	if err != nil {
+		logger.Error("[parseRespParamFunc] json marshal request data err [%v]", err.Error())
 		errEnd(ctx)
 		return
 	}
@@ -141,15 +147,13 @@ func parseRespParamFunc(ctx *Context) {
 }
 
 func aesEncryptParamFunc(ctx *Context) {
-	//fmt.Println("aesEncryptParamFunc rule...")
+	logger.Info("aesEncryptParamFunc start")
 
 	if ctx.DataResponse.StatusCode == 200 && !strings.EqualFold(ctx.DataResponse.ReturnCode, "000000") {
-		fmt.Println("aes encrypt failed")
+		logger.Error("[aesEncryptParamFunc] ase encrypt failed [%s]", ctx.DataResponse.ReturnMsg)
 		errEnd(ctx)
 		return
 	}
-
-	//fmt.Println("aes encrypt response: ", ctx.DataResponse.Body)
 
 	ctx.AddChanQueue(&request.DataRequest{
 		Rule:         "base64encode",
@@ -161,15 +165,13 @@ func aesEncryptParamFunc(ctx *Context) {
 }
 
 func base64EncodeFunc(ctx *Context) {
-	//fmt.Println("base64EncodeFunc rule...")
+	logger.Info("base64EncodeFunc start")
 
 	if ctx.DataResponse.StatusCode == 200 && !strings.EqualFold(ctx.DataResponse.ReturnCode, "000000") {
-		fmt.Println("base encode failed")
+		logger.Error("[base64EncodeFunc] base64 encode failed [%s]", ctx.DataResponse.ReturnMsg)
 		errEnd(ctx)
 		return
 	}
-
-	//fmt.Println("base encode response: ", ctx.DataResponse.BodyStr)
 
 	dataRequest := &request.DataRequest{
 		Rule:         "urlencode",
@@ -184,15 +186,13 @@ func base64EncodeFunc(ctx *Context) {
 }
 
 func urlEncodeFunc(ctx *Context) {
-	//fmt.Println("urlEncodeFunc rule...")
+	logger.Info("urlEncodeFunc start")
 
 	if ctx.DataResponse.StatusCode == 200 && !strings.EqualFold(ctx.DataResponse.ReturnCode, "000000") {
-		fmt.Println("url encode failed")
+		logger.Error("[urlEncodeFunc] url encode failed [%s]", ctx.DataResponse.ReturnMsg)
 		errEnd(ctx)
 		return
 	}
-
-	//fmt.Println("url encode response: ", ctx.DataResponse.BodyStr)
 
 	header := &fasthttp.RequestHeader{}
 	header.SetContentType("application/json;charset=UTF-8")
@@ -220,17 +220,17 @@ func urlEncodeFunc(ctx *Context) {
 }
 
 func queryResponseFunc(ctx *Context) {
-	//fmt.Println("queryResponseFunc rule...")
+	logger.Info("queryResponseFunc start")
 
 	if ctx.DataResponse.StatusCode == 200 && !strings.EqualFold(ctx.DataResponse.ReturnCode, "000000") {
-		fmt.Println("exec edunwang query failed")
+		logger.Error("[queryResponseFunc] execute query failed [%s]", ctx.DataResponse.ReturnMsg)
 		errEnd(ctx)
 		return
 	}
 
 	responseData := &ResponseData{}
 	if err := json.Unmarshal(ctx.DataResponse.Body, responseData); err != nil {
-		fmt.Println("edunwang parse response failed")
+		logger.Error("[queryResponseFunc] json unmarshal response data err [%s]", err.Error())
 		errEnd(ctx)
 		return
 	}
@@ -241,7 +241,7 @@ func queryResponseFunc(ctx *Context) {
 	responseData.RspData = ""
 
 	if !strings.EqualFold(responseData.StatusCode, EDUN_SUCC) {
-		fmt.Println("edunwang query response failed")
+		logger.Error("[queryResponseFunc] edunwang execute query response [%s]", responseData.Message)
 
 		pubRespMsg := &PubResProductMsg_0_000_000{}
 
@@ -267,7 +267,7 @@ func queryResponseFunc(ctx *Context) {
 	}
 
 	if !strings.EqualFold(responseData.Message, "null") {
-		fmt.Println("edunwang query response err msg", responseData.Message)
+		logger.Error("[queryResponseFunc] edunwang execute query response [%s]", responseData.Message)
 		errEnd(ctx)
 		return
 	}
@@ -286,10 +286,10 @@ func queryResponseFunc(ctx *Context) {
 }
 
 func aesDecryptFunc(ctx *Context) {
-	//fmt.Println("aesDecryptFunc rule...")
+	logger.Info("aesDecryptFunc start")
 
 	if ctx.DataResponse.StatusCode == 200 && !strings.EqualFold(ctx.DataResponse.ReturnCode, "000000") {
-		fmt.Println("exec edunwang query failed")
+		logger.Error("[aesDecryptFunc] aes decrypt err [%s]", ctx.DataResponse.ReturnMsg)
 		errEnd(ctx)
 		return
 	}
@@ -300,7 +300,7 @@ func aesDecryptFunc(ctx *Context) {
 	respData.EvilScore = 77
 
 	if err := json.Unmarshal(ctx.DataResponse.Body, respData); err != nil {
-		fmt.Println("convert respData to struct failed")
+		logger.Error("[aesDecryptFunc] json unmarshal response data err [%s]", err.Error())
 		errEnd(ctx)
 		return
 	}
@@ -320,6 +320,7 @@ func aesDecryptFunc(ctx *Context) {
 
 	pubRespMsgByte, err := json.Marshal(pubRespMsg)
 	if err != nil {
+		logger.Error("[aesDecryptFunc] json marshal PubResProductMsg_0_000_000 err [%s]", err.Error())
 		errEnd(ctx)
 		return
 	}

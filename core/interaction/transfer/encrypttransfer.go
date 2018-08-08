@@ -29,10 +29,11 @@ func (ft *EncryptTransfer) ExecuteMethod(req Request) Response {
 	key := []byte(req.Param("encryptKey"))
 
 	var (
-		err        error
-		body       []byte
+		err  error
+		body []byte
 		//bodyStr    string
 		returnCode = "000000"
+		retMsg     = "encryption or decryption success"
 	)
 
 	switch req.GetMethod() {
@@ -49,12 +50,14 @@ func (ft *EncryptTransfer) ExecuteMethod(req Request) Response {
 
 	if err != nil {
 		returnCode = "000005"
+		retMsg = err.Error()
 	}
 
 	return &response.DataResponse{
 		StatusCode: 200,
 		ReturnCode: returnCode,
 		Body:       body,
+		ReturnMsg:  retMsg,
 		//BodyStr:    bodyStr,
 	}
 }

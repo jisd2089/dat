@@ -9,12 +9,9 @@ import (
 )
 
 type PubResProductMsg_0_000_000 struct {
-	PubAnsInfo PubAnsInfo `json:"pubAnsInfo"`
+	PubAnsInfo *PubAnsInfo `json:"pubAnsInfo"`
 	HitInfo struct {
 		HitResult string `json:"hitResult"`
 	} `json:"hitInfo"`
-	DetailInfo struct {
-		Tag       string `json:"tag"`
-		EvilScore int `json:"evilScore"`
-	} `json:"respData"`
+	DetailInfo []*RespDetail  `json:"respData"`
 }

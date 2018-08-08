@@ -28,8 +28,6 @@ func NewFastTransfer() Transfer {
 
 // 封装fasthttp服务
 func (ft *FastTransfer) ExecuteMethod(req Request) Response {
-	//fmt.Println("execute fasthttp")
-	//fmt.Println("fasthttp param:", string(req.GetParameters()))
 
 	dataResponse := &DataResponse{}
 
@@ -98,6 +96,7 @@ func execPostByBody(req Request, dataResponse *DataResponse) {
 	if err != nil {
 		dataResponse.SetStatusCode(200)
 		dataResponse.ReturnCode = "000009"
+		dataResponse.ReturnMsg = err.Error()
 		return
 	}
 	//fmt.Println(string(fresp.Body()))
@@ -105,6 +104,7 @@ func execPostByBody(req Request, dataResponse *DataResponse) {
 	dataResponse.SetStatusCode(200)
 	dataResponse.ReturnCode = "000000"
 	dataResponse.Body = fresp.Body()
+	dataResponse.ReturnMsg = "请求成功"
 
 	//pipelineClient := getPipelineClient(req.GetUrl())
 	//for {

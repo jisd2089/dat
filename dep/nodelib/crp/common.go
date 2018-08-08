@@ -22,7 +22,7 @@ import (
     Created: 2018-05-15 19:30:06
 */
 func procEndFunc(ctx *Context) {
-	fmt.Println("end start ...")
+	logger.Info("end start")
 
 	defer ctx.GetDataBox().SetStatus(status.STOP)
 	defer ctx.GetDataBox().CloseRequestChan()

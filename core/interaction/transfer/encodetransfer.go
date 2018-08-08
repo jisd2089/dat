@@ -23,6 +23,7 @@ func (ft *EncodeTransfer) ExecuteMethod(req Request) Response {
 		err        error
 		body       string
 		returnCode = "000000"
+		retMsg     = "encode or decode success"
 	)
 
 	switch req.GetMethod() {
@@ -41,12 +42,14 @@ func (ft *EncodeTransfer) ExecuteMethod(req Request) Response {
 
 	if err != nil {
 		returnCode = "000007"
+		retMsg = err.Error()
 	}
 
 	return &response.DataResponse{
 		StatusCode: 200,
 		ReturnCode: returnCode,
 		BodyStr:    body,
+		ReturnMsg:  retMsg,
 	}
 }
 

@@ -9,10 +9,16 @@ import (
 	. "drcs/core/databox"
 	. "drcs/dep/nodelib/crp/common"
 	. "drcs/dep/nodelib/crp/smartsail"
-	"fmt"
 	"strings"
 	"encoding/json"
 	"sync"
+	"time"
+	"strconv"
+	logger "drcs/log"
+	"crypto/md5"
+	"fmt"
+	"drcs/dep/security"
+	"drcs/common/cncrypt"
 )
 
 func init() {
@@ -46,18 +52,6 @@ var SMARTREQUEST = &DataBox{
 			"reduceredisquato": {
 				ParseFunc: reduceRedisQuatoFunc,
 			},
-			//"getpolicy": {
-			//	ParseFunc: getOrderRoutePolicyFunc,
-			//},
-			//"aesencrypt": {
-			//	ParseFunc: aesEncryptParamFunc,
-			//},
-			//"base64encode": {
-			//	ParseFunc: base64EncodeFunc,
-			//},
-			//"urlencode": {
-			//	ParseFunc: urlEncodeFunc,
-			//},
 			"singlequery": {
 				ParseFunc: singleQueryFunc,
 			},
@@ -81,7 +75,11 @@ var SMARTREQUEST = &DataBox{
 }
 
 func smartRequestRootFunc(ctx *Context) {
-	fmt.Println("smartRequest Root ...")
+	logger.Info("smartRequestRootFunc start")
+
+	start := int(time.Now().UnixNano() / 1e6)
+
+	ctx.GetDataBox().SetParam("startTime", strconv.Itoa(start))
 
 	ctx.AddQueue(&request.DataRequest{
 		Rule:         "parseparam",
@@ -92,18 +90,17 @@ func smartRequestRootFunc(ctx *Context) {
 }
 
 func parseRequestParamFunc(ctx *Context) {
-	fmt.Println("parseRequestParamFunc rule...")
+	logger.Info("parseRequestParamFunc start")
 
 	reqBody := ctx.GetDataBox().HttpRequestBody
 
 	commonRequestData := &CommonRequestData{}
 	err := json.Unmarshal(reqBody, &commonRequestData)
 	if err != nil {
-		fmt.Println(err.Error())
+		logger.Error("[parseRequestParamFunc] unmarshal CommonRequestData err: [%s] ", err.Error())
 		errEnd(ctx)
 		return
 	}
-	fmt.Println(commonRequestData)
 
 	dataReq := &request.DataRequest{
 		Rule:         "depauth",
@@ -119,46 +116,79 @@ func parseRequestParamFunc(ctx *Context) {
 	dataReq.SetParam("pubkey", ctx.GetDataBox().Param("pubkey"))
 	dataReq.SetParam("jobId", commonRequestData.PubReqInfo.JobId)
 
+	ctx.GetDataBox().SetParam("demMemberId", commonRequestData.PubReqInfo.MemId)
 	ctx.GetDataBox().SetParam("jobId", commonRequestData.PubReqInfo.JobId)
+	ctx.GetDataBox().SetParam("serialNo", commonRequestData.PubReqInfo.SerialNo)
 
 	ctx.AddQueue(dataReq)
 }
 
 func callSmartResponseFunc(ctx *Context) {
-	fmt.Println("callSmartResponseFunc rule...")
-
-	respData := &RespDetail{}
-	if err := json.Unmarshal(ctx.DataResponse.Body, respData); err != nil {
-		errEnd(ctx)
-		return
-	}
+	logger.Info("callSmartResponseFunc start")
 
 	pubRespMsg := &PubResProductMsg_0_000_000{}
 	//pubRespMsg.DetailInfo.Tag = respData.Tag
 	//pubRespMsg.DetailInfo.EvilScore = respData.EvilScore
 
-	responseByte, err := json.Marshal(pubRespMsg)
-	if err != nil {
-		errEnd(ctx)
+	if err := json.Unmarshal(ctx.DataResponse.Body, pubRespMsg); err != nil {
+		logger.Error("[callSmartResponseFunc] unmarshal response body to PubResProductMsg_0_000_000 err: [%s] ", err.Error())
+		returnBalanceFunc(ctx)
 		return
 	}
 
-	ctx.GetDataBox().BodyChan <- responseByte
+	ctx.GetDataBox().BodyChan <- ctx.DataResponse.Body
+
+	// 不收费处理逻辑
+	if !strings.EqualFold(pubRespMsg.PubAnsInfo.ResCode, CenterCodeSucc) {
+		ctx.AddChanQueue(&request.DataRequest{
+			Rule:         "returnbalance",
+			Method:       "GET",
+			TransferType: request.NONETYPE,
+			Reloadable:   true,
+		})
+		return
+	}
+
+	demMemberId := ctx.GetDataBox().Param("demMemberId")
+	busiSerialNo := ctx.GetDataBox().Param("busiSerialNo")
+	start := ctx.GetDataBox().Param("startTime")
+	startTime, err := strconv.Atoi(start)
+	if err != nil {
+		logger.Error("[callResponseFunc] convert startTime string to int err: [%s] ", err.Error())
+		returnBalanceFunc(ctx)
+		return
+	}
+	endTime := int(time.Now().UnixNano() / 1e6)
+
+	h := md5.New()
+	h.Write([]byte(demMemberId))
+	busiInfoStr := fmt.Sprintf("%x", h.Sum(nil))
+
+	msg := "3" + demMemberId + "1"
+	priKey, _ := security.GetPrivateKey()
+	signInfo := cncrypt.Sign(priKey, []byte(msg))
+	stepInfoM := []map[string]interface{}{}
+	stepInfo1 := map[string]interface{}{"no": 1, "memID": demMemberId, "stepStatus": security.StepStatusSucc, "signature": ""}
+	stepInfo2 := map[string]interface{}{"no": 2, "memID": "", "stepStatus": security.StepStatusSucc, "signature": ""}
+	stepInfo3 := map[string]interface{}{"no": 3, "memID": demMemberId, "stepStatus": security.StepStatusSucc, "signature": signInfo}
+	stepInfoM = append(stepInfoM, stepInfo1)
+	stepInfoM = append(stepInfoM, stepInfo2)
+	stepInfoM = append(stepInfoM, stepInfo3)
 
 	ctx.Output(map[string]interface{}{
-		//"exID":       string(line),
-		"demMemID":   ctx.GetDataBox().Param("UserId"),
-		"supMemID":   ctx.GetDataBox().Param("NodeMemberId"),
-		"taskID":     strings.Replace(ctx.GetDataBox().Param("TaskId"), "|@|", ".", -1),
-		"seqNo":      ctx.GetDataBox().Param("seqNo"),
-		"dmpSeqNo":   ctx.GetDataBox().Param("fileNo"),
-		"recordType": "2",
+		"exID":       busiInfoStr,
+		"demMemID":   demMemberId,
+		"supMemID":   ctx.GetDataBox().Param("supMemId"),
+		"taskID":     strings.Replace(ctx.GetDataBox().Param("taskIdStr"), "|@|", ".", -1),
+		"seqNo":      busiSerialNo,
+		"recordType": RecordTypeSingle,
 		"succCount":  "1",
-		"flowStatus": "11",
-		"usedTime":   11,
-		"errCode":    "031014",
-		//"stepInfoM":  stepInfoM,
+		"flowStatus": FlowStatusDemSucc,
+		"usedTime":   endTime - startTime,
+		"errCode":    ErrCodeSucc,
+		"stepInfoM":  stepInfoM,
+		//"dmpSeqNo":   "",
 	})
 
-	errEnd(ctx)
+	procEndFunc(ctx)
 }
