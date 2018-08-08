@@ -18,6 +18,13 @@ import (
 	"os"
 	"drcs/dep/or"
 	"drcs/dep/order"
+	"drcs/dep/util"
+	"time"
+	"crypto/md5"
+	"github.com/valyala/fasthttp"
+	"drcs/common/cncrypt"
+	"drcs/dep/security"
+	"github.com/ouqiang/gocron/modules/logger"
 )
 
 func init() {
@@ -51,18 +58,6 @@ var DEMREQUEST = &DataBox{
 			"reduceredisquato": {
 				ParseFunc: reduceRedisQuatoFunc,
 			},
-			//"getpolicy": {
-			//	ParseFunc: getOrderRoutePolicyFunc,
-			//},
-			//"aesencrypt": {
-			//	ParseFunc: aesEncryptParamFunc,
-			//},
-			//"base64encode": {
-			//	ParseFunc: base64EncodeFunc,
-			//},
-			//"urlencode": {
-			//	ParseFunc: urlEncodeFunc,
-			//},
 			"singlequery": {
 				ParseFunc: singleQueryFunc,
 			},
@@ -78,6 +73,9 @@ var DEMREQUEST = &DataBox{
 			"buildresp": {
 				ParseFunc: callResponseFunc,
 			},
+			"returnbalance": {
+				ParseFunc: returnBalanceFunc,
+			},
 			"end": {
 				ParseFunc: procEndFunc,
 			},
@@ -86,7 +84,11 @@ var DEMREQUEST = &DataBox{
 }
 
 func demrequestRootFunc(ctx *Context) {
-	//fmt.Println("demrequest Root ...")
+	logger.Info("demrequestRootFunc start")
+
+	start := int(time.Now().UnixNano() / 1e6)
+
+	ctx.GetDataBox().SetParam("startTime", strconv.Itoa(start))
 
 	ctx.AddChanQueue(&request.DataRequest{
 		Rule:         "parseparam",
@@ -96,35 +98,36 @@ func demrequestRootFunc(ctx *Context) {
 	})
 }
 
+/**
+`{
+		"pubReqInfo": {
+			"timeStamp": "1469613279966",
+			"jobId": "JON20180516000000431",
+			"reqSign": "5f4d604a00df289b6b90b66e4d0e1be9d43cd236fc018197dd27e01a0f7e8a3c",
+			"serialNo": "2201611161916567677531846",
+			"memId": "0000162",
+			"authMode": "00"
+		},
+		"busiInfo": {
+			"fullName": "高尚",
+			"identityNumber": "330123197507134199",
+			"phoneNumber": "13211109876",
+			"timestamp": "1531479822"
+		}
+	}`
+ */
 func parseReqParamFunc(ctx *Context) {
-	//fmt.Println("parseReqParamFunc rule...")
+	logger.Info("parseReqParamFunc start")
 
 	reqBody := ctx.GetDataBox().HttpRequestBody
-//	reqBody := []byte(`{
-//	"pubReqInfo": {
-//		"timeStamp": "1469613279966",
-//		"jobId": "JON20180516000000431",
-//		"reqSign": "5f4d604a00df289b6b90b66e4d0e1be9d43cd236fc018197dd27e01a0f7e8a3c",
-//		"serialNo": "2201611161916567677531846",
-//		"memId": "0000162",
-//		"authMode": "00"
-//	},
-//	"busiInfo": {
-//		"fullName": "高尚",
-//		"identityNumber": "330123197507134199",
-//		"phoneNumber": "13211109876",
-//		"timestamp": "1531479822"
-//	}
-//}`)
 
 	commonRequestData := &CommonRequestData{}
 	err := json.Unmarshal(reqBody, &commonRequestData)
 	if err != nil {
-		fmt.Println(err.Error())
+		logger.Error("[parseReqParamFunc] unmarshal CommonRequestData err: [%s] ", err.Error())
 		errEnd(ctx)
 		return
 	}
-	//fmt.Println(commonRequestData)
 
 	dataReq := &request.DataRequest{
 		Rule:         "depauth",
@@ -140,16 +143,18 @@ func parseReqParamFunc(ctx *Context) {
 	dataReq.SetParam("pubkey", ctx.GetDataBox().Param("pubkey"))
 	dataReq.SetParam("jobId", commonRequestData.PubReqInfo.JobId)
 
+	ctx.GetDataBox().SetParam("demMemberId", commonRequestData.PubReqInfo.MemId)
 	ctx.GetDataBox().SetParam("jobId", commonRequestData.PubReqInfo.JobId)
+	ctx.GetDataBox().SetParam("serialNo", commonRequestData.PubReqInfo.SerialNo)
 
 	ctx.AddChanQueue(dataReq)
 }
 
 func depAuthFunc(ctx *Context) {
-	//fmt.Println("depAuthFunc rule...")
+	logger.Info("depAuthFunc start")
 
 	if ctx.DataResponse.StatusCode == 200 && !strings.EqualFold(ctx.DataResponse.ReturnCode, "000000") {
-		fmt.Println("Authentication failed")
+		logger.Error("[depAuthFunc] dep authentication failed: [%s] ", ctx.DataResponse.ReturnMsg)
 		errEnd(ctx)
 		return
 	}
@@ -158,7 +163,7 @@ func depAuthFunc(ctx *Context) {
 
 	reqDataJson, err := json.Marshal(reqData)
 	if err != nil {
-		fmt.Println("parse reqData failed")
+		logger.Error("[depAuthFunc] marshal request data err: [%s] ", err.Error())
 		errEnd(ctx)
 		return
 	}
@@ -174,8 +179,9 @@ func depAuthFunc(ctx *Context) {
 }
 
 func applyBalanceFunc(ctx *Context) {
-	//fmt.Println("applyBalance rule...")
+	logger.Info("applyBalanceFunc start")
 
+	// TODO
 	jobId := ctx.GetDataBox().Param("jobId")
 	orderRoutePolicy := or.OrderRoutePolicyMap[jobId]
 	supMemberId := orderRoutePolicy.Calllist[0]
@@ -189,13 +195,13 @@ func applyBalanceFunc(ctx *Context) {
 
 	ctx.GetDataBox().SetParam("unitPrice", unitPriceStr)
 
-	memberId := ctx.GetDataBox().Param("memberId")
+	memberId := ctx.GetDataBox().Param("demMemberId")
 	//unitPriceStr := ctx.GetDataBox().Param("unitPrice")
 	balanceUrl := ctx.GetDataBox().Param("balanceUrl")
 
 	unitPrice, err := strconv.ParseFloat(unitPriceStr, 64)
 	if err != nil {
-		fmt.Println("apply balance failed", err.Error())
+		logger.Error("[applyBalanceFunc] parse unit price string to float64 err: [%s] ", err.Error())
 		errEnd(ctx)
 		return
 	}
@@ -205,7 +211,7 @@ func applyBalanceFunc(ctx *Context) {
 	hasBalance := balance.Hasbalance(memberId, unitPrice)
 	if !hasBalance {
 		if err := balance.ApplyBalance(memberId, unitPrice, 100, balanceUrl); err != nil {
-			fmt.Println("apply balance failed", err.Error())
+			logger.Error("[applyBalanceFunc] apply balance failed: [%s] ", err.Error())
 			errEnd(ctx)
 			return
 		}
@@ -227,26 +233,26 @@ func applyBalanceFunc(ctx *Context) {
 }
 
 func updateRedisQuatoFunc(ctx *Context) {
-	//fmt.Println("updateRedisQuatoFunc rule...")
+	logger.Info("updateRedisQuatoFunc start")
 
 	if ctx.DataResponse.StatusCode == 200 && !strings.EqualFold(ctx.DataResponse.ReturnCode, "000000") {
-		fmt.Println("update redis quato failed")
+		logger.Error("[updateRedisQuatoFunc] update quato redis value failed: [%s] ", ctx.DataResponse.ReturnMsg)
 		errEnd(ctx)
 		return
 	}
 
-	memberId := ctx.GetDataBox().Param("memberId")
+	memberId := ctx.GetDataBox().Param("demMemberId")
 	unitPriceStr := ctx.GetDataBox().Param("unitPrice")
 
 	unitPrice, err := strconv.ParseFloat(unitPriceStr, 64)
 	if err != nil {
-		fmt.Println("apply balance failed", err.Error())
+		logger.Error("[updateRedisQuatoFunc] parse unit price string to float64 error: [%s] ", err.Error())
 		errEnd(ctx)
 		return
 	}
 
 	if err := balance.UpdateBalance(memberId, -unitPrice); err != nil {
-		fmt.Println("apply balance failed", err.Error())
+		logger.Error("[updateRedisQuatoFunc] update balance error: [%s]", err.Error())
 		errEnd(ctx)
 		return
 	}
@@ -267,11 +273,11 @@ func updateRedisQuatoFunc(ctx *Context) {
 }
 
 func reduceRedisQuatoFunc(ctx *Context) {
-	//fmt.Println("reduceRedisQuatoFunc rule...")
+	logger.Info("reduceRedisQuatoFunc start")
 
 	if ctx.DataResponse.StatusCode == 200 && !strings.EqualFold(ctx.DataResponse.ReturnCode, "000000") {
-		fmt.Println("update redis quato failed")
-		errEnd(ctx)
+		logger.Error("[updateRedisQuatoFunc] update quato redis value failed: [%s]", ctx.DataResponse.ReturnMsg)
+		returnBalanceFunc(ctx)
 		return
 	}
 
@@ -280,12 +286,18 @@ func reduceRedisQuatoFunc(ctx *Context) {
 	// 根据jobid获取orderroute map
 	orPolicyMap, ok := or.OrderRoutePolicyMap[jobId]
 	if !ok {
-		errEnd(ctx)
+		logger.Error("[updateRedisQuatoFunc] get order route policy by jobId failed")
+		returnBalanceFunc(ctx)
 		return
 	}
 
-	var nextRule string
+	supMemId := orPolicyMap.Calllist[0]
+	ctx.GetDataBox().SetParam("supMemId", supMemId)
 
+	taskIdStr := orPolicyMap.MemTaskIdMap["supMemId"]
+	ctx.GetDataBox().SetParam("taskIdStr", taskIdStr)
+
+	var nextRule string
 	switch orPolicyMap.RouteMethod {
 	case 1:
 		nextRule = "singlequery"
@@ -303,29 +315,37 @@ func reduceRedisQuatoFunc(ctx *Context) {
 }
 
 func singleQueryFunc(ctx *Context) {
-	//fmt.Println("singleQueryFunc rule...")
+	logger.Info("singleQueryFunc start")
 
 	dataRequest := &request.DataRequest{
-		Rule:         "queryresponse",
-		Method:       "POSTBODY",
-		//Url:          "http://127.0.0.1:8096/api/crp/sup",
-		Url:          "http://10.101.12.43:8097/api/crp/sup",
+		Rule:   "queryresponse",
+		Method: "POSTBODY",
+		Url:    "http://127.0.0.1:8096/api/crp/sup",
+		//Url:          "http://10.101.12.43:8097/api/crp/sup",
 		TransferType: request.NONETYPE,
 		Reloadable:   true,
 		Parameters:   ctx.DataResponse.Body,
 	}
 
-	//dataRequest.SetParam("appid", ctx.DataResponse.BodyStr)
-	//dataRequest.SetParam("secret_id", ctx.DataResponse.BodyStr)
-	//dataRequest.SetParam("seq_no", ctx.DataResponse.BodyStr)
-	//dataRequest.SetParam("product_id", ctx.DataResponse.BodyStr)
-	//dataRequest.SetParam("req_data", ctx.DataResponse.BodyStr)
+	demMemberId := ctx.GetDataBox().Param("demMemberId")
+
+	seqUtil := &util.SeqUtil{}
+	busiSerialNo := seqUtil.GenBusiSerialNo(demMemberId)
+
+	header := &fasthttp.RequestHeader{}
+	header.SetContentType("application/json;charset=UTF-8")
+	header.SetMethod("POST")
+	header.Set("prdtIdCd", ctx.GetDataBox().Param("prdtIdCd"))
+	header.Set("serialNo", ctx.GetDataBox().Param("serialNo"))
+	header.Set("busiSerialNo", busiSerialNo)
+
+	ctx.GetDataBox().SetParam("busiSerialNo", busiSerialNo)
 
 	ctx.AddChanQueue(dataRequest)
 }
 
 func staticQueryFunc(ctx *Context) {
-	//fmt.Println("staticQueryFunc rule...")
+	logger.Info("staticQueryFunc start")
 
 	if ctx.DataResponse.StatusCode == 200 && strings.EqualFold(ctx.DataResponse.ReturnCode, "000000") {
 		ctx.AddQueue(&request.DataRequest{
@@ -347,72 +367,110 @@ func staticQueryFunc(ctx *Context) {
 		Parameters:   ctx.DataResponse.Body,
 	}
 
-	//dataRequest.SetParam("appid", ctx.DataResponse.BodyStr)
-	//dataRequest.SetParam("secret_id", ctx.DataResponse.BodyStr)
-	//dataRequest.SetParam("seq_no", ctx.DataResponse.BodyStr)
-	//dataRequest.SetParam("product_id", ctx.DataResponse.BodyStr)
-	//dataRequest.SetParam("req_data", ctx.DataResponse.BodyStr)
-
 	ctx.AddChanQueue(dataRequest)
 }
 
 func callResponseFunc(ctx *Context) {
-	//fmt.Println("callResponseFunc rule...")
-
-	//pubRespMsg := ctx.DataResponse.Bobject
-	//pubResInfo := &PubResInfo{
-	//	ResCode: "",
-	//	ResMsg:  "",
-	//}
-	//
-	//responseInfo := &ResponseInfo{
-	//	PubResInfo:  pubResInfo,
-	//	BusiResInfo: pubRespMsg.(map[string]interface{}),
-	//}
-	//
-	//responseByte, err := json.Marshal(responseInfo)
-	//if err != nil {
-	//	fmt.Println("parse response info failed")
-	//	errEnd(ctx)
-	//	return
-	//}
-
-	//respData := &RspData{}
-	//if err := json.Unmarshal(ctx.DataResponse.Body, respData); err != nil {
-	//	errEnd(ctx)
-	//	return
-	//}
+	logger.Info("callResponseFunc start")
 
 	pubRespMsg := &PubResProductMsg_0_000_000{}
+	// TODO mock
 	pubRespMsg.DetailInfo.Tag = "疑似仿冒包装"
 	pubRespMsg.DetailInfo.EvilScore = 77
 
-	responseByte, err := json.Marshal(pubRespMsg)
+	if err := json.Unmarshal(ctx.DataResponse.Body, pubRespMsg); err != nil {
+		logger.Error("[callResponseFunc] unmarshal response body to PubResProductMsg_0_000_000 err: [%s] ", err.Error())
+		returnBalanceFunc(ctx)
+		return
+	}
+
+	ctx.GetDataBox().BodyChan <- ctx.DataResponse.Body
+
+	// 不收费处理逻辑
+	if !strings.EqualFold(pubRespMsg.PubAnsInfo.ResCode, CenterCodeSucc) {
+		ctx.AddChanQueue(&request.DataRequest{
+			Rule:         "returnbalance",
+			Method:       "GET",
+			TransferType: request.NONETYPE,
+			Reloadable:   true,
+		})
+		return
+	}
+
+	demMemberId := ctx.GetDataBox().Param("demMemberId")
+	busiSerialNo := ctx.GetDataBox().Param("busiSerialNo")
+	start := ctx.GetDataBox().Param("startTime")
+	startTime, err := strconv.Atoi(start)
 	if err != nil {
+		logger.Error("[callResponseFunc] convert startTime string to int err: [%s] ", err.Error())
+		returnBalanceFunc(ctx)
+		return
+	}
+	endTime := int(time.Now().UnixNano() / 1e6)
+
+	h := md5.New()
+	h.Write([]byte(demMemberId))
+	busiInfoStr := fmt.Sprintf("%x", h.Sum(nil))
+
+	msg := "3" + demMemberId + "1"
+	priKey, _ := security.GetPrivateKey()
+	signInfo := cncrypt.Sign(priKey, []byte(msg))
+	stepInfoM := []map[string]interface{}{}
+	stepInfo1 := map[string]interface{}{"no": 1, "memID": demMemberId, "stepStatus": security.StepStatusSucc, "signature": ""}
+	stepInfo2 := map[string]interface{}{"no": 2, "memID": "", "stepStatus": security.StepStatusSucc, "signature": ""}
+	stepInfo3 := map[string]interface{}{"no": 3, "memID": demMemberId, "stepStatus": security.StepStatusSucc, "signature": signInfo}
+	stepInfoM = append(stepInfoM, stepInfo1)
+	stepInfoM = append(stepInfoM, stepInfo2)
+	stepInfoM = append(stepInfoM, stepInfo3)
+
+	ctx.Output(map[string]interface{}{
+		"exID":       busiInfoStr,
+		"demMemID":   demMemberId,
+		"supMemID":   ctx.GetDataBox().Param("supMemId"),
+		"taskID":     strings.Replace(ctx.GetDataBox().Param("taskIdStr"), "|@|", ".", -1),
+		"seqNo":      busiSerialNo,
+		"recordType": RecordTypeSingle,
+		"succCount":  "1",
+		"flowStatus": FlowStatusDemSucc,
+		"usedTime":   endTime - startTime,
+		"errCode":    ErrCodeSucc,
+		"stepInfoM":  stepInfoM,
+		//"dmpSeqNo":   "",
+	})
+
+	procEndFunc(ctx)
+}
+
+func returnBalanceFunc(ctx *Context) {
+	logger.Info("returnBalanceFunc start")
+
+	memberId := ctx.GetDataBox().Param("demMemberId")
+	unitPriceStr := ctx.GetDataBox().Param("unitPrice")
+
+	unitPrice, err := strconv.ParseFloat(unitPriceStr, 64)
+	if err != nil {
+		logger.Error("[returnBalanceFunc] convert balance [%s] string to float64 err: [%s] ", unitPriceStr, err.Error())
 		errEnd(ctx)
 		return
 	}
 
-	//ctx.GetDataBox().Callback(responseByte)
+	if err := balance.UpdateBalance(memberId, unitPrice); err != nil {
+		logger.Error("[returnBalanceFunc] update accountId [%s] balance [%f] string to float64 err: [%s] ", memberId, unitPrice, err.Error())
+		errEnd(ctx)
+		return
+	}
 
-	ctx.GetDataBox().BodyChan <- responseByte
+	dataRequest := &request.DataRequest{
+		Rule:         "end",
+		Method:       "HIncrBy",
+		TransferType: request.REDIS,
+		Reloadable:   true,
+	}
 
-	//defer close(ctx.GetDataBox().BodyChan)
+	dataRequest.SetParam("key", strconv.Itoa(os.Getpid()))
+	dataRequest.SetParam("field", memberId)
+	dataRequest.SetParam("incr", unitPriceStr)
 
-	//ctx.Output(map[string]interface{}{
-	//	//"exID":       string(line),
-	//	"demMemID":   ctx.GetDataBox().Param("UserId"),
-	//	"supMemID":   ctx.GetDataBox().Param("NodeMemberId"),
-	//	"taskID":     strings.Replace(ctx.GetDataBox().Param("TaskId"), "|@|", ".", -1),
-	//	"seqNo":      ctx.GetDataBox().Param("seqNo"),
-	//	"dmpSeqNo":   ctx.GetDataBox().Param("fileNo"),
-	//	"recordType": "2",
-	//	"succCount":  "1",
-	//	"flowStatus": "11",
-	//	"usedTime":   11,
-	//	"errCode":    "031014",
-	//	//"stepInfoM":  stepInfoM,
-	//})
-
-	procEndFunc(ctx)
+	ctx.AddChanQueue(dataRequest)
 }
+

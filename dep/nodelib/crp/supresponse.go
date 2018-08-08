@@ -9,10 +9,12 @@ import (
 	"fmt"
 	"drcs/core/interaction/request"
 	. "drcs/dep/nodelib/crp/edunwang"
+	. "drcs/dep/nodelib/crp/common"
 	"encoding/json"
 	"strings"
 	"strconv"
 	"github.com/valyala/fasthttp"
+	"time"
 )
 
 func init() {
@@ -36,9 +38,6 @@ var SUPRESPONSE = &DataBox{
 			"parseparam": {
 				ParseFunc: parseRespParamFunc,
 			},
-			//"getorderinfo": {
-			//	ParseFunc: depAuthFunc,
-			//},
 			"aesencrypt": {
 				ParseFunc: aesEncryptParamFunc,
 			},
@@ -88,8 +87,6 @@ func parseRespParamFunc(ctx *Context) {
 		return
 	}
 
-	//fmt.Println(busiInfo)
-
 	requestData := &RequestData{}
 	idNum, ok := busiInfo["identityNumber"]
 	if !ok {
@@ -126,9 +123,6 @@ func parseRespParamFunc(ctx *Context) {
 		errEnd(ctx)
 		return
 	}
-
-	//fmt.Println("requestDataByte: ",  requestDataByte)
-	//fmt.Println("requestDataByte: ",  string(requestDataByte))
 
 	dataReq := &request.DataRequest{
 		Rule:         "aesencrypt",
@@ -214,21 +208,15 @@ func urlEncodeFunc(ctx *Context) {
 	dataRequest := &request.DataRequest{
 		Rule:         "execquery",
 		Method:       "POSTARGS",
-		Url:          "http://api.edunwang.com/test/black_check?appid=xxxx&secret_id=xxxx&seq_no=xxx&product_id=xxx&req_data=xxxx",
+		Url:          EDUN_URL,
+		//Url:          "http://api.edunwang.com/test/black_check?appid=xxxx&secret_id=xxxx&seq_no=xxx&product_id=xxx&req_data=xxxx",
 		TransferType: request.NONETYPE,
 		Reloadable:   true,
 		HeaderArgs:   header,
 		PostArgs:     args,
 	}
 
-	//dataRequest.SetParam("appid", ctx.DataResponse.BodyStr)
-	//dataRequest.SetParam("secret_id", ctx.DataResponse.BodyStr)
-	//dataRequest.SetParam("seq_no", ctx.DataResponse.BodyStr)
-	//dataRequest.SetParam("product_id", ctx.DataResponse.BodyStr)
-	//dataRequest.SetParam("req_data", ctx.DataResponse.BodyStr)
-
 	ctx.AddChanQueue(dataRequest)
-
 }
 
 func queryResponseFunc(ctx *Context) {
@@ -241,19 +229,40 @@ func queryResponseFunc(ctx *Context) {
 	}
 
 	responseData := &ResponseData{}
-	//if err := json.Unmarshal(ctx.DataResponse.Body, responseData); err != nil {
-	//	fmt.Println("edunwang parse response failed")
-	//	errEnd(ctx)
-	//	return
-	//}
+	if err := json.Unmarshal(ctx.DataResponse.Body, responseData); err != nil {
+		fmt.Println("edunwang parse response failed")
+		errEnd(ctx)
+		return
+	}
 
+	// TODO mock
 	responseData.StatusCode = "100"
 	responseData.Message = "null"
 	responseData.RspData = ""
 
-	if !strings.EqualFold(responseData.StatusCode, "100") {
+	if !strings.EqualFold(responseData.StatusCode, EDUN_SUCC) {
 		fmt.Println("edunwang query response failed")
-		errEnd(ctx)
+
+		pubRespMsg := &PubResProductMsg_0_000_000{}
+
+		pubAnsInfo := &PubAnsInfo{}
+		pubAnsInfo.ResCode = GetCenterCodeFromEdun(responseData.StatusCode)
+		pubAnsInfo.ResMsg = responseData.Message
+		pubAnsInfo.SerialNo = ctx.GetDataBox().Param("serialNo")
+		pubAnsInfo.BusiSerialNo = ctx.GetDataBox().Param("busiSerialNo")
+		pubAnsInfo.TimeStamp = strconv.Itoa(int(time.Now().UnixNano() / 1e6))
+
+		pubRespMsg.PubAnsInfo = pubAnsInfo
+
+		pubRespMsgByte, err := json.Marshal(pubRespMsg)
+		if err != nil {
+			errEnd(ctx)
+			return
+		}
+
+		ctx.GetDataBox().BodyChan <- pubRespMsgByte
+
+		procEndFunc(ctx)
 		return
 	}
 
@@ -263,6 +272,8 @@ func queryResponseFunc(ctx *Context) {
 		return
 	}
 
+	ctx.GetDataBox().SetParam("resCode", GetCenterCodeFromEdun(responseData.StatusCode))
+
 	dataRequest := &request.DataRequest{
 		Rule:         "aesdecrypt",
 		Method:       "AESDECRYPT",
@@ -270,8 +281,6 @@ func queryResponseFunc(ctx *Context) {
 		Reloadable:   true,
 		Parameters:   []byte(responseData.RspData),
 	}
-
-	//dataRequest.SetParam("urlstr", ctx.DataResponse.BodyStr)
 
 	ctx.AddChanQueue(dataRequest)
 }
@@ -286,27 +295,36 @@ func aesDecryptFunc(ctx *Context) {
 	}
 
 	respData := &RspData{}
+	// TODO mock
 	respData.Tag = "疑似仿冒包装"
 	respData.EvilScore = 77
 
-	//if err := json.Unmarshal(ctx.DataResponse.Body, respData); err != nil {
-	//	fmt.Println("convert respData to struct failed")
-	//	errEnd(ctx)
-	//	return
-	//}
+	if err := json.Unmarshal(ctx.DataResponse.Body, respData); err != nil {
+		fmt.Println("convert respData to struct failed")
+		errEnd(ctx)
+		return
+	}
 
-	pubRespMsgByte, err := json.Marshal(respData)
+	pubRespMsg := &PubResProductMsg_0_000_000{}
+
+	pubAnsInfo := &PubAnsInfo{}
+	pubAnsInfo.ResCode = ctx.GetDataBox().Param("resCode")
+	pubAnsInfo.ResMsg = "成功"
+	pubAnsInfo.SerialNo = ctx.GetDataBox().Param("serialNo")
+	pubAnsInfo.BusiSerialNo = ctx.GetDataBox().Param("busiSerialNo")
+	pubAnsInfo.TimeStamp = strconv.Itoa(int(time.Now().UnixNano() / 1e6))
+
+	pubRespMsg.PubAnsInfo = pubAnsInfo
+	pubRespMsg.DetailInfo.Tag = respData.Tag
+	pubRespMsg.DetailInfo.EvilScore = respData.EvilScore
+
+	pubRespMsgByte, err := json.Marshal(pubRespMsg)
 	if err != nil {
 		errEnd(ctx)
 		return
 	}
 
-	//ctx.GetDataBox().Callback(pubRespMsgByte)
-
 	ctx.GetDataBox().BodyChan <- pubRespMsgByte
 
-	//defer close(ctx.GetDataBox().BodyChan)
-
 	procEndFunc(ctx)
-
 }

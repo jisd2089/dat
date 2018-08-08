@@ -2,7 +2,6 @@ package crp
 
 import (
 	. "drcs/core/databox"
-
 	"fmt"
 	"drcs/runtime/status"
 	"os"
@@ -15,6 +14,7 @@ import (
 	"io"
 	"encoding/json"
 	"strings"
+	logger "drcs/log"
 )
 
 /**
@@ -29,6 +29,7 @@ func procEndFunc(ctx *Context) {
 }
 
 func errEnd(ctx *Context) {
+	logger.Error(" return for abnormal reason ")
 
 	responseByte := []byte("response error")
 	ctx.GetDataBox().BodyChan <- responseByte
@@ -196,3 +197,4 @@ func getPartnerUrl() (string, string, error) {
 	memberId := member.GetPartnersInfo().PartnerDetailList.PartnerDetailInfo[0].MemberId
 	return svrUrl, memberId, nil
 }
+

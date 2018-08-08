@@ -56,13 +56,18 @@ func execPostByArgs(req Request, dataResponse *DataResponse) {
 
 	//freq.Header.SetContentType("application/json;charset=UTF-8")
 	//freq.Header.SetMethod("POST")
-	freq.SetRequestURI(req.GetUrl())
-
 	freq.Header = *req.GetHeaderArgs()
 
 	for k, v := range req.GetPostArgs() {
 		freq.PostArgs().Set(k, v)
 	}
+
+	url := req.GetUrl()
+	if freq.PostArgs().String() != "" {
+		url += "?" + freq.PostArgs().String()
+	}
+
+	freq.SetRequestURI(url)
 
 	err := fasthttp.DoTimeout(freq, fresp, time.Duration(300) * time.Second)
 	if err != nil {

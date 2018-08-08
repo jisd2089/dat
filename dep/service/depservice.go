@@ -24,6 +24,7 @@ import (
 	"drcs/dep/member"
 	"encoding/json"
 	"drcs/dep/order"
+	"time"
 )
 
 type DepService struct {
@@ -265,10 +266,10 @@ func (s *DepService) ProcessBatchRcv(ctx *fasthttp.RequestCtx, targetFilePath st
 // 金融消费
 func (s *DepService) ProcessCrpTrans(ctx *fasthttp.RequestCtx) {
 
-	bodyChan := make(chan[]byte)
+	bodyChan := make(chan []byte)
 	//defer close(bodyChan)
 
-	//timeOut := time.Duration(30000) * time.Millisecond
+	timeOut := time.Duration(30000) * time.Millisecond
 
 	//boxName, err := getCrpBoxName(ctx.Request.Body())
 	//if err != nil {
@@ -291,17 +292,36 @@ func (s *DepService) ProcessCrpTrans(ctx *fasthttp.RequestCtx) {
 	setDataBoxQueue(b)
 
 	select {
-	case body := <- bodyChan:
+	case body := <-bodyChan:
 		ctx.SetBody(body)
-	//case <-time.After(timeOut):
-	//	logger.Error("http response timeout")
-	//	break
+		close(bodyChan)
+	case <-time.After(timeOut):
+		logger.Error("http response timeout")
+		break
 	}
-
-	//fmt.Println("depservice end")
 }
 
 func (s *DepService) ProcessCrpResponse(ctx *fasthttp.RequestCtx) {
+
+	timeOut := time.Duration(30000) * time.Millisecond
+
+	prdtIdCd := string(ctx.Request.Header.Peek("prdtIdCd"))
+	if prdtIdCd == "" {
+		logger.Error("prdtIdCd is nil!")
+		return
+	}
+
+	serialNo := string(ctx.Request.Header.Peek("serialNo"))
+	if serialNo == "" {
+		logger.Error("serialNo is nil!")
+		return
+	}
+
+	busiSerialNo := string(ctx.Request.Header.Peek("busiSerialNo"))
+	if busiSerialNo == "" {
+		logger.Error("busiSerialNo is nil!")
+		return
+	}
 
 	boxName := "sup_response"
 	b := assetnode.AssetNodeEntity.GetDataBoxByName(boxName)
@@ -310,23 +330,24 @@ func (s *DepService) ProcessCrpResponse(ctx *fasthttp.RequestCtx) {
 		return
 	}
 
-	//fmt.Println(string(ctx.Request.Body()))
+	b.SetParam("serialNo", serialNo)
+	b.SetParam("busiSerialNo", busiSerialNo)
 
 	b.HttpRequestBody = ctx.Request.Body()
 
-	bodyChan := make(chan[]byte)
-	//defer close(bodyChan)
-
+	bodyChan := make(chan []byte)
 	b.BodyChan = bodyChan
 
 	setDataBoxQueue(b)
 
 	select {
-	case body := <- bodyChan:
+	case body := <-bodyChan:
 		ctx.SetBody(body)
+		close(bodyChan)
+	case <-time.After(timeOut):
+		logger.Error("http response timeout")
+		break
 	}
-
-	//fmt.Println("depservice end")
 }
 
 func setRcvParams(ctx *fasthttp.RequestCtx, b *databox.DataBox) error {
@@ -391,7 +412,6 @@ func checkRcvParams(p *BatchParams) error {
 
 	return nil
 }
-
 
 func getCrpBoxName(requestBody []byte) (string, error) {
 

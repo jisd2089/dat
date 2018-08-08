@@ -123,6 +123,7 @@ RETRY:
 		BodyStrs:   values,
 		StatusCode: 200,
 		ReturnCode: retCode,
+		ReturnMsg: "redis transfer success",
 	}
 }
 

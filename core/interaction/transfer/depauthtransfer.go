@@ -28,11 +28,13 @@ func (ft *DepAuthTransfer) ExecuteMethod(req Request) Response {
 	jobId := req.Param("jobId")
 
 	retCode := "000000"
+	retMsg := "authentication success"
 
 	switch req.GetMethod() {
 	case "APPKEY":
 		if !appKeyAuthentication(memberId, serialNo, reqSign, pubkey, jobId) {
 			retCode = "000004"
+			retMsg = "authentication failed"
 		}
 	case "Prikey":
 
@@ -42,6 +44,7 @@ func (ft *DepAuthTransfer) ExecuteMethod(req Request) Response {
 		StatusCode: 200,
 		ReturnCode: retCode,
 		Bobject:    req.GetBobject(),
+		ReturnMsg:  retMsg,
 	}
 }
 
