@@ -21,13 +21,6 @@ func init() {
 	SUPRESPONSE.Register()
 }
 
-const (
-	EDUN_URL        = "http://api.edunwang.com/test/black_check"
-	EDUN_SECRET_KEY = "46d4ead46317428b" // 正式环境
-	EDUN_APP_ID     = "422833408034"
-	EDUN_SECRET_ID  = "302fab9c7acc4209a328e81c3354"
-)
-
 var SUPRESPONSE = &DataBox{
 	Name:        "sup_response",
 	Description: "sup_response",

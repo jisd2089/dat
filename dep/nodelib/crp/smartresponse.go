@@ -21,9 +21,7 @@ func init() {
 	SMARTRESPONSE.Register()
 }
 
-const (
-	SMARTSAIL_CLIKEY = ""
-)
+
 
 var SMARTRESPONSE = &DataBox{
 	Name:        "smart_response",

@@ -5,6 +5,10 @@ package smartsail
     Created: 2018-08-03 14:57:26
 */
 
+const (
+	SMARTSAIL_CLIKEY = ""
+)
+
 type RequestMsg struct {
 	CliKey      string `json:"cliKey"`
 	RequestData string `json:"data"`

@@ -4,6 +4,13 @@ package edunwang
     Author: luzequan
     Created: 2018-08-01 10:49:08
 */
+const (
+	EDUN_URL        = "http://api.edunwang.com/test/black_check"
+	EDUN_SECRET_KEY = "46d4ead46317428b" // 正式环境
+	EDUN_APP_ID     = "422833408034"
+	EDUN_SECRET_ID  = "302fab9c7acc4209a328e81c3354"
+)
+
 type URIData struct {
 	Appid     string `json:"appid"`      // 用户标识
 	SecretId  string `json:"secret_id"`  // 云api标识
