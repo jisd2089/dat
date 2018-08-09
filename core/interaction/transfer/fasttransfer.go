@@ -56,14 +56,21 @@ func execPostByArgs(req Request, dataResponse *DataResponse) {
 	//freq.Header.SetMethod("POST")
 	freq.Header = *req.GetHeaderArgs()
 
+	//var postArgsStr string
 	for k, v := range req.GetPostArgs() {
 		freq.PostArgs().Set(k, v)
+		//postArgsStr += (k + "=" + v + "&")
 	}
 
+	//fmt.Println(postArgsStr)
 	url := req.GetUrl()
 	if freq.PostArgs().String() != "" {
+		//url += "?" + postArgsStr[:len(postArgsStr)-1]
 		url += "?" + freq.PostArgs().String()
+		//url += "?" + "appid=422833408034&seq_no=2201611161916567677531846&secret_id=302fab9c7acc4209a328e81c3354&product_id=11&req_data=%2Fn6cuhNfBLlq0khkZExUBVsXVjw0aUWTMrrQl5PSxt5GYDAZvdShNJQgmSyP9v2tYK%252Fd%252BhjDgIhNJDA0fls8G%252BDOLn0ncCl9BT2voTMJ8KCtH5AT7HHbhMlnikHVVL33aiCXlJte9EeYnPDR3iu%252FCg%253D%253D"
 	}
+
+	fmt.Println("url:", url)
 
 	freq.SetRequestURI(url)
 
@@ -71,6 +78,7 @@ func execPostByArgs(req Request, dataResponse *DataResponse) {
 	if err != nil {
 		dataResponse.SetStatusCode(200)
 		dataResponse.ReturnCode = "000009"
+		dataResponse.ReturnMsg = err.Error()
 		return
 	}
 	//fmt.Println(string(fresp.Body()))
@@ -78,6 +86,9 @@ func execPostByArgs(req Request, dataResponse *DataResponse) {
 	dataResponse.SetStatusCode(200)
 	dataResponse.ReturnCode = "000000"
 	dataResponse.Body = fresp.Body()
+	dataResponse.ReturnMsg = "请求成功"
+
+	fmt.Println(string(fresp.Body()))
 }
 
 func execPostByBody(req Request, dataResponse *DataResponse) {
@@ -87,8 +98,11 @@ func execPostByBody(req Request, dataResponse *DataResponse) {
 	defer fasthttp.ReleaseRequest(freq)
 	defer fasthttp.ReleaseResponse(fresp)
 
-	freq.Header.SetContentType("application/json")
-	freq.Header.SetMethod("POST")
+	//freq.Header.SetContentType("application/json")
+	//freq.Header.SetMethod("POST")
+
+	freq.Header = *req.GetHeaderArgs()
+
 	freq.SetRequestURI(req.GetUrl())
 	freq.SetBody(req.GetParameters())
 

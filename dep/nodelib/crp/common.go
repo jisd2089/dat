@@ -15,6 +15,8 @@ import (
 	"encoding/json"
 	"strings"
 	logger "drcs/log"
+	"strconv"
+	"time"
 )
 
 /**
@@ -31,7 +33,21 @@ func procEndFunc(ctx *Context) {
 func errEnd(ctx *Context) {
 	logger.Error(" return for abnormal reason ")
 
-	responseByte := []byte("response error")
+	pubResProductMsg_Error := &common.PubResProductMsg_Error{}
+	pubAnsInfo := &common.PubAnsInfo{}
+	pubAnsInfo.ResCode = common.CenterCodeReqFail
+	pubAnsInfo.ResMsg = common.GetCenterCodeText(common.CenterCodeReqFail)
+	pubAnsInfo.SerialNo = ctx.GetDataBox().Param("serialNo")
+	pubAnsInfo.BusiSerialNo = ctx.GetDataBox().Param("busiSerialNo")
+	pubAnsInfo.TimeStamp = strconv.Itoa(int(time.Now().UnixNano() / 1e6))
+
+	pubResProductMsg_Error.PubAnsInfo = pubAnsInfo
+
+	responseByte, err := json.Marshal(pubResProductMsg_Error)
+	if err != nil {
+		responseByte = []byte("response error")
+	}
+
 	ctx.GetDataBox().BodyChan <- responseByte
 	ctx.AddChanQueue(&request.DataRequest{
 		Rule:         "end",
@@ -196,5 +212,15 @@ func getPartnerUrl() (string, string, error) {
 	svrUrl := member.GetPartnersInfo().PartnerDetailList.PartnerDetailInfo[0].SvrURL
 	memberId := member.GetPartnersInfo().PartnerDetailList.PartnerDetailInfo[0].MemberId
 	return svrUrl, memberId, nil
+}
+
+type SeqUtil struct {}
+
+// seq no 长度15位
+func (s SeqUtil) GenSeqNo() string {
+	now := time.Now()
+	serialNo := fmt.Sprintf("%02d%02d%02d%09d", now.Hour(), now.Minute(), now.Second(), now.Nanosecond())
+
+	return serialNo
 }
 

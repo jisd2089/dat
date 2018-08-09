@@ -14,7 +14,8 @@ import (
 	"strconv"
 	"github.com/valyala/fasthttp"
 	"time"
-	"github.com/ouqiang/gocron/modules/logger"
+	logger "drcs/log"
+	"fmt"
 )
 
 func init() {
@@ -37,11 +38,11 @@ var SUPRESPONSE = &DataBox{
 			"base64encode": {
 				ParseFunc: base64EncodeFunc,
 			},
-			"urlencode": {
-				ParseFunc: urlEncodeFunc,
-			},
 			"execquery": {
 				ParseFunc: queryResponseFunc,
+			},
+			"base64decode": {
+				ParseFunc: base64DecodeFunc,
 			},
 			"aesdecrypt": {
 				ParseFunc: aesDecryptFunc,
@@ -123,6 +124,8 @@ func parseRespParamFunc(ctx *Context) {
 		return
 	}
 
+	fmt.Println(string(requestDataByte))
+
 	dataReq := &request.DataRequest{
 		Rule:         "aesencrypt",
 		Method:       "AESENCRYPT",
@@ -131,10 +134,8 @@ func parseRespParamFunc(ctx *Context) {
 		Parameters:   requestDataByte,
 	}
 
-	//encryptKey := "0102030405060708" // TEST
-	encryptKey := EDUN_SECRET_KEY
-
-	dataReq.SetParam("encryptKey", encryptKey)
+	dataReq.SetParam("encryptKey", EDUN_SECRET_KEY_TEST)
+	dataReq.SetParam("iv", EDUN_SECRET_KEY_TEST)
 
 	ctx.AddChanQueue(dataReq)
 }
@@ -166,47 +167,37 @@ func base64EncodeFunc(ctx *Context) {
 		return
 	}
 
-	dataRequest := &request.DataRequest{
-		Rule:         "urlencode",
-		Method:       "URLENCODE",
-		TransferType: request.ENCODE,
-		Reloadable:   true,
-	}
-
-	dataRequest.SetParam("urlstr", ctx.DataResponse.BodyStr)
-
-	ctx.AddChanQueue(dataRequest)
-}
-
-func urlEncodeFunc(ctx *Context) {
-	logger.Info("urlEncodeFunc start")
-
-	if ctx.DataResponse.StatusCode == 200 && !strings.EqualFold(ctx.DataResponse.ReturnCode, "000000") {
-		logger.Error("[urlEncodeFunc] url encode failed [%s]", ctx.DataResponse.ReturnMsg)
-		errEnd(ctx)
-		return
-	}
+	fmt.Println("base64:", ctx.DataResponse.BodyStr)
 
 	header := &fasthttp.RequestHeader{}
 	header.SetContentType("application/json;charset=UTF-8")
 	header.SetMethod("POST")
 
-	args := make(map[string]string, 0)
-	args["appid"] = EDUN_APP_ID
-	args["seq_no"] = ""
-	args["secret_id"] = EDUN_SECRET_ID
-	args["product_id"] = ""
-	args["req_data"] = ctx.DataResponse.BodyStr
+	seqNo := SeqUtil{}.GenSeqNo()
+
+	uriData := &URIData{}
+	uriData.Appid = EDUN_APP_ID_TEST
+	// seqNo 长度要求15位
+	uriData.SeqNo = seqNo
+	uriData.SecretId = EDUN_SECRET_ID_TEST
+	uriData.ProductId = EDUN_PRODUCT_ID
+	uriData.ReqData = ctx.DataResponse.BodyStr
+
+	uriDataByte, err := json.Marshal(uriData)
+	if err != nil {
+		logger.Error("[base64EncodeFunc] json Marshal uriData failed [%s]", err.Error())
+		errEnd(ctx)
+		return
+	}
 
 	dataRequest := &request.DataRequest{
 		Rule:         "execquery",
-		Method:       "POSTARGS",
-		Url:          EDUN_URL,
-		//Url:          "http://api.edunwang.com/test/black_check?appid=xxxx&secret_id=xxxx&seq_no=xxx&product_id=xxx&req_data=xxxx",
-		TransferType: request.NONETYPE,
+		Method:       "POSTBODY",
+		Url:          EDUN_URL_TEST,
+		TransferType: request.FASTHTTP,
 		Reloadable:   true,
 		HeaderArgs:   header,
-		PostArgs:     args,
+		Parameters:   uriDataByte,
 	}
 
 	ctx.AddChanQueue(dataRequest)
@@ -221,6 +212,8 @@ func queryResponseFunc(ctx *Context) {
 		return
 	}
 
+	fmt.Println("response body:", string(ctx.DataResponse.Body))
+
 	responseData := &ResponseData{}
 	if err := json.Unmarshal(ctx.DataResponse.Body, responseData); err != nil {
 		logger.Error("[queryResponseFunc] json unmarshal response data err [%s]", err.Error())
@@ -230,8 +223,8 @@ func queryResponseFunc(ctx *Context) {
 
 	// TODO mock
 	responseData.StatusCode = "100"
-	responseData.Message = "null"
-	responseData.RspData = ""
+	//responseData.Message = "null"
+	//responseData.RspData = ""
 
 	if !strings.EqualFold(responseData.StatusCode, EDUN_SUCC) {
 		logger.Error("[queryResponseFunc] edunwang execute query response [%s]", responseData.Message)
@@ -259,21 +252,47 @@ func queryResponseFunc(ctx *Context) {
 		return
 	}
 
-	if !strings.EqualFold(responseData.Message, "null") {
-		logger.Error("[queryResponseFunc] edunwang execute query response [%s]", responseData.Message)
-		errEnd(ctx)
-		return
-	}
+	//if responseData.Message != "" {
+	//	logger.Error("[queryResponseFunc] edunwang execute query response [%s]", responseData.Message)
+	//	errEnd(ctx)
+	//	return
+	//}
 
 	ctx.GetDataBox().SetParam("resCode", GetCenterCodeFromEdun(responseData.StatusCode))
 
 	dataRequest := &request.DataRequest{
+		Rule:         "base64decode",
+		Method:       "BASE64DECODE",
+		TransferType: request.ENCODE,
+		Reloadable:   true,
+		PostData:     responseData.RspData,
+	}
+
+	dataRequest.SetParam("encryptKey", EDUN_SECRET_KEY_TEST)
+	dataRequest.SetParam("iv", EDUN_SECRET_KEY_TEST)
+
+	ctx.AddChanQueue(dataRequest)
+}
+
+func base64DecodeFunc(ctx *Context) {
+	logger.Info("base64DecodeFunc start")
+
+	if ctx.DataResponse.StatusCode == 200 && !strings.EqualFold(ctx.DataResponse.ReturnCode, "000000") {
+		logger.Error("[base64DecodeFunc] base64 decode err [%s]", ctx.DataResponse.ReturnMsg)
+		errEnd(ctx)
+		return
+	}
+
+	dataRequest := &request.DataRequest{
 		Rule:         "aesdecrypt",
 		Method:       "AESDECRYPT",
-		TransferType: request.NONETYPE,
+		TransferType: request.ENCRYPT,
 		Reloadable:   true,
-		Parameters:   []byte(responseData.RspData),
+		Parameters:   ctx.DataResponse.Body,
 	}
+
+	dataRequest.SetParam("encryptKey", EDUN_SECRET_KEY_TEST)
+	dataRequest.SetParam("iv", EDUN_SECRET_KEY_TEST)
 
 	ctx.AddChanQueue(dataRequest)
 }
@@ -289,8 +308,9 @@ func aesDecryptFunc(ctx *Context) {
 
 	respData := &RspData{}
 	// TODO mock
-	respData.Tag = "疑似仿冒包装"
-	respData.EvilScore = 77
+	//respData.Tag = "疑似仿冒包装"
+	//respData.EvilScore = 77
+	fmt.Println("decrypt response:", string(ctx.DataResponse.Body))
 
 	if err := json.Unmarshal(ctx.DataResponse.Body, respData); err != nil {
 		logger.Error("[aesDecryptFunc] json unmarshal response data err [%s]", err.Error())
@@ -308,6 +328,7 @@ func aesDecryptFunc(ctx *Context) {
 	pubAnsInfo.TimeStamp = strconv.Itoa(int(time.Now().UnixNano() / 1e6))
 
 	pubRespMsg.PubAnsInfo = pubAnsInfo
+
 	pubRespMsg.DetailInfo.Tag = respData.Tag
 	pubRespMsg.DetailInfo.EvilScore = respData.EvilScore
 
@@ -317,6 +338,8 @@ func aesDecryptFunc(ctx *Context) {
 		errEnd(ctx)
 		return
 	}
+
+	fmt.Println(string(pubRespMsgByte))
 
 	ctx.GetDataBox().BodyChan <- pubRespMsgByte
 

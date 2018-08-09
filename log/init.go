@@ -5,10 +5,11 @@ import (
 	"drcs/log/formatter"
 	"drcs/log/logs"
 	"drcs/settings"
+	"drcs/common/util"
 )
 
 const (
-	defaultConfigPath   = "logrus.yaml"
+	defaultConfigPath   = "D:/GoglandProjects/src/drcs/log/logrus.yaml"
 	setting_xpath_path = "Log.ConfigPath"
 )
 
@@ -20,10 +21,11 @@ func Initialize() {
 
 	se := settings.GetCommonSettings()
 	configPath := se.Log.ConfigPath
-	if configPath == "" {
+	if configPath == "" || !util.IsDirExists(configPath) {
 		Info("log initialize, use default configuration file: %s", defaultConfigPath)
 		configPath = defaultConfigPath
 	}
+
 	err := logs.Initialize(configPath)
 	if err != nil {
 		Warn("log initialize error, configuration file: %s", configPath, err)

@@ -22,5 +22,5 @@ type ResponseData struct {
  */
 type RspData struct {
 	Tag       string `json:"tag"`        // 黑标签
-	EvilScore int    `json:"evil_score"` // 恶意等级
+	EvilScore int    `json:"scorelevel"` // 恶意等级
 }

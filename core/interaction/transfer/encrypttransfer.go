@@ -14,6 +14,7 @@ import (
 	"crypto/x509"
 	"crypto/rsa"
 	"crypto/rand"
+	"fmt"
 )
 
 type EncryptTransfer struct{}
@@ -38,10 +39,18 @@ func (ft *EncryptTransfer) ExecuteMethod(req Request) Response {
 
 	switch req.GetMethod() {
 	case "AESENCRYPT":
-		body, err = aesEncrypt(requestTxt, key)
+		iv := []byte(req.Param("iv"))
+		if req.Param("iv") == "" {
+			iv = []byte(ivDefValue)
+		}
+		body, err = aesEncrypt(requestTxt, key, iv)
 		//bodyStr = base64.StdEncoding.EncodeToString(body)
 	case "AESDECRYPT":
-		body, err = aesDecrypt(requestTxt, key)
+		iv := []byte(req.Param("iv"))
+		if req.Param("iv") == "" {
+			iv = []byte(ivDefValue)
+		}
+		body, err = aesDecrypt(requestTxt, key, iv)
 	case "RSAENCRYPT":
 		body, err = rsaEncrypt(requestTxt, key)
 	case "RSADECRYPT":
@@ -67,13 +76,13 @@ const (
 )
 
 // AES 加解密 #####################################################################
-func aesEncrypt(plaintext []byte, key []byte) ([]byte, error) {
+func aesEncrypt(plaintext []byte, key []byte, iv []byte) ([]byte, error) {
 	block, err := aes.NewCipher(key)
 	if err != nil {
 		return nil, errors.New("invalid decrypt key")
 	}
 	plaintext = PKCS7Padding(plaintext, block.BlockSize())
-	iv := []byte(ivDefValue)
+	//iv := []byte(ivDefValue)
 	blockMode := cipher.NewCBCEncrypter(block, iv)
 
 	ciphertext := make([]byte, len(plaintext))
@@ -82,7 +91,7 @@ func aesEncrypt(plaintext []byte, key []byte) ([]byte, error) {
 	return ciphertext, nil
 }
 
-func aesDecrypt(ciphertext []byte, key []byte) ([]byte, error) {
+func aesDecrypt(ciphertext []byte, key []byte, iv []byte) ([]byte, error) {
 
 	block, err := aes.NewCipher(key)
 	if err != nil {
@@ -95,7 +104,8 @@ func aesDecrypt(ciphertext []byte, key []byte) ([]byte, error) {
 		return nil, errors.New("ciphertext too short")
 	}
 
-	iv := []byte(ivDefValue)
+	//iv := []byte(ivDefValue)
+	fmt.Println("size", len(ciphertext)%blockSize)
 	if len(ciphertext)%blockSize != 0 {
 		return nil, errors.New("ciphertext is not a multiple of the block size")
 	}

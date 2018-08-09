@@ -145,7 +145,8 @@ type Other struct {
 }
 
 type Crp struct {
-	ReqTimeout int `yaml:"reqTimeout"`
+	ReqTimeout int    `yaml:"reqTimeout"`
+	BalanceUrl string `yaml:"balanceUrl"`
 }
 
 //func GetCommonSettings() CommonSettings {

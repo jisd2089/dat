@@ -22,9 +22,9 @@ import (
 	"time"
 	"crypto/md5"
 	"github.com/valyala/fasthttp"
-	"drcs/common/cncrypt"
+	logger "drcs/log"
 	"drcs/dep/security"
-	"github.com/ouqiang/gocron/modules/logger"
+	"drcs/common/cncrypt"
 )
 
 func init() {
@@ -314,16 +314,6 @@ func reduceRedisQuatoFunc(ctx *Context) {
 func singleQueryFunc(ctx *Context) {
 	logger.Info("singleQueryFunc start")
 
-	dataRequest := &request.DataRequest{
-		Rule:   "queryresponse",
-		Method: "POSTBODY",
-		Url:    "http://127.0.0.1:8096/api/crp/sup",
-		//Url:          "http://10.101.12.43:8097/api/crp/sup",
-		TransferType: request.NONETYPE,
-		Reloadable:   true,
-		Parameters:   ctx.DataResponse.Body,
-	}
-
 	demMemberId := ctx.GetDataBox().Param("demMemberId")
 
 	seqUtil := &util.SeqUtil{}
@@ -335,6 +325,17 @@ func singleQueryFunc(ctx *Context) {
 	header.Set("prdtIdCd", ctx.GetDataBox().Param("prdtIdCd"))
 	header.Set("serialNo", ctx.GetDataBox().Param("serialNo"))
 	header.Set("busiSerialNo", busiSerialNo)
+
+	dataRequest := &request.DataRequest{
+		Rule:   "queryresponse",
+		Method: "POSTBODY",
+		Url:    "http://127.0.0.1:8096/api/crp/sup",
+		//Url:          "http://10.101.12.43:8097/api/crp/sup",
+		TransferType: request.FASTHTTP,
+		Reloadable:   true,
+		HeaderArgs:   header,
+		Parameters:   ctx.DataResponse.Body,
+	}
 
 	ctx.GetDataBox().SetParam("busiSerialNo", busiSerialNo)
 
@@ -372,8 +373,10 @@ func callResponseFunc(ctx *Context) {
 
 	pubRespMsg := &PubResProductMsg_0_000_000{}
 	// TODO mock
-	pubRespMsg.DetailInfo.Tag = "疑似仿冒包装"
-	pubRespMsg.DetailInfo.EvilScore = 77
+	//pubRespMsg.DetailInfo.Tag = "疑似仿冒包装"
+	//pubRespMsg.DetailInfo.EvilScore = 77
+
+	fmt.Println(string(ctx.DataResponse.Body))
 
 	if err := json.Unmarshal(ctx.DataResponse.Body, pubRespMsg); err != nil {
 		logger.Error("[callResponseFunc] unmarshal response body to PubResProductMsg_0_000_000 err: [%s] ", err.Error())
@@ -470,4 +473,3 @@ func returnBalanceFunc(ctx *Context) {
 
 	ctx.AddChanQueue(dataRequest)
 }
-

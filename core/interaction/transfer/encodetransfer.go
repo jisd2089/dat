@@ -22,6 +22,7 @@ func (ft *EncodeTransfer) ExecuteMethod(req Request) Response {
 	var (
 		err        error
 		body       string
+		bodyByte   []byte
 		returnCode = "000000"
 		retMsg     = "encode or decode success"
 	)
@@ -31,8 +32,9 @@ func (ft *EncodeTransfer) ExecuteMethod(req Request) Response {
 		requestTxt := req.GetParameters()
 		body = Base64Encode(requestTxt)
 	case "BASE64DECODE":
-		ciphertext := ""
-		base64.StdEncoding.DecodeString(ciphertext)
+		ciphertext := req.GetPostData()
+		//ciphertext := "J0lXQtYtkBmZrkXFAE4QTWJUYEzLJcWyFHAx1VeJ6TI="
+		bodyByte, err = base64.StdEncoding.DecodeString(ciphertext)
 	case "URLENCODE":
 		urlstr := req.Param("urlstr")
 		body, err = URLEncode(urlstr)
@@ -49,6 +51,7 @@ func (ft *EncodeTransfer) ExecuteMethod(req Request) Response {
 		StatusCode: 200,
 		ReturnCode: returnCode,
 		BodyStr:    body,
+		Body:       bodyByte,
 		ReturnMsg:  retMsg,
 	}
 }

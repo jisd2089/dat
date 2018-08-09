@@ -269,12 +269,13 @@ func (s *DepService) ProcessCrpTrans(ctx *fasthttp.RequestCtx) {
 
 	bodyChan := make(chan []byte)
 
-	timeOut := time.Duration(30000) * time.Millisecond
+	timeOut := time.Duration(300000) * time.Millisecond
 
 	//boxName, err := getCrpBoxName(ctx.Request.Body())
 	//if err != nil {
 	//	return
 	//}
+	common := st.GetCommonSettings()
 
 	boxName := "dem_request"
 	b := assetnode.AssetNodeEntity.GetDataBoxByName(boxName)
@@ -285,6 +286,11 @@ func (s *DepService) ProcessCrpTrans(ctx *fasthttp.RequestCtx) {
 
 	pubkey := member.GetMemberInfoList().MemberDetailList.MemberDetailInfo[0].PubKey
 	b.SetParam("pubkey", pubkey)
+	b.SetParam("balanceUrl", common.Other.Crp.BalanceUrl)
+	b.SetParam("prdtIdCd", "1003004")
+
+	// redis address
+	b.Params = common.Redis.Addr
 	b.BodyChan = bodyChan
 
 	b.HttpRequestBody = ctx.Request.Body()
@@ -304,7 +310,7 @@ func (s *DepService) ProcessCrpTrans(ctx *fasthttp.RequestCtx) {
 func (s *DepService) ProcessCrpResponse(ctx *fasthttp.RequestCtx) {
 	logger.Info("DepService ProcessCrpResponse start")
 
-	timeOut := time.Duration(30000) * time.Millisecond
+	timeOut := time.Duration(300000) * time.Millisecond
 
 	prdtIdCd := string(ctx.Request.Header.Peek("prdtIdCd"))
 	if prdtIdCd == "" {
