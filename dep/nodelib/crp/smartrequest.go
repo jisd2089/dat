@@ -81,7 +81,7 @@ func smartRequestRootFunc(ctx *Context) {
 
 	ctx.GetDataBox().SetParam("startTime", strconv.Itoa(start))
 
-	ctx.AddQueue(&request.DataRequest{
+	ctx.AddChanQueue(&request.DataRequest{
 		Rule:         "parseparam",
 		Method:       "GET",
 		TransferType: request.NONETYPE,
@@ -120,7 +120,7 @@ func parseRequestParamFunc(ctx *Context) {
 	ctx.GetDataBox().SetParam("jobId", commonRequestData.PubReqInfo.JobId)
 	ctx.GetDataBox().SetParam("serialNo", commonRequestData.PubReqInfo.SerialNo)
 
-	ctx.AddQueue(dataReq)
+	ctx.AddChanQueue(dataReq)
 }
 
 func callSmartResponseFunc(ctx *Context) {

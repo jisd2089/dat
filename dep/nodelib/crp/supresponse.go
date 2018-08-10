@@ -268,8 +268,8 @@ func queryResponseFunc(ctx *Context) {
 		PostData:     responseData.RspData,
 	}
 
-	dataRequest.SetParam("encryptKey", EDUN_SECRET_KEY_TEST)
-	dataRequest.SetParam("iv", EDUN_SECRET_KEY_TEST)
+	//dataRequest.SetParam("encryptKey", EDUN_SECRET_KEY_TEST)
+	//dataRequest.SetParam("iv", EDUN_SECRET_KEY_TEST)
 
 	ctx.AddChanQueue(dataRequest)
 }

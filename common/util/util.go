@@ -65,6 +65,15 @@ func Mkdir(Path string) {
 		}
 	}
 }
+func MkDirAll(Path string) {
+	p := filepath.Clean(Path)
+	d, err := os.Stat(p)
+	if err != nil || !d.IsDir() {
+		if err = os.MkdirAll(p, 0777); err != nil {
+			//logs.Log.Error("创建路径失败[%v]: %v\n", Path, err)
+		}
+	}
+}
 
 // The GetWDPath gets the work directory path.
 func GetWDPath() string {

@@ -15,6 +15,7 @@ import (
 	"crypto/rsa"
 	"crypto/rand"
 	"fmt"
+	"github.com/farmerx/gorsa"
 )
 
 type EncryptTransfer struct{}
@@ -54,6 +55,7 @@ func (ft *EncryptTransfer) ExecuteMethod(req Request) Response {
 	case "RSAENCRYPT":
 		body, err = rsaEncrypt(requestTxt, key)
 	case "RSADECRYPT":
+		//requestTxt = []byte("57O757uf5Y+R55Sf5byC5bi45p+l6K+i6K+35rGC5aSx6LSl")
 		body, err = rsaDecrypt(requestTxt, key)
 	}
 
@@ -147,15 +149,25 @@ func rsaEncrypt(origData, publicKey []byte) ([]byte, error) {
 
 // 解密
 func rsaDecrypt(ciphertext, privateKey []byte) ([]byte, error) {
-	block, _ := pem.Decode(privateKey) //将密钥解析成私钥实例
-	if block == nil {
-		return nil, errors.New("private key error!")
-	}
-	priv, err := x509.ParsePKCS1PrivateKey(block.Bytes) //解析pem.Decode（）返回的Block指针实例
-	if err != nil {
+	rsa := gorsa.RSA
+	if err := rsa.SetPrivateKey(string(privateKey)); err != nil {
 		return nil, err
 	}
-	return rsa.DecryptPKCS1v15(rand.Reader, priv, ciphertext) //RSA算法解密
+
+	return rsa.PriKeyDECRYPT(ciphertext)
+}
+
+func split(buf []byte, lim int) [][]byte {
+	var chunk []byte
+	chunks := make([][]byte, 0, len(buf)/lim+1)
+	for len(buf) >= lim {
+		chunk, buf = buf[:lim], buf[lim:]
+		chunks = append(chunks, chunk)
+	}
+	if len(buf) > 0 {
+		chunks = append(chunks, buf[:len(buf)])
+	}
+	return chunks
 }
 
 //私钥
@@ -180,10 +192,10 @@ AQjxwc71ZGBFDITYvdgJM1MTqc8xQek1FXn1vfpy2c6O
 //公钥
 var publicKey = []byte(`
 -----BEGIN PUBLIC KEY-----
-MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDZsfv1qscqYdy4vY+P4e3cAtmv
-ppXQcRvrF1cB4drkv0haU24Y7m5qYtT52Kr539RdbKKdLAM6s20lWy7+5C0Dgacd
-wYWd/7PeCELyEipZJL07Vro7Ate8Bfjya+wltGK9+XNUIHiumUKULW4KDx21+1NL
-AUeJ6PeW+DAkmJWF6QIDAQAB
+MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCBEQqL3Hr7ud7MrEvuZMAVzl8C
+jQwjK/sTx5UXDc+pUV+uIOhKA0wEG3Or+rH1wddITcW89Ti5zv+ypz1jlOtvS8GJ
++unjxxW7f4tLcmaUKWNxbhmgXZ6I05Dssa67oWhmPV/f5/L2Wgk9NFwbKYJWF7jP
+UccC4+dC9f1FTroh5QIDAQAB
 -----END PUBLIC KEY-----
 `)
 

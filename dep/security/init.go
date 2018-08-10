@@ -15,6 +15,7 @@ import (
 	"os"
 	"regexp"
 	"time"
+	"drcs/common/util"
 )
 
 const (
@@ -42,6 +43,8 @@ func Initialize() error {
 	if filePath == "" {
 		return fmt.Errorf("配置缺失:%s", settings_xpath_filepath)
 	}
+
+	filePath = "D:/GoglandProjects/src/drcs/dep/security/memkeys.xml"
 
 	key, err := parseConfigFileAndCalcPriKey(filePath)
 	if err != nil {
@@ -165,6 +168,11 @@ func SaveDataToxml(seed, memId, userkey string) (string, *errors.MeanfulError) {
 	xmldata = append(xmldata, rootend...)
 
 	xmlPath := settings.GetCommonSettings().ConfigFile.KeysFile
+
+	xmlPath = "D:/GoglandProjects/src/drcs/dep/security/memkeys.xml"
+
+	util.Mkdir(xmlPath)
+
 	ioutil.WriteFile(xmlPath, xmldata, os.ModeAppend)
 
 	return pubkey, nil

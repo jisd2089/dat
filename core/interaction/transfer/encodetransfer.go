@@ -33,7 +33,6 @@ func (ft *EncodeTransfer) ExecuteMethod(req Request) Response {
 		body = Base64Encode(requestTxt)
 	case "BASE64DECODE":
 		ciphertext := req.GetPostData()
-		//ciphertext := "J0lXQtYtkBmZrkXFAE4QTWJUYEzLJcWyFHAx1VeJ6TI="
 		bodyByte, err = base64.StdEncoding.DecodeString(ciphertext)
 	case "URLENCODE":
 		urlstr := req.Param("urlstr")

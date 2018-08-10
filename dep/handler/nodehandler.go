@@ -40,6 +40,8 @@ func (n *NodeHandler) InitSecurityConfig(ctx *fasthttp.RequestCtx) {
 	services_type := GetCommonSettings().Node.Role
 	url := GetCommonSettings().Node.DlsUrl
 
+	url = "http://127.0.0.1:8088/api/init/node/"
+
 	if isLocal := string(ctx.FormValue("isLocal")); strings.ToLower(isLocal) == "true" {
 		hash := sha256.New()
 		hash.Write([]byte(memberId + token))

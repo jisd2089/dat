@@ -278,6 +278,7 @@ func (s *DepService) ProcessCrpTrans(ctx *fasthttp.RequestCtx) {
 	common := st.GetCommonSettings()
 
 	boxName := "dem_request"
+	boxName = "smart_request"
 	b := assetnode.AssetNodeEntity.GetDataBoxByName(boxName)
 	if b == nil {
 		logger.Error("databox [%s] is nil!", boxName)
@@ -314,7 +315,7 @@ func (s *DepService) ProcessCrpResponse(ctx *fasthttp.RequestCtx) {
 
 	prdtIdCd := string(ctx.Request.Header.Peek("prdtIdCd"))
 	if prdtIdCd == "" {
-		logger.Error("prdtIdCd is nil!")
+		logger.Error("prdtIdC d is nil!")
 		return
 	}
 
@@ -331,6 +332,7 @@ func (s *DepService) ProcessCrpResponse(ctx *fasthttp.RequestCtx) {
 	}
 
 	boxName := "sup_response"
+	boxName = "smart_response"
 	b := assetnode.AssetNodeEntity.GetDataBoxByName(boxName)
 	if b == nil {
 		logger.Error("databox is nil!")
