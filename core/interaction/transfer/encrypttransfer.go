@@ -16,6 +16,7 @@ import (
 	"crypto/rand"
 	"fmt"
 	"github.com/farmerx/gorsa"
+	"encoding/base64"
 )
 
 type EncryptTransfer struct{}
@@ -31,9 +32,10 @@ func (ft *EncryptTransfer) ExecuteMethod(req Request) Response {
 	key := []byte(req.Param("encryptKey"))
 
 	var (
-		err  error
-		body []byte
-		//bodyStr    string
+		err        error
+		body       []byte
+		bodyByte   []byte
+		bodyStr    string
 		returnCode = "000000"
 		retMsg     = "encryption or decryption success"
 	)
@@ -44,18 +46,38 @@ func (ft *EncryptTransfer) ExecuteMethod(req Request) Response {
 		if req.Param("iv") == "" {
 			iv = []byte(ivDefValue)
 		}
-		body, err = aesEncrypt(requestTxt, key, iv)
-		//bodyStr = base64.StdEncoding.EncodeToString(body)
+		bodyByte, err = aesEncrypt(requestTxt, key, iv)
+		bodyStr = base64.StdEncoding.EncodeToString(bodyByte)
 	case "AESDECRYPT":
+		ciphertext := req.GetPostData()
+		requestTxt, err = base64.StdEncoding.DecodeString(ciphertext)
+		if err != nil {
+			return &response.DataResponse{
+				StatusCode: 200,
+				ReturnCode: "000005",
+				ReturnMsg:  err.Error(),
+			}
+		}
+
 		iv := []byte(req.Param("iv"))
 		if req.Param("iv") == "" {
 			iv = []byte(ivDefValue)
 		}
 		body, err = aesDecrypt(requestTxt, key, iv)
+
 	case "RSAENCRYPT":
-		body, err = rsaEncrypt(requestTxt, key)
+		bodyByte, err = rsaEncrypt(requestTxt, key)
+		bodyStr = base64.StdEncoding.EncodeToString(bodyByte)
 	case "RSADECRYPT":
-		//requestTxt = []byte("57O757uf5Y+R55Sf5byC5bi45p+l6K+i6K+35rGC5aSx6LSl")
+		ciphertext := req.GetPostData()
+		requestTxt, err = base64.StdEncoding.DecodeString(ciphertext)
+		if err != nil {
+			return &response.DataResponse{
+				StatusCode: 200,
+				ReturnCode: "000005",
+				ReturnMsg:  err.Error(),
+			}
+		}
 		body, err = rsaDecrypt(requestTxt, key)
 	}
 
@@ -67,9 +89,9 @@ func (ft *EncryptTransfer) ExecuteMethod(req Request) Response {
 	return &response.DataResponse{
 		StatusCode: 200,
 		ReturnCode: returnCode,
-		Body:       body,
 		ReturnMsg:  retMsg,
-		//BodyStr:    bodyStr,
+		Body:       body,
+		BodyStr:    bodyStr,
 	}
 }
 

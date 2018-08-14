@@ -31,7 +31,7 @@ type PubResProductMsg_1_003_006 struct {
 	} `json:"detailInfo"`
 }
 
-type PubResProductMsg_0_000_000 struct {
+type PubResProductMsg struct {
 	PubAnsInfo *PubAnsInfo `json:"pubAnsInfo"`
 	HitInfo struct {
 		HitResult string `json:"hitResult"`

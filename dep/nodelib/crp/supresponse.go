@@ -35,15 +35,15 @@ var SUPRESPONSE = &DataBox{
 			"aesencrypt": {
 				ParseFunc: aesEncryptParamFunc,
 			},
-			"base64encode": {
-				ParseFunc: base64EncodeFunc,
-			},
+			//"base64encode": {
+			//	ParseFunc: base64EncodeFunc,
+			//},
 			"execquery": {
 				ParseFunc: queryResponseFunc,
 			},
-			"base64decode": {
-				ParseFunc: base64DecodeFunc,
-			},
+			//"base64decode": {
+			//	ParseFunc: base64DecodeFunc,
+			//},
 			"aesdecrypt": {
 				ParseFunc: aesDecryptFunc,
 			},
@@ -140,34 +140,34 @@ func parseRespParamFunc(ctx *Context) {
 	ctx.AddChanQueue(dataReq)
 }
 
+//func aesEncryptParamFunc(ctx *Context) {
+//	logger.Info("aesEncryptParamFunc start")
+//
+//	if ctx.DataResponse.StatusCode == 200 && !strings.EqualFold(ctx.DataResponse.ReturnCode, "000000") {
+//		logger.Error("[aesEncryptParamFunc] ase encrypt failed [%s]", ctx.DataResponse.ReturnMsg)
+//		errEnd(ctx)
+//		return
+//	}
+//
+//	ctx.AddChanQueue(&request.DataRequest{
+//		Rule:         "base64encode",
+//		Method:       "BASE64ENCODE",
+//		TransferType: request.ENCODE,
+//		Reloadable:   true,
+//		Parameters:   ctx.DataResponse.Body,
+//	})
+//}
+
 func aesEncryptParamFunc(ctx *Context) {
 	logger.Info("aesEncryptParamFunc start")
 
 	if ctx.DataResponse.StatusCode == 200 && !strings.EqualFold(ctx.DataResponse.ReturnCode, "000000") {
-		logger.Error("[aesEncryptParamFunc] ase encrypt failed [%s]", ctx.DataResponse.ReturnMsg)
+		logger.Error("[aesEncryptParamFunc] base64 encode failed [%s]", ctx.DataResponse.ReturnMsg)
 		errEnd(ctx)
 		return
 	}
 
-	ctx.AddChanQueue(&request.DataRequest{
-		Rule:         "base64encode",
-		Method:       "BASE64ENCODE",
-		TransferType: request.ENCODE,
-		Reloadable:   true,
-		Parameters:   ctx.DataResponse.Body,
-	})
-}
-
-func base64EncodeFunc(ctx *Context) {
-	logger.Info("base64EncodeFunc start")
-
-	if ctx.DataResponse.StatusCode == 200 && !strings.EqualFold(ctx.DataResponse.ReturnCode, "000000") {
-		logger.Error("[base64EncodeFunc] base64 encode failed [%s]", ctx.DataResponse.ReturnMsg)
-		errEnd(ctx)
-		return
-	}
-
-	fmt.Println("base64:", ctx.DataResponse.BodyStr)
+	fmt.Println("aesEncryptParamFunc:", ctx.DataResponse.BodyStr)
 
 	header := &fasthttp.RequestHeader{}
 	header.SetContentType("application/json;charset=UTF-8")
@@ -185,7 +185,7 @@ func base64EncodeFunc(ctx *Context) {
 
 	uriDataByte, err := json.Marshal(uriData)
 	if err != nil {
-		logger.Error("[base64EncodeFunc] json Marshal uriData failed [%s]", err.Error())
+		logger.Error("[aesEncryptParamFunc] json Marshal uriData failed [%s]", err.Error())
 		errEnd(ctx)
 		return
 	}
@@ -229,7 +229,7 @@ func queryResponseFunc(ctx *Context) {
 	if !strings.EqualFold(responseData.StatusCode, EDUN_SUCC) {
 		logger.Error("[queryResponseFunc] edunwang execute query response [%s]", responseData.Message)
 
-		pubRespMsg := &PubResProductMsg_0_000_000{}
+		pubRespMsg := &PubResProductMsg{}
 
 		pubAnsInfo := &PubAnsInfo{}
 		pubAnsInfo.ResCode = GetCenterCodeFromEdun(responseData.StatusCode)
@@ -261,34 +261,11 @@ func queryResponseFunc(ctx *Context) {
 	ctx.GetDataBox().SetParam("resCode", GetCenterCodeFromEdun(responseData.StatusCode))
 
 	dataRequest := &request.DataRequest{
-		Rule:         "base64decode",
-		Method:       "BASE64DECODE",
-		TransferType: request.ENCODE,
-		Reloadable:   true,
-		PostData:     responseData.RspData,
-	}
-
-	//dataRequest.SetParam("encryptKey", EDUN_SECRET_KEY_TEST)
-	//dataRequest.SetParam("iv", EDUN_SECRET_KEY_TEST)
-
-	ctx.AddChanQueue(dataRequest)
-}
-
-func base64DecodeFunc(ctx *Context) {
-	logger.Info("base64DecodeFunc start")
-
-	if ctx.DataResponse.StatusCode == 200 && !strings.EqualFold(ctx.DataResponse.ReturnCode, "000000") {
-		logger.Error("[base64DecodeFunc] base64 decode err [%s]", ctx.DataResponse.ReturnMsg)
-		errEnd(ctx)
-		return
-	}
-
-	dataRequest := &request.DataRequest{
 		Rule:         "aesdecrypt",
 		Method:       "AESDECRYPT",
 		TransferType: request.ENCRYPT,
 		Reloadable:   true,
-		Parameters:   ctx.DataResponse.Body,
+		PostData:     responseData.RspData,
 	}
 
 	dataRequest.SetParam("encryptKey", EDUN_SECRET_KEY_TEST)
@@ -296,6 +273,29 @@ func base64DecodeFunc(ctx *Context) {
 
 	ctx.AddChanQueue(dataRequest)
 }
+
+//func base64DecodeFunc(ctx *Context) {
+//	logger.Info("base64DecodeFunc start")
+//
+//	if ctx.DataResponse.StatusCode == 200 && !strings.EqualFold(ctx.DataResponse.ReturnCode, "000000") {
+//		logger.Error("[base64DecodeFunc] base64 decode err [%s]", ctx.DataResponse.ReturnMsg)
+//		errEnd(ctx)
+//		return
+//	}
+//
+//	dataRequest := &request.DataRequest{
+//		Rule:         "aesdecrypt",
+//		Method:       "AESDECRYPT",
+//		TransferType: request.ENCRYPT,
+//		Reloadable:   true,
+//		Parameters:   ctx.DataResponse.Body,
+//	}
+//
+//	dataRequest.SetParam("encryptKey", EDUN_SECRET_KEY_TEST)
+//	dataRequest.SetParam("iv", EDUN_SECRET_KEY_TEST)
+//
+//	ctx.AddChanQueue(dataRequest)
+//}
 
 func aesDecryptFunc(ctx *Context) {
 	logger.Info("aesDecryptFunc start")
@@ -318,7 +318,7 @@ func aesDecryptFunc(ctx *Context) {
 		return
 	}
 
-	pubRespMsg := &PubResProductMsg_0_000_000{}
+	pubRespMsg := &PubResProductMsg{}
 
 	pubAnsInfo := &PubAnsInfo{}
 	pubAnsInfo.ResCode = ctx.GetDataBox().Param("resCode")

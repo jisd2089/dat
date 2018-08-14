@@ -46,9 +46,6 @@ var DEMREQUEST = &DataBox{
 			"depauth": {
 				ParseFunc: depAuthFunc,
 			},
-			"getorderinfo": {
-				ParseFunc: depAuthFunc,
-			},
 			"applybalance": {
 				ParseFunc: applyBalanceFunc,
 			},
@@ -371,7 +368,7 @@ func staticQueryFunc(ctx *Context) {
 func callResponseFunc(ctx *Context) {
 	logger.Info("callResponseFunc start")
 
-	pubRespMsg := &PubResProductMsg_0_000_000{}
+	pubRespMsg := &PubResProductMsg{}
 	// TODO mock
 	//pubRespMsg.DetailInfo.Tag = "疑似仿冒包装"
 	//pubRespMsg.DetailInfo.EvilScore = 77

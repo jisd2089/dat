@@ -126,7 +126,7 @@ func parseRequestParamFunc(ctx *Context) {
 func callSmartResponseFunc(ctx *Context) {
 	logger.Info("callSmartResponseFunc start")
 
-	pubRespMsg := &PubResProductMsg_0_000_000{}
+	pubRespMsg := &PubResProductMsg{}
 	//pubRespMsg.DetailInfo.Tag = respData.Tag
 	//pubRespMsg.DetailInfo.EvilScore = respData.EvilScore
 

@@ -35,15 +35,15 @@ var SMARTRESPONSE = &DataBox{
 			"rsaencrypt": {
 				ParseFunc: rsaEncryptParamFunc,
 			},
-			"base64encode": {
-				ParseFunc: base64EncodeParamFunc,
-			},
+			//"base64encode": {
+			//	ParseFunc: base64EncodeParamFunc,
+			//},
 			"execquery": {
 				ParseFunc: querySmartResponseFunc,
 			},
-			"base64decode": {
-				ParseFunc: base64DecodeRespFunc,
-			},
+			//"base64decode": {
+			//	ParseFunc: base64DecodeRespFunc,
+			//},
 			"rsadecrypt": {
 				ParseFunc: rsaDecryptFunc,
 			},
@@ -126,29 +126,29 @@ func parseResponseParamFunc(ctx *Context) {
 	ctx.AddChanQueue(dataReq)
 }
 
+//func rsaEncryptParamFunc(ctx *Context) {
+//	logger.Info("rsaEncryptParamFunc start")
+//
+//	if ctx.DataResponse.StatusCode == 200 && !strings.EqualFold(ctx.DataResponse.ReturnCode, "000000") {
+//		logger.Error("[rsaEncryptParamFunc] rsa encrypt failed [%s]", ctx.DataResponse.ReturnMsg)
+//		errEnd(ctx)
+//		return
+//	}
+//
+//	ctx.AddChanQueue(&request.DataRequest{
+//		Rule:         "base64encode",
+//		Method:       "BASE64ENCODE",
+//		TransferType: request.ENCODE,
+//		Reloadable:   true,
+//		Parameters:   ctx.DataResponse.Body,
+//	})
+//}
+
 func rsaEncryptParamFunc(ctx *Context) {
 	logger.Info("rsaEncryptParamFunc start")
 
 	if ctx.DataResponse.StatusCode == 200 && !strings.EqualFold(ctx.DataResponse.ReturnCode, "000000") {
-		logger.Error("[rsaEncryptParamFunc] rsa encrypt failed [%s]", ctx.DataResponse.ReturnMsg)
-		errEnd(ctx)
-		return
-	}
-
-	ctx.AddChanQueue(&request.DataRequest{
-		Rule:         "base64encode",
-		Method:       "BASE64ENCODE",
-		TransferType: request.ENCODE,
-		Reloadable:   true,
-		Parameters:   ctx.DataResponse.Body,
-	})
-}
-
-func base64EncodeParamFunc(ctx *Context) {
-	logger.Info("base64EncodeFunc start")
-
-	if ctx.DataResponse.StatusCode == 200 && !strings.EqualFold(ctx.DataResponse.ReturnCode, "000000") {
-		logger.Error("[base64EncodeParamFunc] base64 encode failed [%s]", ctx.DataResponse.ReturnMsg)
+		logger.Error("[rsaEncryptParamFunc] base64 encode failed [%s]", ctx.DataResponse.ReturnMsg)
 		errEnd(ctx)
 		return
 	}
@@ -165,7 +165,7 @@ func base64EncodeParamFunc(ctx *Context) {
 
 	requestMsgByte, err := json.Marshal(requestMsg)
 	if err != nil {
-		logger.Error("[base64EncodeParamFunc] json Marshal uriData failed [%s]", err.Error())
+		logger.Error("[rsaEncryptParamFunc] json Marshal uriData failed [%s]", err.Error())
 		errEnd(ctx)
 		return
 	}
@@ -209,7 +209,7 @@ func querySmartResponseFunc(ctx *Context) {
 	if responseData.RespCode != SMARTSAIL_SUCC {
 		logger.Error("[querySmartResponseFunc] smartsail execute query response [%s]", responseData.RespMessage)
 
-		pubRespMsg := &PubResProductMsg_0_000_000{}
+		pubRespMsg := &PubResProductMsg{}
 
 		pubAnsInfo := &PubAnsInfo{}
 		pubAnsInfo.ResCode = GetCenterCodeFromSMARTSAIL(responseData.RespCode)
@@ -235,39 +235,41 @@ func querySmartResponseFunc(ctx *Context) {
 	ctx.GetDataBox().SetParam("resCode", GetCenterCodeFromSMARTSAIL(responseData.RespCode))
 
 	dataRequest := &request.DataRequest{
-		Rule:         "base64decode",
-		Method:       "BASE64DECODE",
-		TransferType: request.ENCODE,
-		Reloadable:   true,
-		PostData:     responseData.RespDetail,
-	}
-
-	ctx.AddChanQueue(dataRequest)
-}
-
-func base64DecodeRespFunc(ctx *Context) {
-	logger.Info("base64DecodeRespFunc start")
-
-	if ctx.DataResponse.StatusCode == 200 && !strings.EqualFold(ctx.DataResponse.ReturnCode, "000000") {
-		logger.Error("[base64DecodeRespFunc] base64 decode err [%s]", ctx.DataResponse.ReturnMsg)
-		errEnd(ctx)
-		return
-	}
-
-	fmt.Println("base64:", string(ctx.DataResponse.Body))
-
-	dataRequest := &request.DataRequest{
 		Rule:         "rsadecrypt",
 		Method:       "RSADECRYPT",
 		TransferType: request.ENCRYPT,
 		Reloadable:   true,
-		Parameters:   ctx.DataResponse.Body,
+		PostData:     responseData.RespDetail,
 	}
 
 	dataRequest.SetParam("encryptKey", SMARTSAIL_PRIVATE_KEY)
 
 	ctx.AddChanQueue(dataRequest)
 }
+
+//func base64DecodeRespFunc(ctx *Context) {
+//	logger.Info("base64DecodeRespFunc start")
+//
+//	if ctx.DataResponse.StatusCode == 200 && !strings.EqualFold(ctx.DataResponse.ReturnCode, "000000") {
+//		logger.Error("[base64DecodeRespFunc] base64 decode err [%s]", ctx.DataResponse.ReturnMsg)
+//		errEnd(ctx)
+//		return
+//	}
+//
+//	fmt.Println("base64:", string(ctx.DataResponse.Body))
+//
+//	dataRequest := &request.DataRequest{
+//		Rule:         "rsadecrypt",
+//		Method:       "RSADECRYPT",
+//		TransferType: request.ENCRYPT,
+//		Reloadable:   true,
+//		Parameters:   ctx.DataResponse.Body,
+//	}
+//
+//	dataRequest.SetParam("encryptKey", SMARTSAIL_PRIVATE_KEY)
+//
+//	ctx.AddChanQueue(dataRequest)
+//}
 
 func rsaDecryptFunc(ctx *Context) {
 	logger.Info("rsaDecryptFunc start")
@@ -288,7 +290,7 @@ func rsaDecryptFunc(ctx *Context) {
 	}
 
 	// 请求真实供方 成功返回
-	pubRespMsg := &PubResProductMsg_0_000_000{}
+	pubRespMsg := &PubResProductMsg{}
 
 	pubAnsInfo := &PubAnsInfo{}
 	pubAnsInfo.ResCode = ctx.GetDataBox().Param("resCode")

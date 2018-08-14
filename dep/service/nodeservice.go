@@ -22,6 +22,7 @@ import (
 	"gopkg.in/yaml.v2"
 	"github.com/valyala/fasthttp"
 	"path/filepath"
+	"drcs/dep/security"
 )
 
 var (
@@ -50,6 +51,8 @@ func (s *NodeService) Init() {
 	NewRouteService().Init()
 
 	s.init()
+
+	security.Initialize()
 	//fmt.Println("init end")
 }
 
