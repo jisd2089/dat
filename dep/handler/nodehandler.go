@@ -3,8 +3,6 @@ package handler
 import (
 	"github.com/valyala/fasthttp"
 	"github.com/golang/protobuf/proto"
-
-
 	"crypto/sha256"
 	"strings"
 	"encoding/hex"
@@ -307,4 +305,12 @@ func (n *NodeHandler) RunBatchRcv(ctx *fasthttp.RequestCtx) {
 	io.Copy(targetFile, bytes.NewReader(ctx.Request.Body()))
 
 	service.NewDepService().ProcessBatchRcv(ctx, targetFilePath)
+}
+
+func (n *NodeHandler) RegisterPlugins(ctx *fasthttp.RequestCtx) {
+	service.NewDepService().RegisterPlugins(ctx)
+}
+
+func (n *NodeHandler) RunPlugin(ctx *fasthttp.RequestCtx) {
+	service.NewDepService().RunPlugin(ctx)
 }

@@ -6,7 +6,7 @@ package web
 */
 import (
 	"github.com/buaazp/fasthttprouter"
-	."drcs/dep/handler"
+	. "drcs/dep/handler"
 )
 
 type HttpRouter struct {
@@ -26,7 +26,6 @@ func (r *HttpRouter) Register() {
 	r.Router.POST("/api/dem/rec", NewDemHandler().RecSupRespAndPushToDem)
 	r.Router.POST("/api/dem/subbox", NewDemHandler().RunParentAndChild)
 
-
 	r.Router.POST("/api/sup/rec", NewSupHandler().RecDemReqAndPushToSup)
 	r.Router.POST("/api/sup/send", NewSupHandler().SupRespSendToDem)
 	r.Router.POST("/api/sup/sendfull", NewSupHandler().SupRespWholeSendToDem)
@@ -36,6 +35,8 @@ func (r *HttpRouter) Register() {
 	r.Router.POST("/api/test/rcvfile", NewNodeHandler().RcvData)
 	r.Router.POST("/api/test/rcvalg", NewNodeHandler().RcvAlg)
 	r.Router.POST("/api/fusion/run", NewNodeHandler().RunProcess)
+	r.Router.POST("/api/plugin/register", NewNodeHandler().RegisterPlugins)
+	r.Router.POST("/api/plugin/run", NewNodeHandler().RunPlugin)
 	r.Router.POST("/api/dis/batch", NewNodeHandler().RunBatchProcess)
 	r.Router.POST("/api/rcv/batch", NewNodeHandler().RunBatchRcv)
 	r.Router.POST("/api/crp/dem", NewNodeHandler().RunCRPProcess)

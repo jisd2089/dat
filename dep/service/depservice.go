@@ -25,6 +25,8 @@ import (
 	"encoding/json"
 	"drcs/dep/order"
 	"time"
+	"plugin"
+	"os"
 )
 
 type DepService struct {
@@ -357,6 +359,63 @@ func (s *DepService) ProcessCrpResponse(ctx *fasthttp.RequestCtx) {
 		logger.Error("http response timeout")
 		break
 	}
+}
+
+func (s *DepService) RegisterPlugins(ctx *fasthttp.RequestCtx) {
+	logger.Info("DepService RegisterPlugins start")
+
+	_, err := plugin.Open("./plugin.so")
+	if err != nil {
+		logger.Error("error open plugin: ", err)
+		os.Exit(-1)
+	}
+	//svc, err := p.Lookup("Hello")
+	//if err != nil {
+	//	fmt.Println("error lookup Hello: ", err)
+	//	os.Exit(-1)
+	//}
+	//if hello, ok := svc.(func()); ok {
+	//	hello()
+	//}
+
+	//pluginName := string(ctx.FormValue("pluginName"))
+	//if pluginName == "" {
+	//	logger.Error("pluginName missing")
+	//	return
+	//}
+	//
+	//dataBoxVar := string(ctx.FormValue("dataBoxVar"))
+	//if dataBoxVar == "" {
+	//	logger.Error("dataBoxVar missing")
+	//	return
+	//}
+	//
+	//p, err := plugin.Open(pluginName)
+	//if err != nil {
+	//	logger.Error("plugin [%s] open err [%s]", pluginName, err.Error())
+	//	return
+	//}
+	//
+	//v, err := p.Lookup(dataBoxVar)
+	//if err != nil {
+	//	logger.Error("plugin [%s] lookup [%s] err ", pluginName, dataBoxVar)
+	//	return
+	//}
+	//
+	//v.(*databox.DataBox).Register()
+}
+
+func (s *DepService) RunPlugin(ctx *fasthttp.RequestCtx) {
+	logger.Info("DepService RunPlugin start")
+
+	boxName := "plugin_test"
+	b := assetnode.AssetNodeEntity.GetDataBoxByName(boxName)
+	if b == nil {
+		logger.Error("databox is nil!")
+		return
+	}
+
+	setDataBoxQueue(b)
 }
 
 func setRcvParams(ctx *fasthttp.RequestCtx, b *databox.DataBox) error {
