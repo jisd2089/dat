@@ -38,7 +38,7 @@ func (d *DemService) SendFromDemReqToSup(batchPath string) {
 	//addrs = append(addrs, &request.NodeAddress{MemberId: "000109", IP: "127.0.0.1", Host: "8083", URL: "/api/sup/rec", Priority: 2})
 	//addrs = append(addrs, &request.NodeAddress{MemberId: "000115", IP: "127.0.0.1", Host: "8084", URL: "/api/sup/rec", Priority: 3})
 
-	b.SetNodeAddress(addrs)
+	//b.SetNodeAddress(addrs)
 
 	// 1.2 setDataBoxQueue
 	setDataBoxQueue(b)

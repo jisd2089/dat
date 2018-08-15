@@ -5,6 +5,7 @@ import (
 	"drcs/core"
 	"drcs/dep/service"
 	"fmt"
+	"runtime"
 )
 
 var (
@@ -36,6 +37,8 @@ func Flag() {
 
 // 执行入口
 func Run() {
+
+	runtime.GOMAXPROCS(8)
 
 	service.NewNodeService().Init()
 

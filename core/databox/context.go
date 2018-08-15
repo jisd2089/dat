@@ -1,11 +1,7 @@
 package databox
 
 import (
-	//"bytes"
-	//"io"
-	//"io/ioutil"
 	"mime"
-	"net/http"
 	"path"
 	"strings"
 	"sync"
@@ -16,9 +12,6 @@ import (
 	"drcs/core/pipeline/collector/data"
 	"drcs/common/util"
 
-	//"github.com/henrylee2cn/pholcus/common/goquery"
-
-	//"golang.org/x/net/html/charset"
 	"drcs/core/interaction/response"
 	"drcs/core/realback"
 )
@@ -96,28 +89,28 @@ func (self *Context) SetError(err error) {
 // DataRequest.RetryPause默认为常量request.DefaultRetryPause;
 // DataRequest.DownloaderID指定下载器ID，0为默认的Surf高并发下载器，功能完备，1为PhantomJS下载器，特点破防力强，速度慢，低并发。
 // 默认自动补填Referer。
-func (self *Context) AddQueue(req *request.DataRequest) *Context {
-	// 若已主动终止任务，则崩溃DataBox协程
-	self.dataBox.tryPanic()
-
-	err := req.
-		SetDataBoxName(self.dataBox.GetName()).
-		SetEnableCookie(self.dataBox.GetEnableCookie()).
-		Prepare()
-
-	if err != nil {
-		//logs.Log.Error(err.Error())
-		return self
-	}
-
-	// 自动设置Referer
-	if req.GetReferer() == "" && self.DataResponse != nil {
-		req.SetReferer(self.GetUrl())
-	}
-
-	self.dataBox.RequestPush(req)
-	return self
-}
+//func (self *Context) AddQueue(req *request.DataRequest) *Context {
+//	// 若已主动终止任务，则崩溃DataBox协程
+//	self.dataBox.tryPanic()
+//
+//	err := req.
+//		SetDataBoxName(self.dataBox.GetName()).
+//		//SetEnableCookie(self.dataBox.GetEnableCookie()).
+//		Prepare()
+//
+//	if err != nil {
+//		//logs.Log.Error(err.Error())
+//		return self
+//	}
+//
+//	// 自动设置Referer
+//	if req.GetReferer() == "" && self.DataResponse != nil {
+//		req.SetReferer(self.GetUrl())
+//	}
+//
+//	self.dataBox.RequestPush(req)
+//	return self
+//}
 
 //func (self *Context) AddChanQueue(req *request.DataRequest) *Context {
 //	self.dataBox.tryPanic()
@@ -155,72 +148,72 @@ func (c *Context) ExecDataReq(req *request.DataRequest) {
 }
 
 // 用于动态规则添加请求。
-func (self *Context) JsAddQueue(jreq map[string]interface{}) *Context {
-	// 若已主动终止任务，则崩溃databox协程
-	self.dataBox.tryPanic()
-
-	req := &request.DataRequest{}
-	u, ok := jreq["Url"].(string)
-	if !ok {
-		return self
-	}
-	req.Url = u
-	req.Rule, _ = jreq["Rule"].(string)
-	req.Method, _ = jreq["Method"].(string)
-	req.Header = http.Header{}
-	if header, ok := jreq["Header"].(map[string]interface{}); ok {
-		for k, values := range header {
-			if vals, ok := values.([]string); ok {
-				for _, v := range vals {
-					req.Header.Add(k, v)
-				}
-			}
-		}
-	}
-	req.PostData, _ = jreq["PostData"].(string)
-	req.Reloadable, _ = jreq["Reloadable"].(bool)
-	if t, ok := jreq["DialTimeout"].(int64); ok {
-		req.DialTimeout = time.Duration(t)
-	}
-	if t, ok := jreq["ConnTimeout"].(int64); ok {
-		req.ConnTimeout = time.Duration(t)
-	}
-	if t, ok := jreq["RetryPause"].(int64); ok {
-		req.RetryPause = time.Duration(t)
-	}
-	if t, ok := jreq["TryTimes"].(int64); ok {
-		req.TryTimes = int(t)
-	}
-	if t, ok := jreq["RedirectTimes"].(int64); ok {
-		req.RedirectTimes = int(t)
-	}
-	if t, ok := jreq["Priority"].(int64); ok {
-		req.Priority = int(t)
-	}
-	if t, ok := jreq["DownloaderID"].(int64); ok {
-		req.DownloaderID = int(t)
-	}
-	if t, ok := jreq["Temp"].(map[string]interface{}); ok {
-		req.Temp = t
-	}
-
-	err := req.
-		SetDataBoxName(self.dataBox.GetName()).
-		SetEnableCookie(self.dataBox.GetEnableCookie()).
-		Prepare()
-
-	if err != nil {
-		//logs.Log.Error(err.Error())
-		return self
-	}
-
-	if req.GetReferer() == "" && self.DataResponse != nil {
-		req.SetReferer(self.GetUrl())
-	}
-
-	self.dataBox.RequestPush(req)
-	return self
-}
+//func (self *Context) JsAddQueue(jreq map[string]interface{}) *Context {
+//	// 若已主动终止任务，则崩溃databox协程
+//	self.dataBox.tryPanic()
+//
+//	req := &request.DataRequest{}
+//	u, ok := jreq["Url"].(string)
+//	if !ok {
+//		return self
+//	}
+//	req.Url = u
+//	req.Rule, _ = jreq["Rule"].(string)
+//	req.Method, _ = jreq["Method"].(string)
+//	req.Header = http.Header{}
+//	if header, ok := jreq["Header"].(map[string]interface{}); ok {
+//		for k, values := range header {
+//			if vals, ok := values.([]string); ok {
+//				for _, v := range vals {
+//					req.Header.Add(k, v)
+//				}
+//			}
+//		}
+//	}
+//	req.PostData, _ = jreq["PostData"].(string)
+//	req.Reloadable, _ = jreq["Reloadable"].(bool)
+//	if t, ok := jreq["DialTimeout"].(int64); ok {
+//		req.DialTimeout = time.Duration(t)
+//	}
+//	if t, ok := jreq["ConnTimeout"].(int64); ok {
+//		req.ConnTimeout = time.Duration(t)
+//	}
+//	if t, ok := jreq["RetryPause"].(int64); ok {
+//		req.RetryPause = time.Duration(t)
+//	}
+//	if t, ok := jreq["TryTimes"].(int64); ok {
+//		req.TryTimes = int(t)
+//	}
+//	if t, ok := jreq["RedirectTimes"].(int64); ok {
+//		req.RedirectTimes = int(t)
+//	}
+//	if t, ok := jreq["Priority"].(int64); ok {
+//		req.Priority = int(t)
+//	}
+//	if t, ok := jreq["DownloaderID"].(int64); ok {
+//		req.DownloaderID = int(t)
+//	}
+//	if t, ok := jreq["Temp"].(map[string]interface{}); ok {
+//		req.Temp = t
+//	}
+//
+//	err := req.
+//		SetDataBoxName(self.dataBox.GetName()).
+//		//SetEnableCookie(self.dataBox.GetEnableCookie()).
+//		Prepare()
+//
+//	if err != nil {
+//		//logs.Log.Error(err.Error())
+//		return self
+//	}
+//
+//	if req.GetReferer() == "" && self.DataResponse != nil {
+//		req.SetReferer(self.GetUrl())
+//	}
+//
+//	self.dataBox.RequestPush(req)
+//	return self
+//}
 
 // 输出文本结果。
 // item类型为map[int]interface{}时，根据ruleName现有的ItemFields字段进行输出，

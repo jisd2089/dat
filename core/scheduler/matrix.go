@@ -1,7 +1,6 @@
 package scheduler
 
 import (
-	"sort"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -20,9 +19,9 @@ type Matrix struct {
 	maxPage         int64                           // 最大采集页数，以负数形式表示
 	resCount        int32                           // 资源使用情况计数
 	dataBoxName     string                          // 所属DataBox
-	addrs           map[int][]*request.NodeAddress  // [优先级]节点地址队列，优先级默认为0
+	//addrs           map[int][]*request.NodeAddress  // [优先级]节点地址队列，优先级默认为0
 	addpriors       []int                           // 优先级顺序，从低到高
-	reqs            map[int][]*request.DataRequest  // [优先级]队列，优先级默认为0
+	//reqs            map[int][]*request.DataRequest  // [优先级]队列，优先级默认为0
 	priorities      []int                           // 优先级顺序，从低到高
 	reqChan         chan *request.DataRequest       // 并发DataRequest Channel
 	history         history.Historier               // 历史记录
@@ -37,9 +36,9 @@ func newMatrix(dataBoxName, dataBoxSubName string, maxPage int64) *Matrix {
 	matrix := &Matrix{
 		dataBoxName: dataBoxName,
 		maxPage:     maxPage,
-		addrs:       make(map[int][]*request.NodeAddress),
+		//addrs:       make(map[int][]*request.NodeAddress),
 		addpriors:   []int{},
-		reqs:        make(map[int][]*request.DataRequest),
+		//reqs:        make(map[int][]*request.DataRequest),
 		priorities:  []int{},
 		reqChan:     make(chan *request.DataRequest, 1),
 		history:     history.New(dataBoxName, dataBoxSubName),
@@ -55,89 +54,89 @@ func newMatrix(dataBoxName, dataBoxSubName string, maxPage int64) *Matrix {
 }
 
 // 添加请求到队列，并发安全
-func (self *Matrix) Push(req *request.DataRequest) {
-	// 禁止并发，降低请求积存量
-	self.Lock()
-	defer self.Unlock()
-
-	if sdl.checkStatus(status.STOP) {
-		return
-	}
-
-	// 达到请求上限，停止该规则运行
-	if self.maxPage >= 0 {
-		return
-	}
-
-	// 暂停状态时等待，降低请求积存量
-	waited := false
-	for sdl.checkStatus(status.PAUSE) {
-		waited = true
-		time.Sleep(time.Second)
-	}
-	if waited && sdl.checkStatus(status.STOP) {
-		return
-	}
-
-	// 资源使用过多时等待，降低请求积存量
-	waited = false
-	for atomic.LoadInt32(&self.resCount) > sdl.avgRes() {
-		waited = true
-		time.Sleep(100 * time.Millisecond)
-	}
-	if waited && sdl.checkStatus(status.STOP) {
-		return
-	}
-
-	// 不可重复下载的req
-	if !req.IsReloadable() {
-		// 已存在成功记录时退出
-		if self.hasHistory(req.Unique()) {
-			return
-		}
-		// 添加到临时记录
-		self.insertTempHistory(req.Unique())
-	}
-
-	var priority = req.GetPriority()
-
-	// 初始化该DataBox下该优先级队列
-	if _, found := self.reqs[priority]; !found {
-		self.priorities = append(self.priorities, priority)
-		sort.Ints(self.priorities) // 从小到大排序
-		self.reqs[priority] = []*request.DataRequest{}
-	}
-
-	// 添加请求到队列
-	self.reqs[priority] = append(self.reqs[priority], req)
-
-	// 大致限制加入队列的请求量，并发情况下应该会比maxPage多
-	atomic.AddInt64(&self.maxPage, 1)
-}
+//func (self *Matrix) Push(req *request.DataRequest) {
+//	// 禁止并发，降低请求积存量
+//	self.Lock()
+//	defer self.Unlock()
+//
+//	if sdl.checkStatus(status.STOP) {
+//		return
+//	}
+//
+//	// 达到请求上限，停止该规则运行
+//	if self.maxPage >= 0 {
+//		return
+//	}
+//
+//	// 暂停状态时等待，降低请求积存量
+//	waited := false
+//	for sdl.checkStatus(status.PAUSE) {
+//		waited = true
+//		time.Sleep(time.Second)
+//	}
+//	if waited && sdl.checkStatus(status.STOP) {
+//		return
+//	}
+//
+//	// 资源使用过多时等待，降低请求积存量
+//	waited = false
+//	for atomic.LoadInt32(&self.resCount) > sdl.avgRes() {
+//		waited = true
+//		time.Sleep(100 * time.Millisecond)
+//	}
+//	if waited && sdl.checkStatus(status.STOP) {
+//		return
+//	}
+//
+//	// 不可重复下载的req
+//	if !req.IsReloadable() {
+//		// 已存在成功记录时退出
+//		if self.hasHistory(req.Unique()) {
+//			return
+//		}
+//		// 添加到临时记录
+//		self.insertTempHistory(req.Unique())
+//	}
+//
+//	var priority = req.GetPriority()
+//
+//	// 初始化该DataBox下该优先级队列
+//	if _, found := self.reqs[priority]; !found {
+//		self.priorities = append(self.priorities, priority)
+//		sort.Ints(self.priorities) // 从小到大排序
+//		self.reqs[priority] = []*request.DataRequest{}
+//	}
+//
+//	// 添加请求到队列
+//	self.reqs[priority] = append(self.reqs[priority], req)
+//
+//	// 大致限制加入队列的请求量，并发情况下应该会比maxPage多
+//	atomic.AddInt64(&self.maxPage, 1)
+//}
 
 // 从队列取出请求，不存在时返回nil，并发安全
-func (self *Matrix) Pull() (req *request.DataRequest) {
-	self.Lock()
-	defer self.Unlock()
-	if !sdl.checkStatus(status.RUN) {
-		return
-	}
-	// 按优先级从高到低取出请求
-	for i := len(self.reqs) - 1; i >= 0; i-- {
-		idx := self.priorities[i]
-		if len(self.reqs[idx]) > 0 {
-			req = self.reqs[idx][0]
-			self.reqs[idx] = self.reqs[idx][1:]
-			//if sdl.useProxy {
-			//	req.SetProxy(sdl.proxy.GetOne(req.GetUrl()))
-			//} else {
-			//	req.SetProxy("")
-			//}
-			return
-		}
-	}
-	return
-}
+//func (self *Matrix) Pull() (req *request.DataRequest) {
+//	self.Lock()
+//	defer self.Unlock()
+//	if !sdl.checkStatus(status.RUN) {
+//		return
+//	}
+//	// 按优先级从高到低取出请求
+//	for i := len(self.reqs) - 1; i >= 0; i-- {
+//		idx := self.priorities[i]
+//		if len(self.reqs[idx]) > 0 {
+//			req = self.reqs[idx][0]
+//			self.reqs[idx] = self.reqs[idx][1:]
+//			//if sdl.useProxy {
+//			//	req.SetProxy(sdl.proxy.GetOne(req.GetUrl()))
+//			//} else {
+//			//	req.SetProxy("")
+//			//}
+//			return
+//		}
+//	}
+//	return
+//}
 
 // 添加请求到队列，并发不安全
 func (self *Matrix) PushChan(req *request.DataRequest) {
@@ -157,55 +156,55 @@ func (self *Matrix) CloseReqChan() {
 	close(self.reqChan)
 }
 
-func (m *Matrix) IsEmpty() bool {
-	m.Lock()
-	defer m.Unlock()
-
-	for i := len(m.reqs) - 1; i >= 0; i-- {
-		idx := m.priorities[i]
-		if len(m.reqs[idx]) > 0 {
-			return false
-		}
-	}
-	return true
-}
+//func (m *Matrix) IsEmpty() bool {
+//	m.Lock()
+//	defer m.Unlock()
+//
+//	for i := len(m.reqs) - 1; i >= 0; i-- {
+//		idx := m.priorities[i]
+//		if len(m.reqs[idx]) > 0 {
+//			return false
+//		}
+//	}
+//	return true
+//}
 
 // 添加节点地址到队列，并发安全
-func (self *Matrix) PushAddr(addr *request.NodeAddress) {
-
-	if sdl.checkStatus(status.STOP) {
-		return
-	}
-
-	var priority = addr.GetPriority()
-
-	// 初始化该DataBox下节点地址优先级队列
-	if _, found := self.addrs[priority]; !found {
-		self.addpriors = append(self.addpriors, priority)
-		sort.Ints(self.addpriors) // 从小到大排序
-		self.addrs[priority] = []*request.NodeAddress{}
-	}
-
-	// 添加节点地址到队列
-	self.addrs[priority] = append(self.addrs[priority], addr)
-}
+//func (self *Matrix) PushAddr(addr *request.NodeAddress) {
+//
+//	if sdl.checkStatus(status.STOP) {
+//		return
+//	}
+//
+//	var priority = addr.GetPriority()
+//
+//	// 初始化该DataBox下节点地址优先级队列
+//	if _, found := self.addrs[priority]; !found {
+//		self.addpriors = append(self.addpriors, priority)
+//		sort.Ints(self.addpriors) // 从小到大排序
+//		self.addrs[priority] = []*request.NodeAddress{}
+//	}
+//
+//	// 添加节点地址到队列
+//	self.addrs[priority] = append(self.addrs[priority], addr)
+//}
 
 // 从节点地址队列取出地址，不存在时返回nil，并发安全
-func (self *Matrix) PullAddr() (addr *request.NodeAddress) {
-	if !sdl.checkStatus(status.RUN) {
-		return
-	}
-	// 按优先级从高到低取出请求
-	for i := len(self.addrs) - 1; i >= 0; i-- {
-		idx := self.addpriors[i]
-		if len(self.addrs[idx]) > 0 {
-			addr = self.addrs[idx][0]
-			self.addrs[idx] = self.addrs[idx][1:]
-			return
-		}
-	}
-	return
-}
+//func (self *Matrix) PullAddr() (addr *request.NodeAddress) {
+//	if !sdl.checkStatus(status.RUN) {
+//		return
+//	}
+//	// 按优先级从高到低取出请求
+//	for i := len(self.addrs) - 1; i >= 0; i-- {
+//		idx := self.addpriors[i]
+//		if len(self.addrs[idx]) > 0 {
+//			addr = self.addrs[idx][0]
+//			self.addrs[idx] = self.addrs[idx][1:]
+//			return
+//		}
+//	}
+//	return
+//}
 
 func (self *Matrix) Use() {
 	defer func() {
@@ -267,9 +266,9 @@ func (self *Matrix) CanStop() bool {
 	if atomic.LoadInt32(&self.resCount) != 0 {
 		return false
 	}
-	if self.Len() > 0 {
-		return false
-	}
+	//if self.Len() > 0 {
+	//	return false
+	//}
 
 	self.failureLock.Lock()
 	defer self.failureLock.Unlock()
@@ -283,7 +282,8 @@ func (self *Matrix) CanStop() bool {
 			self.failures[reqUnique] = nil
 			goon = true
 			//logs.Log.Informational(" *     - 失败请求: [%v]\n", req.GetUrl())
-			self.Push(req)
+			self.PushChan(req)
+			//self.Push(req)
 		}
 		if goon {
 			return false
@@ -319,15 +319,15 @@ func (self *Matrix) Wait() {
 	}
 }
 
-func (self *Matrix) Len() int {
-	self.Lock()
-	defer self.Unlock()
-	var l int
-	for _, reqs := range self.reqs {
-		l += len(reqs)
-	}
-	return l
-}
+//func (self *Matrix) Len() int {
+//	self.Lock()
+//	defer self.Unlock()
+//	var l int
+//	for _, reqs := range self.reqs {
+//		l += len(reqs)
+//	}
+//	return l
+//}
 
 func (self *Matrix) hasHistory(reqUnique string) bool {
 	if self.history.HasSuccess(reqUnique) {

@@ -114,7 +114,7 @@ func (c *Collector) Start() {
 			// 将剩余收集到但未输出的数据输出
 			c.dataBatch++
 			c.outputData()
-			fmt.Println("output collector closed...")
+			//fmt.Println("output collector closed...")
 			close(dataStop)
 		}()
 

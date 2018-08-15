@@ -81,7 +81,7 @@ RETRY:
 	case "GET_STRINGS":
 		values, err = rt.redisCli.Keys(req.GetPostData())
 	case "HIncrBy":
-		incr, errmsg := strconv.ParseInt(req.Param("incr"), 10, 64)
+		incr, errmsg := strconv.ParseFloat(req.Param("amount"), 64)
 		if errmsg != nil {
 			return &DataResponse{
 				StatusCode: 200,
@@ -89,9 +89,9 @@ RETRY:
 				ReturnMsg:  errmsg.Error(),
 			}
 		}
-		err = rt.redisCli.HIncrBy(req.Param("key"), req.Param("field"), incr)
+		err = rt.redisCli.HIncrBy(req.Param("key"), req.Param("field"), int64(incr))
 	case "HDecrBy":
-		incr, errmsg := strconv.ParseInt(req.Param("incr"), 10, 64)
+		incr, errmsg := strconv.ParseFloat(req.Param("amount"),  64)
 		if errmsg != nil {
 			return &DataResponse{
 				StatusCode: 200,
@@ -99,7 +99,7 @@ RETRY:
 				ReturnMsg:  errmsg.Error(),
 			}
 		}
-		err = rt.redisCli.HIncrBy(req.Param("key"), req.Param("field"), -incr)
+		err = rt.redisCli.HIncrBy(req.Param("key"), req.Param("field"), -int64(incr))
 	case "EXIST":
 		isExist, err = rt.redisCli.HExistString(req.GetPostData())
 		if !isExist {

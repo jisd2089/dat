@@ -101,6 +101,14 @@ const (
 // DataRequest.DownloaderID指定下载器ID，0为默认的Surf高并发下载器，功能完备，1为PhantomJS下载器，特点破防力强，速度慢，低并发。
 func (self *DataRequest) Prepare() error {
 	// 确保url正确，且和Response中Url字符串相等
+	if self.ConnTimeout < 0 {
+		self.ConnTimeout = 0
+	} else if self.ConnTimeout == 0 {
+		self.ConnTimeout = DefaultConnTimeout
+	}
+	if self.Url == "" {
+		return nil
+	}
 	URL, err := url.Parse(self.Url)
 	if err != nil {
 		return err
@@ -122,12 +130,6 @@ func (self *DataRequest) Prepare() error {
 		self.DialTimeout = 0
 	} else if self.DialTimeout == 0 {
 		self.DialTimeout = DefaultDialTimeout
-	}
-
-	if self.ConnTimeout < 0 {
-		self.ConnTimeout = 0
-	} else if self.ConnTimeout == 0 {
-		self.ConnTimeout = DefaultConnTimeout
 	}
 
 	if self.TryTimes == 0 {

@@ -37,7 +37,7 @@ type (
 func NewDataBoxQueue() DataBoxQueue {
 	return &dbq{
 		idInc:             util.NewAutoInc(10000, 1),
-		dataBoxChan:       make(chan *DataBox, 100),
+		dataBoxChan:       make(chan *DataBox, 10000),
 		activeDataBoxChan: make(chan *DataBox),
 		list:              []*DataBox{},
 	}
@@ -57,46 +57,46 @@ func (q *dbq) AddChan(db *DataBox) {
 	db.SetId(q.idInc.Id())
 	q.dataBoxChan <- db
 
-	if db.IsParentBox {
-		go func(q *dbq, b *DataBox) {
-			b.ChildBoxChan = make(chan *DataBox)
-			for childBox := range b.ChildBoxChan {
-				childBox.SetId(q.idInc.Id())
-				q.dataBoxChan <- childBox
-			}
-		}(q, db)
-
-		go func(q *dbq, b *DataBox) {
-			b.ChildActiveBoxChan = make(chan *DataBox)
-			for childBox := range b.ChildActiveBoxChan {
-				childBox.SetId(q.idInc.Id())
-				q.activeDataBoxChan <- childBox
-			}
-		}(q, db)
-	}
+	//if db.IsParentBox {
+	//	go func(q *dbq, b *DataBox) {
+	//		b.ChildBoxChan = make(chan *DataBox)
+	//		for childBox := range b.ChildBoxChan {
+	//			childBox.SetId(q.idInc.Id())
+	//			q.dataBoxChan <- childBox
+	//		}
+	//	}(q, db)
+	//
+	//	go func(q *dbq, b *DataBox) {
+	//		b.ChildActiveBoxChan = make(chan *DataBox)
+	//		for childBox := range b.ChildActiveBoxChan {
+	//			childBox.SetId(q.idInc.Id())
+	//			q.activeDataBoxChan <- childBox
+	//		}
+	//	}(q, db)
+	//}
 }
 
 func (q *dbq) AddActiveChan(db *DataBox) {
 	db.SetId(q.idInc.Id())
 	q.activeDataBoxChan <- db
 
-	if db.IsParentBox {
-		go func(q *dbq, b *DataBox) {
-			b.ChildBoxChan = make(chan *DataBox)
-			for childBox := range b.ChildBoxChan {
-				childBox.SetId(q.idInc.Id())
-				q.dataBoxChan <- childBox
-			}
-		}(q, db)
-
-		go func(q *dbq, b *DataBox) {
-			b.ChildActiveBoxChan = make(chan *DataBox)
-			for childBox := range b.ChildActiveBoxChan {
-				childBox.SetId(q.idInc.Id())
-				q.activeDataBoxChan <- childBox
-			}
-		}(q, db)
-	}
+	//if db.IsParentBox {
+	//	go func(q *dbq, b *DataBox) {
+	//		b.ChildBoxChan = make(chan *DataBox)
+	//		for childBox := range b.ChildBoxChan {
+	//			childBox.SetId(q.idInc.Id())
+	//			q.dataBoxChan <- childBox
+	//		}
+	//	}(q, db)
+	//
+	//	go func(q *dbq, b *DataBox) {
+	//		b.ChildActiveBoxChan = make(chan *DataBox)
+	//		for childBox := range b.ChildActiveBoxChan {
+	//			childBox.SetId(q.idInc.Id())
+	//			q.activeDataBoxChan <- childBox
+	//		}
+	//	}(q, db)
+	//}
 }
 
 func (q *dbq) AddAll(list []*DataBox) {

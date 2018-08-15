@@ -10,15 +10,13 @@ import (
 	. "drcs/dep/nodelib/crp/common"
 	. "drcs/dep/nodelib/crp/smartsail"
 	"strings"
-	"encoding/json"
 	"sync"
 	"time"
 	"strconv"
 	logger "drcs/log"
 	"crypto/md5"
 	"fmt"
-	"drcs/dep/security"
-	"drcs/common/cncrypt"
+	"encoding/json"
 )
 
 func init() {
@@ -83,14 +81,40 @@ func smartRequestRootFunc(ctx *Context) {
 
 	ctx.AddChanQueue(&request.DataRequest{
 		Rule:         "parseparam",
-		Method:       "GET",
-		TransferType: request.NONETYPE,
+		Method:       "PING",
+		TransferType: request.REDIS,
 		Reloadable:   true,
+		CommandParams: ctx.GetDataBox().Params,
 	})
+
+	// Test
+	//pubRespMsg := &PubResProductMsg{}
+	//
+	//pubAnsInfo := &PubAnsInfo{}
+	//pubAnsInfo.ResCode = "000000"
+	//pubAnsInfo.ResMsg = "成功"
+	//pubRespMsg.PubAnsInfo = pubAnsInfo
+	//
+	//bodyByte, err := json.Marshal(pubRespMsg)
+	//
+	//if err != nil {
+	//	logger.Error("[callSmartResponseFunc] unmarshal response body to PubResProductMsg_0_000_000 err: [%s] ", err.Error())
+	//	return
+	//}
+	//
+	//ctx.GetDataBox().BodyChan <- bodyByte
+	//
+	//procEndFunc(ctx)
 }
 
 func parseRequestParamFunc(ctx *Context) {
 	logger.Info("parseRequestParamFunc start")
+
+	if ctx.DataResponse.StatusCode == 200 && !strings.EqualFold(ctx.DataResponse.ReturnCode, "000000") {
+		logger.Error("[parseRequestParamFunc] ping redis failed: [%s] ", ctx.DataResponse.ReturnMsg)
+		errEnd(ctx)
+		return
+	}
 
 	reqBody := ctx.GetDataBox().HttpRequestBody
 
@@ -127,8 +151,12 @@ func callSmartResponseFunc(ctx *Context) {
 	logger.Info("callSmartResponseFunc start")
 
 	pubRespMsg := &PubResProductMsg{}
-	//pubRespMsg.DetailInfo.Tag = respData.Tag
-	//pubRespMsg.DetailInfo.EvilScore = respData.EvilScore
+	// TODO mock
+	//pubAnsInfo := &PubAnsInfo{}
+	//pubAnsInfo.ResCode = "000000"
+	//pubAnsInfo.ResMsg = "成功"
+	//pubRespMsg.PubAnsInfo = pubAnsInfo
+	//ctx.DataResponse.Body, _ = json.Marshal(pubRespMsg)
 
 	if err := json.Unmarshal(ctx.DataResponse.Body, pubRespMsg); err != nil {
 		logger.Error("[callSmartResponseFunc] unmarshal response body to PubResProductMsg_0_000_000 err: [%s] ", err.Error())
@@ -136,10 +164,11 @@ func callSmartResponseFunc(ctx *Context) {
 		return
 	}
 
+
 	ctx.GetDataBox().BodyChan <- ctx.DataResponse.Body
 
 	// 不收费处理逻辑
-	if !strings.EqualFold(pubRespMsg.PubAnsInfo.ResCode, CenterCodeSucc) {
+	if strings.EqualFold(pubRespMsg.PubAnsInfo.ResCode, CenterCodeReqFailNoCharge) {
 		ctx.AddChanQueue(&request.DataRequest{
 			Rule:         "returnbalance",
 			Method:       "GET",
@@ -164,16 +193,16 @@ func callSmartResponseFunc(ctx *Context) {
 	h.Write([]byte(demMemberId))
 	busiInfoStr := fmt.Sprintf("%x", h.Sum(nil))
 
-	msg := "3" + demMemberId + "1"
-	priKey, _ := security.GetPrivateKey()
-	signInfo := cncrypt.Sign(priKey, []byte(msg))
-	stepInfoM := []map[string]interface{}{}
-	stepInfo1 := map[string]interface{}{"no": 1, "memID": demMemberId, "stepStatus": security.StepStatusSucc, "signature": ""}
-	stepInfo2 := map[string]interface{}{"no": 2, "memID": "", "stepStatus": security.StepStatusSucc, "signature": ""}
-	stepInfo3 := map[string]interface{}{"no": 3, "memID": demMemberId, "stepStatus": security.StepStatusSucc, "signature": signInfo}
-	stepInfoM = append(stepInfoM, stepInfo1)
-	stepInfoM = append(stepInfoM, stepInfo2)
-	stepInfoM = append(stepInfoM, stepInfo3)
+	//msg := "3" + demMemberId + "1"
+	//priKey, _ := security.GetPrivateKey()
+	//signInfo := cncrypt.Sign(priKey, []byte(msg))
+	//stepInfoM := []map[string]interface{}{}
+	//stepInfo1 := map[string]interface{}{"no": 1, "memID": demMemberId, "stepStatus": security.StepStatusSucc, "signature": ""}
+	//stepInfo2 := map[string]interface{}{"no": 2, "memID": "", "stepStatus": security.StepStatusSucc, "signature": ""}
+	//stepInfo3 := map[string]interface{}{"no": 3, "memID": demMemberId, "stepStatus": security.StepStatusSucc, "signature": signInfo}
+	//stepInfoM = append(stepInfoM, stepInfo1)
+	//stepInfoM = append(stepInfoM, stepInfo2)
+	//stepInfoM = append(stepInfoM, stepInfo3)
 
 	ctx.Output(map[string]interface{}{
 		"exID":       busiInfoStr,
@@ -186,7 +215,7 @@ func callSmartResponseFunc(ctx *Context) {
 		"flowStatus": FlowStatusDemSucc,
 		"usedTime":   endTime - startTime,
 		"errCode":    ErrCodeSucc,
-		"stepInfoM":  stepInfoM,
+		//"stepInfoM":  stepInfoM,
 		//"dmpSeqNo":   "",
 	})
 

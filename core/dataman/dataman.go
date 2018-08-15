@@ -29,7 +29,7 @@ type (
 		Obtain(carrierPool CarrierPool) DataMan      // 获取交互资源
 		Run()                                        // 运行配送任务
 		SyncRun()                                    // 同步运行配送任务
-		RunRequest(obj interface{}) *databox.Context // 执行DataRequest
+		//RunRequest(obj interface{}) *databox.Context // 执行DataRequest
 		Stop()                                       // 主动终止
 		CanStop() bool                               // 能否终止
 		GetId() int                                  // 获取引擎ID
@@ -112,11 +112,11 @@ func (m *dataMan) Run() {
 	m.runWG.Wait()
 	//<-c // 等待处理协程退出
 
-	fmt.Println("m.Pipeline.Stop()", m.id)
+	//fmt.Println("m.Pipeline.Stop()", m.id)
 	// 停止数据拆包/核验管道
 	m.Pipeline.Stop()
 
-	fmt.Println("box run time: ", time.Since(cache.StartTime))
+	//fmt.Println("box run time: ", time.Since(cache.StartTime))
 }
 
 // 任务同步执行入口
@@ -136,10 +136,10 @@ func (m *dataMan) SyncRun() {
 	m.DataBox.Start()
 
 	// 持续活跃DataBox的原始dataman id
-	m.DataBox.OrigDataManId = m.id
+	//m.DataBox.OrigDataManId = m.id
 
 	// 启动成功后加入活跃队列
-	m.DataBox.AddActiveList()
+	//m.DataBox.AddActiveList()
 
 	m.DataBox.StartWG.Done()
 
@@ -149,66 +149,66 @@ func (m *dataMan) SyncRun() {
 
 	// 停止数据拆包/核验管道
 	m.Pipeline.Stop()
-	fmt.Println("SyncRun stop ...", m.DataBox.GetMatrixCnt())
+	//fmt.Println("SyncRun stop ...", m.DataBox.GetMatrixCnt())
 }
 
-func (m *dataMan) run() {
-
-	fmt.Println("dataMan run start >>>>>>>>>>>>>>>>>>>>>>")
-
-	// 完成
-	defer func() {
-		fmt.Println("dataMan run end @@@@@@@@@@@@@@@@@@@@@@@@@@")
-		m.runWG.Done()
-	}()
-
-	defer func() {
-		err := recover()
-		if err != nil {
-			fmt.Println("dataMan run recover error: ", err)
-		}
-	}()
-
-	for {
-		// 队列中取出一条请求并处理
-		req := m.GetOne()
-		if req == nil {
-			// 停止任务
-			time.Sleep(10 * time.Millisecond)
-			if m.DataBox.CanStop() {
-				fmt.Println("DataBox Can Stop@@@@@@@@@@@@@@@@@@@@@@@@@@")
-				break
-			}
-			continue
-		}
-
-		// 执行请求
-		m.execProcess(req)
-		//m.UseOne()
-		//go func() {
-		//	defer func() {
-		//		m.FreeOne()
-		//	}()
-		//	//logs.Log.Debug(" *     Start: %v", req.GetUrl())
-		//	m.Process(req)
-		//}()
-
-		// 随机等待
-		//m.sleep()
-	}
-
-	// 等待处理中的任务完成
-	//m.DataBox.Defer()
-
-	fmt.Println("dataMan run end......", m.DataBox.GetMatrixCnt())
-}
+//func (m *dataMan) run() {
+//
+//	fmt.Println("dataMan run start >>>>>>>>>>>>>>>>>>>>>>")
+//
+//	// 完成
+//	defer func() {
+//		fmt.Println("dataMan run end @@@@@@@@@@@@@@@@@@@@@@@@@@")
+//		m.runWG.Done()
+//	}()
+//
+//	defer func() {
+//		err := recover()
+//		if err != nil {
+//			fmt.Println("dataMan run recover error: ", err)
+//		}
+//	}()
+//
+//	for {
+//		// 队列中取出一条请求并处理
+//		req := m.GetOne()
+//		if req == nil {
+//			// 停止任务
+//			time.Sleep(10 * time.Millisecond)
+//			if m.DataBox.CanStop() {
+//				fmt.Println("DataBox Can Stop@@@@@@@@@@@@@@@@@@@@@@@@@@")
+//				break
+//			}
+//			continue
+//		}
+//
+//		// 执行请求
+//		m.execProcess(req)
+//		//m.UseOne()
+//		//go func() {
+//		//	defer func() {
+//		//		m.FreeOne()
+//		//	}()
+//		//	//logs.Log.Debug(" *     Start: %v", req.GetUrl())
+//		//	m.Process(req)
+//		//}()
+//
+//		// 随机等待
+//		//m.sleep()
+//	}
+//
+//	// 等待处理中的任务完成
+//	//m.DataBox.Defer()
+//
+//	fmt.Println("dataMan run end......", m.DataBox.GetMatrixCnt())
+//}
 
 func (m *dataMan) runChanReq() {
 	defer func() {
 		// 等待处理中的任务完成
 		//m.DataBox.Defer()TODO
 
-		fmt.Println("runChanReq end............")
+		//fmt.Println("runChanReq end............")
 
 		// 完成
 		m.runWG.Done()
@@ -219,7 +219,7 @@ func (m *dataMan) runChanReq() {
 
 		err := req.
 			SetDataBoxName(m.DataBox.GetName()).
-			SetEnableCookie(m.DataBox.GetEnableCookie()).
+			//SetEnableCookie(m.DataBox.GetEnableCookie()).
 			Prepare()
 
 		if err != nil {
@@ -281,7 +281,7 @@ func (m *dataMan) runChanRequest() {
 			fmt.Println("runChanRequest recover error: ", err)
 		}
 
-		fmt.Println("runChanRequest end............")
+		//fmt.Println("runChanRequest end............")
 
 		// 完成
 		m.runWG.Done()
@@ -291,7 +291,7 @@ func (m *dataMan) runChanRequest() {
 	for req := range m.GetRequestChan() {
 		err := req.
 			SetDataBoxName(m.DataBox.GetName()).
-			SetEnableCookie(m.DataBox.GetEnableCookie()).
+			//SetEnableCookie(m.DataBox.GetEnableCookie()).
 			Prepare()
 
 		if err != nil {
@@ -310,37 +310,37 @@ func (m *dataMan) runChanRequest() {
 	}
 }
 
-func (m *dataMan) RunRequest(obj interface{}) *databox.Context {
-	// 队列中取出一条请求并处理
-	var req *request.DataRequest
-	for {
-		req = m.GetOne()
-		if req == nil {
-			m.DataBox.Start()
-			//// 停止任务
-			//if m.DataBox.CanStop() {
-			//	return nil
-			//}
-			//return nil
-		} else {
-			break
-		}
-	}
-
-	// 执行请求
-	m.UseOne()
-	defer func() {
-		m.FreeOne()
-	}()
-	//logs.Log.Debug(" *     Start: %v", req.GetUrl())
-	req.Bobject = obj
-	context := m.SyncProcess(req)
-
-	// 等待处理中的任务完成
-	//m.DataBox.Defer()
-
-	return context
-}
+//func (m *dataMan) RunRequest(obj interface{}) *databox.Context {
+////	// 队列中取出一条请求并处理
+////	var req *request.DataRequest
+////	for {
+////		req = m.GetOne()
+////		if req == nil {
+////			m.DataBox.Start()
+////			//// 停止任务
+////			//if m.DataBox.CanStop() {
+////			//	return nil
+////			//}
+////			//return nil
+////		} else {
+////			break
+////		}
+////	}
+////
+////	// 执行请求
+////	m.UseOne()
+////	defer func() {
+////		m.FreeOne()
+////	}()
+////	//logs.Log.Debug(" *     Start: %v", req.GetUrl())
+////	req.Bobject = obj
+////	context := m.SyncProcess(req)
+////
+////	// 等待处理中的任务完成
+////	//m.DataBox.Defer()
+////
+////	return context
+////}
 
 func (m *dataMan) CanStop() bool {
 	if m.status == status.STOP {
@@ -369,7 +369,7 @@ func (m *dataMan) Process(req *request.DataRequest) {
 		if p := recover(); p != nil {
 			defer b.SetStatus(status.RUN)
 
-			fmt.Println("data man process recover ", p)
+			//fmt.Println("data man process recover ", p)
 
 			if b.IsStopping() {
 				// println("Process$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$")
@@ -529,9 +529,9 @@ func (m *dataMan) SyncProcess(req *request.DataRequest) *databox.Context {
 }
 
 // 从调度读取一个请求
-func (m *dataMan) GetOne() *request.DataRequest {
-	return m.DataBox.RequestPull()
-}
+//func (m *dataMan) GetOne() *request.DataRequest {
+//	return m.DataBox.RequestPull()
+//}
 
 // 从调度Channel中读取请求
 func (m *dataMan) GetOneFromChan() *request.DataRequest {
@@ -542,9 +542,9 @@ func (m *dataMan) GetRequestChan() chan *request.DataRequest {
 	return m.DataBox.RequestChan()
 }
 
-func (m *dataMan) IsRequestEmpty() bool {
-	return m.DataBox.IsRequestEmpty()
-}
+//func (m *dataMan) IsRequestEmpty() bool {
+//	return m.DataBox.IsRequestEmpty()
+//}
 
 //从调度使用一个资源空位
 func (m *dataMan) UseOne() {

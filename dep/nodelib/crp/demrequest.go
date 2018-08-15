@@ -10,8 +10,7 @@ import (
 	. "drcs/dep/nodelib/crp/common"
 	. "drcs/dep/nodelib/crp/edunwang"
 	"fmt"
-	"strings"
-	"encoding/json"
+
 	"drcs/common/balance"
 	"sync"
 	"strconv"
@@ -25,13 +24,17 @@ import (
 	logger "drcs/log"
 	"drcs/dep/security"
 	"drcs/common/cncrypt"
+	"strings"
+	"encoding/json"
 )
 
 func init() {
 	DEMREQUEST.Register()
 }
 
-var lock sync.Mutex
+var (
+	lock sync.Mutex
+)
 
 var DEMREQUEST = &DataBox{
 	Name:        "dem_request",
@@ -86,9 +89,10 @@ func demrequestRootFunc(ctx *Context) {
 
 	ctx.AddChanQueue(&request.DataRequest{
 		Rule:         "parseparam",
-		Method:       "GET",
-		TransferType: request.NONETYPE,
+		Method:       "PING",
+		TransferType: request.REDIS,
 		Reloadable:   true,
+		CommandParams: ctx. GetDataBox().Params,
 	})
 }
 
@@ -112,6 +116,12 @@ func demrequestRootFunc(ctx *Context) {
  */
 func parseReqParamFunc(ctx *Context) {
 	logger.Info("parseReqParamFunc start")
+
+	if ctx.DataResponse.StatusCode == 200 && !strings.EqualFold(ctx.DataResponse.ReturnCode, "000000") {
+		logger.Error("[parseReqParamFunc] ping redis failed: [%s] ", ctx.DataResponse.ReturnMsg)
+		errEnd(ctx)
+		return
+	}
 
 	reqBody := ctx.GetDataBox().HttpRequestBody
 
@@ -162,13 +172,16 @@ func depAuthFunc(ctx *Context) {
 		return
 	}
 
+	ctx.GetDataBox().HttpRequestBody = reqDataJson
+
 	ctx.AddChanQueue(&request.DataRequest{
-		//Rule:         "applybalance",
-		Rule:         "reduceredisquato",
+		Rule: "applybalance",
+		//Rule:         "reduceredisquato",
 		Method:       "GET",
 		TransferType: request.NONETYPE,
 		Reloadable:   true,
-		Parameters:   reqDataJson,
+		//Parameters:   reqDataJson,
+		ConnTimeout:  time.Duration(time.Second * 300),
 	})
 }
 
@@ -200,28 +213,42 @@ func applyBalanceFunc(ctx *Context) {
 		return
 	}
 
+	var (
+		transType string
+		amount    string
+	)
+
 	lock.Lock()
 	defer lock.Unlock()
 	hasBalance := balance.Hasbalance(memberId, unitPrice)
 	if !hasBalance {
-		if err := balance.ApplyBalance(memberId, unitPrice, 100, balanceUrl); err != nil {
-			logger.Error("[applyBalanceFunc] apply balance failed: [%s] ", err.Error())
+		applyAmount, err := balance.ApplyBalance(memberId, unitPrice, 100, balanceUrl)
+		if err != nil {
+			logger.Error("[applyBalanceFunc] apply balance from balance center failed: [%s] ", err.Error())
 			errEnd(ctx)
 			return
 		}
+
+		transType = request.REDIS
+
+		amount = strconv.FormatFloat(applyAmount * 1000, 'E', -1, 64)
+
+	} else {
+		transType = request.NONETYPE
 	}
 
 	dataRequest := &request.DataRequest{
-		Rule:         "updateredisquato",
-		Method:       "HIncrBy",
-		TransferType: request.REDIS,
-		Reloadable:   true,
-		Parameters:   ctx.DataResponse.Body,
+		Rule:          "updateredisquato",
+		Method:        "HIncrBy",
+		TransferType:  transType,
+		Reloadable:    true,
+		//Parameters:    ctx.DataResponse.Body,
+		CommandParams: ctx.GetDataBox().Params,
 	}
 
 	dataRequest.SetParam("key", strconv.Itoa(os.Getpid()))
 	dataRequest.SetParam("field", memberId)
-	dataRequest.SetParam("incr", unitPriceStr)
+	dataRequest.SetParam("amount", amount)
 
 	ctx.AddChanQueue(dataRequest)
 }
@@ -252,16 +279,19 @@ func updateRedisQuatoFunc(ctx *Context) {
 	}
 
 	dataRequest := &request.DataRequest{
-		Rule:         "reduceredisquato",
-		Method:       "HDecrBy",
-		TransferType: request.REDIS,
-		Reloadable:   true,
-		Parameters:   ctx.DataResponse.Body,
+		Rule:          "reduceredisquato",
+		Method:        "HDecrBy",
+		TransferType:  request.REDIS,
+		Reloadable:    true,
+		//Parameters:    ctx.DataResponse.Body,
+		CommandParams: ctx.GetDataBox().Params,
 	}
+
+	amount := strconv.FormatFloat(unitPrice * 1000, 'E', -1, 64)
 
 	dataRequest.SetParam("key", strconv.Itoa(os.Getpid()))
 	dataRequest.SetParam("field", memberId)
-	dataRequest.SetParam("incr", unitPriceStr)
+	dataRequest.SetParam("amount", amount)
 
 	ctx.AddChanQueue(dataRequest)
 }
@@ -304,7 +334,7 @@ func reduceRedisQuatoFunc(ctx *Context) {
 		Method:       "GET",
 		TransferType: request.NONETYPE,
 		Reloadable:   true,
-		Parameters:   ctx.DataResponse.Body,
+		//Parameters:   ctx.DataResponse.Body,
 	})
 }
 
@@ -331,7 +361,8 @@ func singleQueryFunc(ctx *Context) {
 		TransferType: request.FASTHTTP,
 		Reloadable:   true,
 		HeaderArgs:   header,
-		Parameters:   ctx.DataResponse.Body,
+		Parameters:   ctx.GetDataBox().HttpRequestBody,
+		ConnTimeout:  time.Duration(time.Second * 300),
 	}
 
 	ctx.GetDataBox().SetParam("busiSerialNo", busiSerialNo)
@@ -343,7 +374,7 @@ func staticQueryFunc(ctx *Context) {
 	logger.Info("staticQueryFunc start")
 
 	if ctx.DataResponse.StatusCode == 200 && strings.EqualFold(ctx.DataResponse.ReturnCode, "000000") {
-		ctx.AddQueue(&request.DataRequest{
+		ctx.AddChanQueue(&request.DataRequest{
 			Rule:         "queryresponse",
 			Method:       "POSTBODY",
 			Url:          "http://api.edunwang.com/test/black_check?appid=xxxx&secret_id=xxxx&seq_no=xxx&product_id=xxx&req_data=xxxx",
@@ -370,10 +401,15 @@ func callResponseFunc(ctx *Context) {
 
 	pubRespMsg := &PubResProductMsg{}
 	// TODO mock
+	//pubAnsInfo := &PubAnsInfo{}
+	//pubAnsInfo.ResCode = "000000"
+	//pubAnsInfo.ResMsg = "成功"
+	//pubRespMsg.PubAnsInfo = pubAnsInfo
 	//pubRespMsg.DetailInfo.Tag = "疑似仿冒包装"
 	//pubRespMsg.DetailInfo.EvilScore = 77
-
-	fmt.Println(string(ctx.DataResponse.Body))
+	//ctx.DataResponse.Body, _ = json.Marshal(pubRespMsg)
+	//fmt.Println(string(ctx.DataResponse.Body))
+	// mock-end
 
 	if err := json.Unmarshal(ctx.DataResponse.Body, pubRespMsg); err != nil {
 		logger.Error("[callResponseFunc] unmarshal response body to PubResProductMsg_0_000_000 err: [%s] ", err.Error())
@@ -384,7 +420,7 @@ func callResponseFunc(ctx *Context) {
 	ctx.GetDataBox().BodyChan <- ctx.DataResponse.Body
 
 	// 不收费处理逻辑
-	if !strings.EqualFold(pubRespMsg.PubAnsInfo.ResCode, CenterCodeSucc) {
+	if strings.EqualFold(pubRespMsg.PubAnsInfo.ResCode, CenterCodeReqFailNoCharge) {
 		ctx.AddChanQueue(&request.DataRequest{
 			Rule:         "returnbalance",
 			Method:       "GET",
@@ -458,15 +494,18 @@ func returnBalanceFunc(ctx *Context) {
 	}
 
 	dataRequest := &request.DataRequest{
-		Rule:         "end",
-		Method:       "HIncrBy",
-		TransferType: request.REDIS,
-		Reloadable:   true,
+		Rule:          "end",
+		Method:        "HIncrBy",
+		TransferType:  request.REDIS,
+		Reloadable:    true,
+		CommandParams: ctx.GetDataBox().Params,
 	}
+
+	amount := strconv.FormatFloat(unitPrice * 1000, 'E', -1, 64)
 
 	dataRequest.SetParam("key", strconv.Itoa(os.Getpid()))
 	dataRequest.SetParam("field", memberId)
-	dataRequest.SetParam("incr", unitPriceStr)
+	dataRequest.SetParam("amount", amount)
 
 	ctx.AddChanQueue(dataRequest)
 }

@@ -15,7 +15,6 @@ import (
 	"drcs/dep/or"
 	"drcs/dep/order"
 	"drcs/dep/util"
-	"drcs/runtime/status"
 	"strconv"
 )
 
@@ -103,7 +102,7 @@ func pullRequestFileFunc(ctx *Context) {
 
 	ctx.GetDataBox().SetDataFilePath(path.Join(fsAddress.LocalDir, dataFile))
 
-	fmt.Println("NodeAddress: %s", ctx.GetDataBox().GetNodeAddress())
+	//fmt.Println("NodeAddress: %s", ctx.GetDataBox().GetNodeAddress())
 	ctx.AddQueue(&request.DataRequest{
 		Method:       "GET",
 		//TransferType: request.NONETYPE, // TEST
@@ -223,7 +222,7 @@ func singleRouteSendFunc(ctx *Context) {
 	svcUrls, _ := getMemberUrls(orPolicyMap.MemTaskIdMap)
 
 	targetUrl := svcUrls[0]
-	ctx.GetDataBox().DetailCount = 1
+	//ctx.GetDataBox().DetailCount = 1
 
 	dataRequest := &request.DataRequest{
 		Rule: "sendRecord",
@@ -263,7 +262,7 @@ func staticRouteSendFunc(ctx *Context) {
 
 	svcUrls, supMemId := getMemberUrls(orPolicyMap.MemTaskIdMap)
 
-	ctx.GetDataBox().DetailCount = len(svcUrls)
+	//ctx.GetDataBox().DetailCount = len(svcUrls)
 
 	for i, targetUrl := range svcUrls {
 		fmt.Println(targetUrl)
@@ -334,10 +333,10 @@ func sendRecordFunc(ctx *Context) {
 		//"stepInfoM":  stepInfoM,
 	})
 
-	if ctx.GetDataBox().TsfSuccCount == ctx.GetDataBox().DetailCount {
-		defer ctx.GetDataBox().SetStatus(status.STOP)
-		defer ctx.GetDataBox().CloseRequestChan()
-	}
+	//if ctx.GetDataBox().TsfSuccCount == ctx.GetDataBox().DetailCount {
+	//	defer ctx.GetDataBox().SetStatus(status.STOP)
+	//	defer ctx.GetDataBox().CloseRequestChan()
+	//}
 }
 
 func getBatchRequest(ctx *Context) error {

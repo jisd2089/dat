@@ -12,19 +12,22 @@ import (
 	"crypto/md5"
 	"bytes"
 	"io"
-	"encoding/json"
 	"strings"
 	logger "drcs/log"
 	"strconv"
 	"time"
+	"encoding/json"
 )
 
 /**
     Author: luzequan
     Created: 2018-05-15 19:30:06
 */
+
+//var json = jsoniter.ConfigCompatibleWithStandardLibrary
+
 func procEndFunc(ctx *Context) {
-	logger.Info("end start")
+	//logger.Info("end start")
 
 	defer ctx.GetDataBox().SetStatus(status.STOP)
 	defer ctx.GetDataBox().CloseRequestChan()
@@ -35,8 +38,8 @@ func errEnd(ctx *Context) {
 
 	pubResProductMsg_Error := &common.PubResProductMsg_Error{}
 	pubAnsInfo := &common.PubAnsInfo{}
-	pubAnsInfo.ResCode = common.CenterCodeReqFail
-	pubAnsInfo.ResMsg = common.GetCenterCodeText(common.CenterCodeReqFail)
+	pubAnsInfo.ResCode = common.CenterCodeReqFailNoCharge
+	pubAnsInfo.ResMsg = common.GetCenterCodeText(common.CenterCodeReqFailNoCharge)
 	pubAnsInfo.SerialNo = ctx.GetDataBox().Param("serialNo")
 	pubAnsInfo.BusiSerialNo = ctx.GetDataBox().Param("busiSerialNo")
 	pubAnsInfo.TimeStamp = strconv.Itoa(int(time.Now().UnixNano() / 1e6))
@@ -133,7 +136,7 @@ func genMD5beforeSend(ctx *Context, nextRule string, batchRequest *BatchRequest)
 	batchRequest.MD5 = md5Str
 	batchRequest.LineCount = total
 
-	ctx.AddQueue(&request.DataRequest{
+	ctx.AddChanQueue(&request.DataRequest{
 		Rule:         nextRule,
 		TransferType: request.NONETYPE,
 		Priority:     1,

@@ -21,10 +21,10 @@ import (
 	"github.com/valyala/fasthttp"
 	"drcs/core/databox"
 	"fmt"
-	"drcs/dep/member"
 	"encoding/json"
 	"drcs/dep/order"
 	"time"
+	"drcs/dep/member"
 )
 
 type DepService struct {
@@ -136,7 +136,7 @@ func runDataBox(addrs []*Dest, boxName string, nodeMemberId string, fsAddress *r
 			URL:      v.Api,
 			Priority: 0,})
 
-		b.SetNodeAddress(addrs)
+		//b.SetNodeAddress(addrs)
 		b.FileServerAddress = fsAddress
 		// 算法依赖文件hdfs路径
 		b.Params = v.RelyDatas
@@ -265,11 +265,11 @@ func (s *DepService) ProcessBatchRcv(ctx *fasthttp.RequestCtx, targetFilePath st
 
 // 金融消费
 func (s *DepService) ProcessCrpTrans(ctx *fasthttp.RequestCtx) {
-	logger.Info("DepService ProcessCrpTrans start")
+	//logger.Info("DepService ProcessCrpTrans start")
 
 	bodyChan := make(chan []byte)
 
-	timeOut := time.Duration(300000) * time.Millisecond
+	//timeOut := time.Duration(300000) * time.Millisecond
 
 	//boxName, err := getCrpBoxName(ctx.Request.Body())
 	//if err != nil {
@@ -278,7 +278,7 @@ func (s *DepService) ProcessCrpTrans(ctx *fasthttp.RequestCtx) {
 	common := st.GetCommonSettings()
 
 	boxName := "dem_request"
-	boxName = "smart_request"
+	//boxName = "smart_request"
 	b := assetnode.AssetNodeEntity.GetDataBoxByName(boxName)
 	if b == nil {
 		logger.Error("databox [%s] is nil!", boxName)
@@ -302,10 +302,13 @@ func (s *DepService) ProcessCrpTrans(ctx *fasthttp.RequestCtx) {
 	case body := <-bodyChan:
 		ctx.SetBody(body)
 		close(bodyChan)
-	case <-time.After(timeOut):
-		logger.Error("http response timeout")
-		break
+	//case <-time.After(timeOut):
+	//	logger.Error("http response timeout")
+	//	break
 	}
+
+	//fmt.Println("DepService middle time: ", time.Since(middle))
+	//fmt.Println("DepService run time: ", time.Since(start))
 }
 
 func (s *DepService) ProcessCrpResponse(ctx *fasthttp.RequestCtx) {
@@ -332,7 +335,7 @@ func (s *DepService) ProcessCrpResponse(ctx *fasthttp.RequestCtx) {
 	}
 
 	boxName := "sup_response"
-	boxName = "smart_response"
+	//boxName = "smart_response"
 	b := assetnode.AssetNodeEntity.GetDataBoxByName(boxName)
 	if b == nil {
 		logger.Error("databox is nil!")

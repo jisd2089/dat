@@ -13,7 +13,6 @@ import (
 	"drcs/core/scheduler"
 	"drcs/core/interaction/request"
 	"drcs/core/interaction/response"
-	"mime/multipart"
 )
 
 const (
@@ -30,30 +29,30 @@ type (
 		Name               string                                                      // 名称（应保证唯一性）
 		Description        string                                                      // 描述
 		DataFilePath       string                                                      // 数据文件地址
-		DataFile           *multipart.FileHeader                                       // 数据文件内容
-		NodeAddress        []*request.NodeAddress                                      // 交互节点地址
+		//DataFile           *multipart.FileHeader                                       // 数据文件内容
+		//NodeAddress        []*request.NodeAddress                                      // 交互节点地址
 		FileServerAddress  *request.FileServerAddress                                  // 文件服务器地址
 		Params             []string                                                    // 数组参数
 		Pausetime          int64                                                       // 随机暂停区间(50%~200%)，若规则中直接定义，则不被界面传参覆盖
 		Limit              int64                                                       // 默认限制请求数，0为不限；若规则中定义为LIMIT，则采用规则的自定义限制方案
 		Keyin              string                                                      // 自定义输入的配置信息，使用前须在规则中设置初始值为KEYIN
-		EnableCookie       bool                                                        // 所有请求是否使用cookie记录
+		//EnableCookie       bool                                                        // 所有请求是否使用cookie记录
 		NotDefaultField    bool                                                        // 是否禁止输出结果中的默认字段 Url/ParentUrl/DownloadTime
 		Namespace          func(self *DataBox) string                                  // 命名空间，用于输出文件、路径的命名
 		SubNamespace       func(self *DataBox, dataCell map[string]interface{}) string // 次级命名，用于输出文件、路径的命名，可依赖具体数据内容
-		DetailCount        int                                                         // 明细条数
+		//DetailCount        int                                                         // 明细条数
 		TsfSuccCount       int                                                         // 流通成功明细条数
 		BlockChan          chan bool                                                   // 用于ActiveDataBox阻塞，持续活跃
 		StartWG            *sync.WaitGroup                                             // 启动成功通知
 		RuleTree           *RuleTree                                                   // 定义具体的配送规则树
-		OrigDataManId      int                                                         // 原始dataman id
-		PairDataBoxId      int                                                         // 对接的databox id
+		//OrigDataManId      int                                                         // 原始dataman id
+		//PairDataBoxId      int                                                         // 对接的databox id
 		ActiveWG           *sync.WaitGroup                                             // 等待所有活动结束
-		ChildBoxChan       chan *DataBox                                               // 子盒子通道
-		ChildActiveBoxChan chan *DataBox                                               // 持续活跃子盒子通道
-		IsParentBox        bool                                                        // 是否父databox
-		ChildBox           *DataBox                                                    // child box
-		ParentBox          *DataBox                                                    // parent box
+		//ChildBoxChan       chan *DataBox                                               // 子盒子通道
+		//ChildActiveBoxChan chan *DataBox                                               // 持续活跃子盒子通道
+		//IsParentBox        bool                                                        // 是否父databox
+		//ChildBox           *DataBox                                                    // child box
+		//ParentBox          *DataBox                                                    // parent box
 		HttpRequestBody    []byte                                                      // http request body
 		BodyChan           chan []byte                                                 // http response body
 
@@ -101,25 +100,25 @@ func (b *DataBox) GetChildBoxByName(name string) *DataBox {
 }
 
 // 添加自身到活跃DataBox列表
-func (self DataBox) AddActiveList() *DataBox {
-	self.status = status.RUN
-	return Activites.Add(&self)
-}
+//func (self DataBox) AddActiveList() *DataBox {
+//	self.status = status.RUN
+//	return Activites.Add(&self)
+//}
 
 // 从活跃DataBox列表移除
-func (self DataBox) RemoveActiveDataBox() *DataBoxActivites {
-	self.status = status.STOP
-	return Activites.Remove(&self)
-}
+//func (self DataBox) RemoveActiveDataBox() *DataBoxActivites {
+//	self.status = status.STOP
+//	return Activites.Remove(&self)
+//}
 
 // 停止活跃databox
-func (b *DataBox) StopActiveBox() {
-	b.lock.RLock()
-	defer b.lock.RUnlock()
-
-	close(b.BlockChan)
-	b.RemoveActiveDataBox()
-}
+//func (b *DataBox) StopActiveBox() {
+//	b.lock.RLock()
+//	defer b.lock.RUnlock()
+//
+//	close(b.BlockChan)
+//	b.RemoveActiveDataBox()
+//}
 
 // 数据流产品开始穿越
 func (self *DataBox) Start() {
@@ -293,14 +292,14 @@ func (b *DataBox) SetDataFilePath(path string) {
 }
 
 // 获取自定义NodeAddress配置信息
-func (b *DataBox) GetNodeAddress() []*request.NodeAddress {
-	return b.NodeAddress
-}
-
-// 设置自定义DataFilePath配置信息
-func (b *DataBox) SetNodeAddress(addrs []*request.NodeAddress) {
-	b.NodeAddress = addrs
-}
+//func (b *DataBox) GetNodeAddress() []*request.NodeAddress {
+//	return b.NodeAddress
+//}
+//
+//// 设置自定义DataFilePath配置信息
+//func (b *DataBox) SetNodeAddress(addrs []*request.NodeAddress) {
+//	b.NodeAddress = addrs
+//}
 
 // 获取采集上限
 // <0 表示采用限制请求数的方案
@@ -317,9 +316,9 @@ func (self *DataBox) SetLimit(max int64) {
 }
 
 // 控制所有请求是否使用cookie
-func (self *DataBox) GetEnableCookie() bool {
-	return self.EnableCookie
-}
+//func (self *DataBox) GetEnableCookie() bool {
+//	return self.EnableCookie
+//}
 
 // 自定义暂停时间 pause[0]~(pause[0]+pause[1])，优先级高于外部传参
 // 当且仅当runtime[0]为true时可覆盖现有值
@@ -370,13 +369,13 @@ func (self *DataBox) Copy() *DataBox {
 
 	ghost.Description = self.Description
 	ghost.Pausetime = self.Pausetime
-	ghost.EnableCookie = self.EnableCookie
+	//ghost.EnableCookie = self.EnableCookie
 	ghost.Limit = self.Limit
 	ghost.Keyin = self.Keyin
-	ghost.NodeAddress = self.NodeAddress
+	//ghost.NodeAddress = self.NodeAddress
 	ghost.FileServerAddress = self.FileServerAddress
 	ghost.DataFilePath = self.DataFilePath
-	ghost.DataFile = self.DataFile
+	//ghost.DataFile = self.DataFile
 
 	ghost.NotDefaultField = self.NotDefaultField
 	ghost.Namespace = self.Namespace
@@ -388,10 +387,10 @@ func (self *DataBox) Copy() *DataBox {
 	ghost.dnames = self.dnames
 	ghost.dvalues = self.dvalues
 	ghost.StartWG = self.StartWG
-	ghost.PairDataBoxId = self.PairDataBoxId
-	ghost.IsParentBox = self.IsParentBox
-	ghost.ChildBoxChan = self.ChildBoxChan
-	ghost.ChildActiveBoxChan = self.ChildActiveBoxChan
+	//ghost.PairDataBoxId = self.PairDataBoxId
+	//ghost.IsParentBox = self.IsParentBox
+	//ghost.ChildBoxChan = self.ChildBoxChan
+	//ghost.ChildActiveBoxChan = self.ChildActiveBoxChan
 	ghost.HttpRequestBody = self.HttpRequestBody
 	ghost.BodyChan = self.BodyChan
 
@@ -402,12 +401,12 @@ func (b *DataBox) Refresh() *DataBox {
 
 	b.Description = ""
 	b.Pausetime = 0
-	b.EnableCookie = false
+	//b.EnableCookie = false
 	b.Limit = 0
 	b.Keyin = ""
-	b.NodeAddress = nil
+	//b.NodeAddress = nil
 	b.DataFilePath = ""
-	b.DataFile = nil
+	//b.DataFile = nil
 
 	b.NotDefaultField = false
 	b.Namespace = nil
@@ -415,7 +414,7 @@ func (b *DataBox) Refresh() *DataBox {
 
 	b.status = status.RUN
 	b.StartWG = nil
-	b.PairDataBoxId = 0
+	//b.PairDataBoxId = 0
 	//b.IsParentBox = false
 	return b
 }
@@ -436,17 +435,17 @@ func (self *DataBox) DoHistory(req *request.DataRequest, ok bool) bool {
 	return self.reqMatrix.DoHistory(req, ok)
 }
 
-func (self *DataBox) RequestPush(req *request.DataRequest) {
-	self.reqMatrix.Push(req)
-}
-
-func (self *DataBox) RequestPull() *request.DataRequest {
-	r := self.reqMatrix.Pull()
-	if r != nil {
-		r.DataBoxId = self.GetId()
-	}
-	return r
-}
+//func (self *DataBox) RequestPush(req *request.DataRequest) {
+//	self.reqMatrix.Push(req)
+//}
+//
+//func (self *DataBox) RequestPull() *request.DataRequest {
+//	r := self.reqMatrix.Pull()
+//	if r != nil {
+//		r.DataBoxId = self.GetId()
+//	}
+//	return r
+//}
 
 func (self *DataBox) RequestPushChan(req *request.DataRequest) {
 	self.reqMatrix.PushChan(req)
@@ -464,17 +463,17 @@ func (self *DataBox) CloseRequestChan() {
 	self.reqMatrix.CloseReqChan()
 }
 
-func (self *DataBox) IsRequestEmpty() bool {
-	return self.reqMatrix.IsEmpty()
-}
-
-func (self *DataBox) AddressPush(addr *request.NodeAddress) {
-	self.reqMatrix.PushAddr(addr)
-}
-
-func (self *DataBox) AddressPull() *request.NodeAddress {
-	return self.reqMatrix.PullAddr()
-}
+//func (self *DataBox) IsRequestEmpty() bool {
+//	return self.reqMatrix.IsEmpty()
+//}
+//
+//func (self *DataBox) AddressPush(addr *request.NodeAddress) {
+//	self.reqMatrix.PushAddr(addr)
+//}
+//
+//func (self *DataBox) AddressPull() *request.NodeAddress {
+//	return self.reqMatrix.PullAddr()
+//}
 
 func (self *DataBox) RequestUse() {
 	self.reqMatrix.Use()
@@ -484,9 +483,9 @@ func (self *DataBox) RequestFree() {
 	self.reqMatrix.Free()
 }
 
-func (self *DataBox) RequestLen() int {
-	return self.reqMatrix.Len()
-}
+//func (self *DataBox) RequestLen() int {
+//	return self.reqMatrix.Len()
+//}
 
 func (db *DataBox) GetMatrixCnt() int {
 	return db.reqMatrix.Count()

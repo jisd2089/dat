@@ -5,7 +5,6 @@ package common
     Created: 2018-08-03 09:40:43
 */
 
-
 type CommonRequest struct {
 	DemMemId string
 	SupMemId string
@@ -61,12 +60,12 @@ type CommonRequestData struct {
 }
 
 type PubReqInfo struct {
-	MemId        string `json:"memId"`
-	SerialNo     string `json:"serialNo"`
-	JobId        string `json:"jobId"`
-	AuthMode     string `json:"authMode"`
-	TimeStamp    string `json:"timeStamp"`
-	ReqSign      string `json:"reqSign"`
+	MemId     string `json:"memId"`
+	SerialNo  string `json:"serialNo"`
+	JobId     string `json:"jobId"`
+	AuthMode  string `json:"authMode"`
+	TimeStamp string `json:"timeStamp"`
+	ReqSign   string `json:"reqSign"`
 }
 
 type PubAnsInfo struct {
@@ -189,7 +188,9 @@ const (
 	CenterCodeNoAccess   = "033000" //无接口访问权限
 	CenterCodeNoMoney    = "033001" //无接口访问权限,欠费
 
-	CenterCodeTestNoHit  = "030002" // 未查找到该条数据
+	CenterCodeTestNoHit = "030002" // 未查找到该条数据
+
+	CenterCodeReqFailNoCharge = "033999" //请求失败，不收费
 )
 
 var centerCodeText = map[string]string{
@@ -206,7 +207,8 @@ var centerCodeText = map[string]string{
 	CenterCodeNoAccess:   "无接口访问权限",
 	CenterCodeNoMoney:    "无接口访问权限,欠费",
 
-	CenterCodeTestNoHit:  "未查找到该条数据",
+	CenterCodeTestNoHit: "未查找到该条数据",
+	CenterCodeReqFailNoCharge: "请求失败，不收费",
 }
 
 //根据中心code返回text内容

@@ -8,9 +8,9 @@ import (
 	"testing"
 	"encoding/json"
 
-	_ "drcs/dep/nodelib/demanderonly"
-	_ "drcs/dep/nodelib/dep"
-	_ "drcs/dep/nodelib/batchdistribution"
+	//_ "drcs/dep/nodelib/demanderonly"
+	//_ "drcs/dep/nodelib/dep"
+	//_ "drcs/dep/nodelib/batchdistribution"
 	_ "drcs/dep/nodelib/crp"
 
 	"fmt"

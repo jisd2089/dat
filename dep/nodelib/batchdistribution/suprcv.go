@@ -77,7 +77,7 @@ func checkMD5Func(ctx *Context) {
 		return
 	}
 
-	ctx.AddQueue(&request.DataRequest{
+	ctx.AddChanQueue(&request.DataRequest{
 		Rule:         "pingRedis",
 		Method:       "PUT",
 		TransferType: request.NONETYPE,

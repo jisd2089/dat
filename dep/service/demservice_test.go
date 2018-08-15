@@ -7,13 +7,7 @@ package service
 
 import (
 	"testing"
-	"github.com/valyala/fasthttp"
-	"github.com/aarzilli/golua/lua"
 )
 func TestSendDemReqToSup(t *testing.T) {
-	NewDemService().SendDemReqToSup(&fasthttp.RequestCtx{})
-}
-
-func TestLua(t *testing.T) {
-	lua.NewState()
+	//NewDemService().SendDemReqToSup(&fasthttp.RequestCtx{})
 }

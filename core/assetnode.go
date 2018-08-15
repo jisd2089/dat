@@ -20,7 +20,6 @@ import (
 	"reflect"
 
 	"github.com/henrylee2cn/teleport"
-	"drcs/core/interaction/response"
 )
 
 // 数据资产方
@@ -35,7 +34,7 @@ type (
 		PushActiveDataBox(original *databox.DataBox) *databox.DataBox            // 将DataBox放入active channel
 		Run()                                                                    // 阻塞式运行直至任务完成（须在所有应当配置项配置完成后调用）
 		SyncRun()                                                                // 同步运行ActiveBox
-		RunActiveBox(b *databox.DataBox, obj interface{}) response.DataResponse // 执行ActiveBox请求，同步返回
+		//RunActiveBox(b *databox.DataBox, obj interface{}) response.DataResponse // 执行ActiveBox请求，同步返回
 		StopActiveBox(b *databox.DataBox)                                        // 停止Active DataBox
 		Stop()                                                                   // Offline 模式下中途终止任务（对外为阻塞式运行直至当前任务终止）
 		IsRunning() bool                                                         // 检查任务是否正在运行
@@ -45,7 +44,7 @@ type (
 		Status() int                                                             // 返回当前状态
 		GetDataBoxLib() []*databox.DataBox                                       // 获取全部databox种类
 		GetDataBoxByName(string) *databox.DataBox                                // 通过名字获取某DataBox
-		GetActiveDataBoxByName(string) *databox.DataBox                          // 通过名字获取某活跃DataBox
+		//GetActiveDataBoxByName(string) *databox.DataBox                          // 通过名字获取某活跃DataBox
 		GetDataBoxQueue() dataman.DataBoxQueue                                   // 获取DataBox队列接口实例
 		GetDataManPool() dataman.DataManPool                                     // 获取DataManPool
 		GetOutputLib() []string                                                  // 获取全部输出方式
@@ -58,7 +57,7 @@ type (
 		roleType     string        // 资产方角色类型
 		*cache.AppConf             // 全局配置
 		*databox.DataBoxSpecies    // 数据产品流种类
-		*databox.DataBoxActivites  // DataBox活跃列表
+		//*databox.DataBoxActivites  // DataBox活跃列表
 		*distribute.TaskBase       // 服务器与客户端间传递任务的存储库
 		dataman.DataBoxQueue       // 当前任务的数据产品流队列
 		dataman.DataManPool        // 配送回收池
@@ -90,7 +89,7 @@ func getNewNodeEntity() *NodeEntity {
 		newNodeEntity = &NodeEntity{
 			AppConf:          cache.Task,
 			DataBoxSpecies:   databox.Species,
-			DataBoxActivites: databox.Activites,
+			//DataBoxActivites: databox.Activites,
 			status:           status.STOPPED,
 			Teleport:         teleport.New(),
 			TaskBase:         distribute.NewTaskBase(),
@@ -244,9 +243,9 @@ func (self *NodeEntity) GetDataBoxByName(name string) *databox.DataBox {
 }
 
 // 通过名字获取某活跃databox
-func (self *NodeEntity) GetActiveDataBoxByName(name string) *databox.DataBox {
-	return self.DataBoxActivites.GetByName(name)
-}
+//func (self *NodeEntity) GetActiveDataBoxByName(name string) *databox.DataBox {
+//	return self.DataBoxActivites.GetByName(name)
+//}
 
 // 返回当前运行模式
 func (self *NodeEntity) GetMode() int {
@@ -319,14 +318,16 @@ func (ne *NodeEntity) exec() {
 	dataManCap := ne.DataManPool.Reset(10000)
 	//ne.CarrierPool.Reset(5)
 
-	fmt.Println(" *     DataManPool池容量为 %v\n", dataManCap)
+	fmt.Println(" *DataManPool池容量为 %v\n", dataManCap)
 
 	// 开始计时
 	cache.StartTime = time.Now()
 
 	//TODO 根据节点支持业务类型启动 两类DataBox
 	// goroutine 1
-	go ne.runDataBox()
+	for i := 0; i < 100; i++ {
+		go ne.runDataBox()
+	}
 	// goroutine 2
 	//go ne.goSyncRun()
 }
@@ -457,7 +458,7 @@ func (ne *NodeEntity) goRunDataBox(b *databox.DataBox) {
 		ne.RWMutex.RLock()
 		if ne.status != status.STOP {
 			m.Stop()
-			fmt.Println("DataManPool free")
+			//fmt.Println("DataManPool free")
 			ne.DataManPool.Free(m)
 		}
 		ne.RWMutex.RUnlock()
@@ -571,44 +572,44 @@ func (ne *NodeEntity) goManRunBox(b *databox.DataBox) {
 }
 
 // 执行ActiveBox请求，同步返回
-func (ne *NodeEntity) RunActiveBox(b *databox.DataBox, obj interface{}) response.DataResponse {
-	var context *databox.Context
-	var dataResp response.DataResponse
-
-	m := ne.DataManPool.Use()
-	if m != nil {
-		// 执行并返回结果消息
-		ne.RWMutex.RLock()
-		context = m.MiniInit(b).RunRequest(obj)
-
-		dataResp = *context.DataResponse
-		defer databox.PutContext(context)
-
-		// 该条请求文件结果存入pipeline
-		om := ne.DataManPool.GetOneById(b.OrigDataManId)
-		//fmt.Println("dataman write to file, manId: ", om.GetId())
-		//fmt.Println("dataman write content to file: ", context)
-		for _, f := range context.PullFiles() {
-			if om.GetPipeline().CollectFile(f) != nil {
-				break
-			}
-		}
-		// 该条请求文本结果存入pipeline
-		for _, item := range context.PullItems() {
-			if om.GetPipeline().CollectData(item) != nil {
-				break
-			}
-		}
-
-		// 任务结束后回收该信使
-		if ne.status != status.STOP {
-			m.Stop() // 停止信使
-			ne.DataManPool.Free(m)
-		}
-		ne.RWMutex.RUnlock()
-	}
-	return dataResp
-}
+//func (ne *NodeEntity) RunActiveBox(b *databox.DataBox, obj interface{}) response.DataResponse {
+//	var context *databox.Context
+//	var dataResp response.DataResponse
+//
+//	m := ne.DataManPool.Use()
+//	if m != nil {
+//		// 执行并返回结果消息
+//		ne.RWMutex.RLock()
+//		context = m.MiniInit(b).RunRequest(obj)
+//
+//		dataResp = *context.DataResponse
+//		defer databox.PutContext(context)
+//
+//		// 该条请求文件结果存入pipeline
+//		//om := ne.DataManPool.GetOneById(b.OrigDataManId)
+//		//fmt.Println("dataman write to file, manId: ", om.GetId())
+//		//fmt.Println("dataman write content to file: ", context)
+//		//for _, f := range context.PullFiles() {
+//		//	if om.GetPipeline().CollectFile(f) != nil {
+//		//		break
+//		//	}
+//		//}
+//		//// 该条请求文本结果存入pipeline
+//		//for _, item := range context.PullItems() {
+//		//	if om.GetPipeline().CollectData(item) != nil {
+//		//		break
+//		//	}
+//		//}
+//
+//		// 任务结束后回收该信使
+//		if ne.status != status.STOP {
+//			m.Stop() // 停止信使
+//			ne.DataManPool.Free(m)
+//		}
+//		ne.RWMutex.RUnlock()
+//	}
+//	return dataResp
+//}
 
 func (ne *NodeEntity) StopActiveBox(b *databox.DataBox) {
 	go func() {
@@ -618,7 +619,7 @@ func (ne *NodeEntity) StopActiveBox(b *databox.DataBox) {
 		defer ne.RWMutex.RUnlock()
 
 		close(b.BlockChan)
-		b.RemoveActiveDataBox()
+		//b.RemoveActiveDataBox()
 
 		//count := 0
 		//for {

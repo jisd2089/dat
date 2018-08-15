@@ -69,12 +69,12 @@ type ReqBalancePamat struct {
 	Vkey      string  `json:"Vkey"`
 }
 
-func ApplyBalance(accId string, unitPrice float64, quotaNum int64, balanceUrl string) (*errors.MeanfulError) {
+func ApplyBalance(accId string, unitPrice float64, quotaNum int64, balanceUrl string) (float64, *errors.MeanfulError) {
 
 	BalanceLock.RLock()
 	if _, ok := BanlanceMutex[accId]; !ok {
 		BalanceLock.RUnlock()
-		return errors.RawNew("042000", fmt.Sprintf(" memId[%s] balance empty ", accId))
+		return 0, errors.RawNew("042000", fmt.Sprintf(" memId[%s] balance empty ", accId))
 	}
 	BalanceLock.RUnlock()
 
@@ -109,22 +109,22 @@ func ApplyBalance(accId string, unitPrice float64, quotaNum int64, balanceUrl st
 	reqBalanceParamByte, err := json.Marshal(ReqBalancePamat)
 	if err != nil {
 		logger.Error("Marshal reqBalanceParam error!")
-		return errors.RawNew("042000", "Marshal reqBalanceParam error!")
+		return 0, errors.RawNew("042000", "Marshal reqBalanceParam error!")
 	}
 	client := http.Client{}
 
-	logger.Error("apply balance start:", string(reqBalanceParamByte))
+	logger.Info("apply balance start:", string(reqBalanceParamByte))
 	resp, err := client.Post(balanceUrl, "application/json", bytes.NewReader(reqBalanceParamByte))
 	defer resp.Body.Close()
 	if err != nil {
 		logger.Error(fmt.Sprintf("%s Apply balance error, err : %s", balanceUrl, err.Error()))
-		return errors.RawNew("042000", "Apply balance error")
+		return 0, errors.RawNew("042000", "Apply balance error")
 	}
 
 	respData, err := ioutil.ReadAll(resp.Body)
-	logger.Error("apply balance end:", string(respData))
+	logger.Info("apply balance end:", string(respData))
 	if err != nil {
-		return errors.RawNew("042000", "Read resp.Body error")
+		return 0, errors.RawNew("042000", "Read resp.Body error")
 	}
 
 	var ResPamat struct {
@@ -136,7 +136,7 @@ func ApplyBalance(accId string, unitPrice float64, quotaNum int64, balanceUrl st
 	}
 	err = json.Unmarshal(respData, &ResPamat)
 	if err != nil {
-		return errors.RawNew("021001", "Unmarshal balanceHttp respData error")
+		return 0, errors.RawNew("021001", "Unmarshal balanceHttp respData error")
 	}
 
 	resCode := ResPamat.ResCode
@@ -145,13 +145,15 @@ func ApplyBalance(accId string, unitPrice float64, quotaNum int64, balanceUrl st
 
 	// "000000"：全部成功   "000001"：部分成功
 	if resCode != "000000" && resCode != "000001" {
-		return errors.RawNew("042000", msg)
+		return 0, errors.RawNew("042000", msg)
 	}
 
-	if err := UpdateBalance(accId, (float64)(balance)*unitPrice); err != nil {
-		return errors.RawNew("042000", err.Error())
+	applyAmount := (float64)(balance) * unitPrice
+
+	if err := UpdateBalance(accId, applyAmount); err != nil {
+		return 0, errors.RawNew("042000", err.Error())
 	}
 
-	return nil
+	return applyAmount, nil
 }
 

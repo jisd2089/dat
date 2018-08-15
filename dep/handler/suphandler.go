@@ -63,17 +63,17 @@ func (s *SupHandler) RecDemReqAndPushToSup(ctx *fasthttp.RequestCtx) {
 		var wg sync.WaitGroup
 		wg.Add(1)
 		b.StartWG = &wg
-		b.PairDataBoxId = pairDataBoxId
+		//b.PairDataBoxId = pairDataBoxId
 
 		assetnode.AssetNodeEntity.PushActiveDataBox(b)
 		wg.Wait()
 		//fmt.Println("waitgroup end")
 
-		ab := assetnode.AssetNodeEntity.GetActiveDataBoxByName(activeDataBoxName)
-		//fmt.Println("active databox name", ab.Name)
-		dataResp := assetnode.AssetNodeEntity.RunActiveBox(ab, batchReqestVo)
-		//fmt.Println("dataResp:", dataResp)
-		ctx.SetStatusCode(dataResp.StatusCode)
+		//ab := assetnode.AssetNodeEntity.GetActiveDataBoxByName(activeDataBoxName)
+		////fmt.Println("active databox name", ab.Name)
+		//dataResp := assetnode.AssetNodeEntity.RunActiveBox(ab, batchReqestVo)
+		////fmt.Println("dataResp:", dataResp)
+		//ctx.SetStatusCode(dataResp.StatusCode)
 	case constant.ReqType_Normal:
 		fmt.Println("rec ReqType_Normal req")
 		//ab := assetnode.AssetNodeEntity.GetActiveDataBoxByName(activeDataBoxName)
@@ -87,10 +87,10 @@ func (s *SupHandler) RecDemReqAndPushToSup(ctx *fasthttp.RequestCtx) {
 
 	case constant.ReqType_End:
 		fmt.Println("end activeDataBoxName: ***************", activeDataBoxName)
-		ab := assetnode.AssetNodeEntity.GetActiveDataBoxByName(activeDataBoxName)
-		dataResp := assetnode.AssetNodeEntity.RunActiveBox(ab, batchReqestVo)
-		//fmt.Println("dataResp:", dataResp)
-		ctx.SetStatusCode(dataResp.StatusCode)
+		//ab := assetnode.AssetNodeEntity.GetActiveDataBoxByName(activeDataBoxName)
+		//dataResp := assetnode.AssetNodeEntity.RunActiveBox(ab, batchReqestVo)
+		////fmt.Println("dataResp:", dataResp)
+		//ctx.SetStatusCode(dataResp.StatusCode)
 		//assetnode.AssetNodeEntity.StopActiveBox(ab)
 	}
 

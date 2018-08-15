@@ -9,13 +9,12 @@ import (
 	"drcs/core/interaction/request"
 	. "drcs/dep/nodelib/crp/edunwang"
 	. "drcs/dep/nodelib/crp/common"
-	"encoding/json"
 	"strings"
 	"strconv"
 	"github.com/valyala/fasthttp"
 	"time"
 	logger "drcs/log"
-	"fmt"
+	"encoding/json"
 )
 
 func init() {
@@ -124,7 +123,7 @@ func parseRespParamFunc(ctx *Context) {
 		return
 	}
 
-	fmt.Println(string(requestDataByte))
+	//fmt.Println(string(requestDataByte))
 
 	dataReq := &request.DataRequest{
 		Rule:         "aesencrypt",
@@ -167,7 +166,7 @@ func aesEncryptParamFunc(ctx *Context) {
 		return
 	}
 
-	fmt.Println("aesEncryptParamFunc:", ctx.DataResponse.BodyStr)
+	//fmt.Println("aesEncryptParamFunc:", ctx.DataResponse.BodyStr)
 
 	header := &fasthttp.RequestHeader{}
 	header.SetContentType("application/json;charset=UTF-8")
@@ -194,7 +193,7 @@ func aesEncryptParamFunc(ctx *Context) {
 		Rule:         "execquery",
 		Method:       "POSTBODY",
 		Url:          EDUN_URL_TEST,
-		TransferType: request.FASTHTTP,
+		TransferType: request.NONETYPE,
 		Reloadable:   true,
 		HeaderArgs:   header,
 		Parameters:   uriDataByte,
@@ -212,7 +211,7 @@ func queryResponseFunc(ctx *Context) {
 		return
 	}
 
-	fmt.Println("response body:", string(ctx.DataResponse.Body))
+	//fmt.Println("response body:", string(ctx.DataResponse.Body))
 
 	responseData := &ResponseData{}
 	if err := json.Unmarshal(ctx.DataResponse.Body, responseData); err != nil {
@@ -223,8 +222,9 @@ func queryResponseFunc(ctx *Context) {
 
 	// TODO mock
 	responseData.StatusCode = "100"
-	//responseData.Message = "null"
-	//responseData.RspData = ""
+	responseData.Message = "null"
+	responseData.RspData = "J0lXQtYtkBmZrkXFAE4QTWJUYEzLJcWyFHAx1VeJ6TI="
+	// mock end
 
 	if !strings.EqualFold(responseData.StatusCode, EDUN_SUCC) {
 		logger.Error("[queryResponseFunc] edunwang execute query response [%s]", responseData.Message)
@@ -310,7 +310,7 @@ func aesDecryptFunc(ctx *Context) {
 	// TODO mock
 	//respData.Tag = "疑似仿冒包装"
 	//respData.EvilScore = 77
-	fmt.Println("decrypt response:", string(ctx.DataResponse.Body))
+	//fmt.Println("decrypt response:", string(ctx.DataResponse.Body))
 
 	if err := json.Unmarshal(ctx.DataResponse.Body, respData); err != nil {
 		logger.Error("[aesDecryptFunc] json unmarshal response data err [%s]", err.Error())
@@ -339,7 +339,7 @@ func aesDecryptFunc(ctx *Context) {
 		return
 	}
 
-	fmt.Println(string(pubRespMsgByte))
+	//fmt.Println(string(pubRespMsgByte))
 
 	ctx.GetDataBox().BodyChan <- pubRespMsgByte
 
