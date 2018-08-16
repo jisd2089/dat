@@ -356,9 +356,9 @@ func singleQueryFunc(ctx *Context) {
 	dataRequest := &request.DataRequest{
 		Rule:   "queryresponse",
 		Method: "POSTBODY",
-		Url:    "http://127.0.0.1:8096/api/crp/sup",
-		//Url:          "http://10.101.12.43:8097/api/crp/sup",
-		TransferType: request.FASTHTTP,
+		//Url:    "http://127.0.0.1:8096/api/crp/sup",
+		Url:          "http://10.101.12.43:8097/api/crp/sup",
+		TransferType: request.NONETYPE,
 		Reloadable:   true,
 		HeaderArgs:   header,
 		Parameters:   ctx.GetDataBox().HttpRequestBody,
@@ -401,21 +401,21 @@ func callResponseFunc(ctx *Context) {
 
 	pubRespMsg := &PubResProductMsg{}
 	// TODO mock
-	//pubAnsInfo := &PubAnsInfo{}
-	//pubAnsInfo.ResCode = "000000"
-	//pubAnsInfo.ResMsg = "成功"
-	//pubRespMsg.PubAnsInfo = pubAnsInfo
-	//pubRespMsg.DetailInfo.Tag = "疑似仿冒包装"
-	//pubRespMsg.DetailInfo.EvilScore = 77
-	//ctx.DataResponse.Body, _ = json.Marshal(pubRespMsg)
+	pubAnsInfo := &PubAnsInfo{}
+	pubAnsInfo.ResCode = "000000"
+	pubAnsInfo.ResMsg = "成功"
+	pubRespMsg.PubAnsInfo = pubAnsInfo
+	pubRespMsg.DetailInfo.Tag = "疑似仿冒包装"
+	pubRespMsg.DetailInfo.EvilScore = 77
+	ctx.DataResponse.Body, _ = json.Marshal(pubRespMsg)
 	//fmt.Println(string(ctx.DataResponse.Body))
 	// mock-end
 
-	if err := json.Unmarshal(ctx.DataResponse.Body, pubRespMsg); err != nil {
-		logger.Error("[callResponseFunc] unmarshal response body to PubResProductMsg_0_000_000 err: [%s] ", err.Error())
-		returnBalanceFunc(ctx)
-		return
-	}
+	//if err := json.Unmarshal(ctx.DataResponse.Body, pubRespMsg); err != nil {
+	//	logger.Error("[callResponseFunc] unmarshal response body to PubResProductMsg_0_000_000 err: [%s] ", err.Error())
+	//	returnBalanceFunc(ctx)
+	//	return
+	//}
 
 	ctx.GetDataBox().BodyChan <- ctx.DataResponse.Body
 

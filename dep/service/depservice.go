@@ -291,6 +291,7 @@ func (s *DepService) ProcessCrpTrans(ctx *fasthttp.RequestCtx) {
 	b.SetParam("prdtIdCd", "1003004")
 
 	// redis address
+	fmt.Println("redis addr: ", common.Redis.Addr)
 	b.Params = common.Redis.Addr
 	b.BodyChan = bodyChan
 

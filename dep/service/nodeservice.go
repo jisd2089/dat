@@ -52,7 +52,6 @@ func (s *NodeService) Init() {
 
 	s.init()
 
-	security.Initialize()
 	//fmt.Println("init end")
 }
 
@@ -67,7 +66,10 @@ func (s *NodeService) init() {
 	select {
 	case ret := <-s.nodeCh:
 		fmt.Println("logger init", ret)
+
 		logger.Initialize()
+
+		security.Initialize()
 		break
 	}
 

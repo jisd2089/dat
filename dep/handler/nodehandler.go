@@ -20,6 +20,7 @@ import (
 	"drcs/core/interaction/request"
 	"drcs/dep/service"
 	"bytes"
+	"fmt"
 )
 
 /**
@@ -39,8 +40,6 @@ func (n *NodeHandler) InitSecurityConfig(ctx *fasthttp.RequestCtx) {
 	token := GetCommonSettings().Node.Token
 	services_type := GetCommonSettings().Node.Role
 	url := GetCommonSettings().Node.DlsUrl
-
-	url = "http://127.0.0.1:8088/api/init/node/"
 
 	if isLocal := string(ctx.FormValue("isLocal")); strings.ToLower(isLocal) == "true" {
 		hash := sha256.New()
@@ -67,11 +66,13 @@ func (n *NodeHandler) InitSecurityConfig(ctx *fasthttp.RequestCtx) {
 	response := &fasthttp.Response{}
 	err0 := fasthttp.Do(request, response)
 	if err0 != nil {
-		logger.Error("post dls init node err ", err0)
+		logger.Error("post dls init node err ", err0.Error())
 		ctx.Response.SetBody([]byte("post dls init node failed"))
 		return
 	}
 	data := response.Body()
+
+	fmt.Println("response body:", string(data))
 
 	err := proto.Unmarshal(data, res_init_msg)
 	if err != nil {

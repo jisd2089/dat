@@ -25,7 +25,7 @@ var (
 	loggers    = make(map[string]*logrus.Logger)
 )
 
-func Initialize(configPath string) error {
+func  Initialize(configPath string) error {
 	if configPath != "" {
 		se, err := settings.CreateSettingsFromYAML(configPath)
 		if err != nil {

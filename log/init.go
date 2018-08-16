@@ -21,7 +21,8 @@ func Initialize() {
 
 	se := settings.GetCommonSettings()
 	configPath := se.Log.ConfigPath
-	if configPath == "" || !util.IsDirExists(configPath) {
+
+	if configPath == "" || !util.IsFileExists(configPath) {
 		Info("log initialize, use default configuration file: %s", defaultConfigPath)
 		configPath = defaultConfigPath
 	}
