@@ -44,6 +44,7 @@ type (
 		GetPostArgs() map[string]string
 		GetHeaderArgs() *fasthttp.RequestHeader
 		GetRuleName() string
+		GetPreRuleName() string
 
 		Param(key string) string
 		ParamKeys() []string

@@ -319,7 +319,7 @@ func reduceRedisQuatoFunc(ctx *Context) {
 	supMemId := orPolicyMap.Calllist[0]
 	ctx.GetDataBox().SetParam("supMemId", supMemId)
 
-	taskIdStr := orPolicyMap.MemTaskIdMap["supMemId"]
+	taskIdStr := orPolicyMap.MemTaskIdMap[supMemId]
 	ctx.GetDataBox().SetParam("taskIdStr", taskIdStr)
 
 	demMemberId := ctx.GetDataBox().Param("demMemberId")
@@ -342,6 +342,7 @@ func reduceRedisQuatoFunc(ctx *Context) {
 		TransferType:  request.NONETYPE,
 		Reloadable:    true,
 		CommandParams: orPolicyMap.Calllist,
+		PreRule:       "reduceredisquato",
 	})
 }
 
@@ -402,9 +403,20 @@ func staticQueryFunc(ctx *Context) {
 				return
 			}
 
+			// TODO mock
+			pubAnsInfo := &PubAnsInfo{}
+			pubAnsInfo.ResCode = "000000"
+			pubAnsInfo.ResMsg = "成功"
+			pubRespMsg.PubAnsInfo = pubAnsInfo
+			pubRespMsg.DetailInfo.Tag = "疑似仿冒包装"
+			pubRespMsg.DetailInfo.EvilScore = 77
+			//ctx.DataResponse.Body, _ = json.Marshal(pubRespMsg)
+			//fmt.Println(string(ctx.DataResponse.Body))
+			// TODO mock-end
+
 			if strings.EqualFold(pubRespMsg.PubAnsInfo.ResCode, CenterCodeSucc) {
 				ctx.AddChanQueue(&request.DataRequest{
-					Rule:         "queryresponse",
+					Rule:         "queryedunresponse",
 					Method:       "POSTBODY",
 					TransferType: request.NONETYPE,
 					Reloadable:   true,
@@ -452,6 +464,7 @@ func execQuery(ctx *Context, supMemberId string) error {
 		HeaderArgs:   header,
 		Parameters:   ctx.GetDataBox().HttpRequestBody,
 		ConnTimeout:  time.Duration(time.Second * 300),
+		PreRule:      "staticquery",
 	}
 
 	ctx.AddChanQueue(dataRequest)
@@ -472,7 +485,7 @@ func callResponseFunc(ctx *Context) {
 	pubRespMsg.DetailInfo.EvilScore = 77
 	ctx.DataResponse.Body, _ = json.Marshal(pubRespMsg)
 	//fmt.Println(string(ctx.DataResponse.Body))
-	// mock-end
+	// TODO mock-end
 
 	//if err := json.Unmarshal(ctx.DataResponse.Body, pubRespMsg); err != nil {
 	//	logger.Error("[callResponseFunc] unmarshal response body to PubResProductMsg_0_000_000 err: [%s] ", err.Error())

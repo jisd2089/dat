@@ -30,6 +30,7 @@ type DataRequest struct {
 	Parameters    []byte                  // 传参
 	CommandName   string                  // command命令名称
 	CommandParams []string                // command参数
+	PreRule 	  string				  // 前一个rule
 	Bobject       interface{}             // 业务参数
 	PostData      string                  // POST values
 	XidParams     map[string]interface{}  // xid专用参数
@@ -294,6 +295,10 @@ func (self *DataRequest) GetRedirectTimes() int {
 
 func (self *DataRequest) GetRuleName() string {
 	return self.Rule
+}
+
+func (self *DataRequest) GetPreRuleName() string {
+	return self.PreRule
 }
 
 func (self *DataRequest) SetRuleName(ruleName string) *DataRequest {

@@ -45,6 +45,11 @@ func Initialize() error {
 		return fmt.Errorf("配置缺失:%s", settings_xpath_filepath)
 	}
 
+	// TODO
+	if !util.IsFileExists(filePath) {
+		filePath = "D:/GoglandProjects/src/drcs/dep/security/memkeys.xml"
+	}
+
 	key, err := parseConfigFileAndCalcPriKey(filePath)
 	if err != nil {
 		return err
