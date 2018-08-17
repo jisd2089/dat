@@ -167,7 +167,6 @@ func aesEncryptParamFunc(ctx *Context) {
 	}
 
 	//fmt.Println("aesEncryptParamFunc:", ctx.DataResponse.BodyStr)
-
 	header := &fasthttp.RequestHeader{}
 	header.SetContentType("application/json;charset=UTF-8")
 	header.SetMethod("POST")

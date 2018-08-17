@@ -26,6 +26,7 @@ import (
 	"drcs/common/cncrypt"
 	"strings"
 	"encoding/json"
+	"drcs/dep/member"
 )
 
 func init() {
@@ -64,11 +65,11 @@ var DEMREQUEST = &DataBox{
 			"staticquery": {
 				ParseFunc: staticQueryFunc,
 			},
-			"queryresponse": {
+			"queryedunresponse": {
 				ParseFunc: callResponseFunc,
 			},
-			"aesdecrypt": {
-				ParseFunc: aesDecryptFunc,
+			"querysmartresponse": {
+				ParseFunc: callSmartResponseFunc,
 			},
 			"returnbalance": {
 				ParseFunc: returnBalanceFunc,
@@ -88,11 +89,11 @@ func demrequestRootFunc(ctx *Context) {
 	ctx.GetDataBox().SetParam("startTime", strconv.Itoa(start))
 
 	ctx.AddChanQueue(&request.DataRequest{
-		Rule:         "parseparam",
-		Method:       "PING",
-		TransferType: request.REDIS,
-		Reloadable:   true,
-		CommandParams: ctx. GetDataBox().Params,
+		Rule:          "parseparam",
+		Method:        "PING",
+		TransferType:  request.REDIS,
+		Reloadable:    true,
+		CommandParams: ctx.GetDataBox().Params,
 	})
 }
 
@@ -181,7 +182,7 @@ func depAuthFunc(ctx *Context) {
 		TransferType: request.NONETYPE,
 		Reloadable:   true,
 		//Parameters:   reqDataJson,
-		ConnTimeout:  time.Duration(time.Second * 300),
+		ConnTimeout: time.Duration(time.Second * 300),
 	})
 }
 
@@ -231,17 +232,17 @@ func applyBalanceFunc(ctx *Context) {
 
 		transType = request.REDIS
 
-		amount = strconv.FormatFloat(applyAmount * 1000, 'E', -1, 64)
+		amount = strconv.FormatFloat(applyAmount*1000, 'E', -1, 64)
 
 	} else {
 		transType = request.NONETYPE
 	}
 
 	dataRequest := &request.DataRequest{
-		Rule:          "updateredisquato",
-		Method:        "HIncrBy",
-		TransferType:  transType,
-		Reloadable:    true,
+		Rule:         "updateredisquato",
+		Method:       "HIncrBy",
+		TransferType: transType,
+		Reloadable:   true,
 		//Parameters:    ctx.DataResponse.Body,
 		CommandParams: ctx.GetDataBox().Params,
 	}
@@ -279,15 +280,15 @@ func updateRedisQuatoFunc(ctx *Context) {
 	}
 
 	dataRequest := &request.DataRequest{
-		Rule:          "reduceredisquato",
-		Method:        "HDecrBy",
-		TransferType:  request.REDIS,
-		Reloadable:    true,
+		Rule:         "reduceredisquato",
+		Method:       "HDecrBy",
+		TransferType: request.REDIS,
+		Reloadable:   true,
 		//Parameters:    ctx.DataResponse.Body,
 		CommandParams: ctx.GetDataBox().Params,
 	}
 
-	amount := strconv.FormatFloat(unitPrice * 1000, 'E', -1, 64)
+	amount := strconv.FormatFloat(unitPrice*1000, 'E', -1, 64)
 
 	dataRequest.SetParam("key", strconv.Itoa(os.Getpid()))
 	dataRequest.SetParam("field", memberId)
@@ -321,6 +322,12 @@ func reduceRedisQuatoFunc(ctx *Context) {
 	taskIdStr := orPolicyMap.MemTaskIdMap["supMemId"]
 	ctx.GetDataBox().SetParam("taskIdStr", taskIdStr)
 
+	demMemberId := ctx.GetDataBox().Param("demMemberId")
+
+	seqUtil := &util.SeqUtil{}
+	busiSerialNo := seqUtil.GenBusiSerialNo(demMemberId)
+	ctx.GetDataBox().SetParam("busiSerialNo", busiSerialNo)
+
 	var nextRule string
 	switch orPolicyMap.RouteMethod {
 	case 1:
@@ -330,34 +337,37 @@ func reduceRedisQuatoFunc(ctx *Context) {
 	}
 
 	ctx.AddChanQueue(&request.DataRequest{
-		Rule:         nextRule,
-		Method:       "GET",
-		TransferType: request.NONETYPE,
-		Reloadable:   true,
-		//Parameters:   ctx.DataResponse.Body,
+		Rule:          nextRule,
+		Method:        "GET",
+		TransferType:  request.NONETYPE,
+		Reloadable:    true,
+		CommandParams: orPolicyMap.Calllist,
 	})
 }
 
 func singleQueryFunc(ctx *Context) {
 	logger.Info("singleQueryFunc start")
 
-	demMemberId := ctx.GetDataBox().Param("demMemberId")
-
-	seqUtil := &util.SeqUtil{}
-	busiSerialNo := seqUtil.GenBusiSerialNo(demMemberId)
+	supMemberId := ctx.DataResponse.BodyStrs[0]
+	memberDetailInfo, err := member.GetPartnerInfoById(supMemberId)
+	if err != nil {
+		logger.Error("[singleQueryFunc] get partner info by memberid [%s] error: [%s]", supMemberId, err.Error())
+		returnBalanceFunc(ctx)
+		return
+	}
 
 	header := &fasthttp.RequestHeader{}
 	header.SetContentType("application/json;charset=UTF-8")
 	header.SetMethod("POST")
 	header.Set("prdtIdCd", ctx.GetDataBox().Param("prdtIdCd"))
 	header.Set("serialNo", ctx.GetDataBox().Param("serialNo"))
-	header.Set("busiSerialNo", busiSerialNo)
+	header.Set("busiSerialNo", ctx.GetDataBox().Param("busiSerialNo"))
 
 	dataRequest := &request.DataRequest{
-		Rule:   "queryresponse",
+		Rule:   "queryedunresponse",
 		Method: "POSTBODY",
-		//Url:    "http://127.0.0.1:8096/api/crp/sup",
-		Url:          "http://10.101.12.43:8097/api/crp/sup",
+		//Url:    "http://127.0.0.1:8096/api/crp/sup", "http://10.101.12.43:8097/api/crp/sup"
+		Url:          memberDetailInfo.SvrURL,
 		TransferType: request.NONETYPE,
 		Reloadable:   true,
 		HeaderArgs:   header,
@@ -365,35 +375,88 @@ func singleQueryFunc(ctx *Context) {
 		ConnTimeout:  time.Duration(time.Second * 300),
 	}
 
-	ctx.GetDataBox().SetParam("busiSerialNo", busiSerialNo)
-
 	ctx.AddChanQueue(dataRequest)
 }
 
 func staticQueryFunc(ctx *Context) {
 	logger.Info("staticQueryFunc start")
 
-	if ctx.DataResponse.StatusCode == 200 && strings.EqualFold(ctx.DataResponse.ReturnCode, "000000") {
-		ctx.AddChanQueue(&request.DataRequest{
-			Rule:         "queryresponse",
-			Method:       "POSTBODY",
-			Url:          "http://api.edunwang.com/test/black_check?appid=xxxx&secret_id=xxxx&seq_no=xxx&product_id=xxx&req_data=xxxx",
-			TransferType: request.NONETYPE,
-			Reloadable:   true,
-		})
-		return
+	callList := ctx.DataResponse.BodyStrs
+
+	// 进行static 第一次查询
+	if strings.EqualFold(ctx.DataResponse.PreRule, "reduceredisquato") {
+
+		ctx.GetDataBox().RequestIndex = 0
+
+		if err := execQuery(ctx, callList[ctx.GetDataBox().RequestIndex]); err != nil {
+			returnBalanceFunc(ctx)
+			return
+		}
+
+	} else {
+		if ctx.DataResponse.StatusCode == 200 && strings.EqualFold(ctx.DataResponse.ReturnCode, "000000") {
+			pubRespMsg := &PubResProductMsg{}
+			if err := json.Unmarshal(ctx.DataResponse.Body, pubRespMsg); err != nil {
+				logger.Error("[callResponseFunc] unmarshal response body to PubResProductMsg_0_000_000 err: [%s] ", err.Error())
+				returnBalanceFunc(ctx)
+				return
+			}
+
+			if strings.EqualFold(pubRespMsg.PubAnsInfo.ResCode, CenterCodeSucc) {
+				ctx.AddChanQueue(&request.DataRequest{
+					Rule:         "queryresponse",
+					Method:       "POSTBODY",
+					TransferType: request.NONETYPE,
+					Reloadable:   true,
+					Parameters:   ctx.DataResponse.Body,
+				})
+				return
+
+			} else {
+
+				ctx.GetDataBox().RequestIndex ++
+
+				if ctx.GetDataBox().RequestIndex > len(callList)-1 {
+					returnBalanceFunc(ctx)
+					return
+				}
+
+				if err := execQuery(ctx, callList[ctx.GetDataBox().RequestIndex]); err != nil {
+					returnBalanceFunc(ctx)
+					return
+				}
+			}
+		}
 	}
+}
+
+func execQuery(ctx *Context, supMemberId string) error {
+	memberDetailInfo, err := member.GetPartnerInfoById(supMemberId)
+	if err != nil {
+		logger.Error("[singleQueryFunc] get partner info by memberid [%s] error: [%s]", supMemberId, err.Error())
+		return err
+	}
+	header := &fasthttp.RequestHeader{}
+	header.SetContentType("application/json;charset=UTF-8")
+	header.SetMethod("POST")
+	header.Set("prdtIdCd", ctx.GetDataBox().Param("prdtIdCd"))
+	header.Set("serialNo", ctx.GetDataBox().Param("serialNo"))
+	header.Set("busiSerialNo", ctx.GetDataBox().Param("busiSerialNo"))
 
 	dataRequest := &request.DataRequest{
 		Rule:         "staticquery",
 		Method:       "POSTBODY",
-		Url:          "http://api.edunwang.com/test/black_check?appid=xxxx&secret_id=xxxx&seq_no=xxx&product_id=xxx&req_data=xxxx",
-		TransferType: request.FASTHTTP,
+		Url:          memberDetailInfo.SvrURL,
+		TransferType: request.NONETYPE,
 		Reloadable:   true,
-		Parameters:   ctx.DataResponse.Body,
+		HeaderArgs:   header,
+		Parameters:   ctx.GetDataBox().HttpRequestBody,
+		ConnTimeout:  time.Duration(time.Second * 300),
 	}
 
 	ctx.AddChanQueue(dataRequest)
+
+	return nil
 }
 
 func callResponseFunc(ctx *Context) {
@@ -501,7 +564,7 @@ func returnBalanceFunc(ctx *Context) {
 		CommandParams: ctx.GetDataBox().Params,
 	}
 
-	amount := strconv.FormatFloat(unitPrice * 1000, 'E', -1, 64)
+	amount := strconv.FormatFloat(unitPrice*1000, 'E', -1, 64)
 
 	dataRequest.SetParam("key", strconv.Itoa(os.Getpid()))
 	dataRequest.SetParam("field", memberId)

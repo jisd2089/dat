@@ -48,7 +48,7 @@ func (s *NodeService) Init() {
 	NewDepService().Init()
 	NewMemberService().Init()
 	NewOrderService().Init()
-	NewRouteService().Init()
+	//NewRouteService().Init()
 
 	s.init()
 
@@ -62,7 +62,7 @@ func (s *NodeService) init() {
 
 	go s.initApollo(filepath.Clean(path))
 
-	// 初始化日志
+	// 初始化日志 和 security
 	select {
 	case ret := <-s.nodeCh:
 		fmt.Println("logger init", ret)

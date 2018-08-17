@@ -15,6 +15,7 @@ type DataResponse struct {
 	Body        []byte                   // 返回消息体
 	BodyStr     string                   // 消息体字符串
 	BodyStrs    []string                 // 消息体字符串数组
+	PreRule     string                   // 前一个rule
 	Bobject     interface{}              // 业务参数
 	StatusCode  int                      // 返回码
 	ReturnCode  string                   // 业务返回码

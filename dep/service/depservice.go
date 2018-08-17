@@ -13,6 +13,7 @@ import (
 	"drcs/core"
 	"drcs/core/interaction/request"
 	. "drcs/dep/nodelib/crp/common"
+	"drcs/common/util"
 	st "drcs/settings"
 	"path/filepath"
 	"drcs/dep/nodelib"
@@ -51,6 +52,9 @@ func NewDepService() *DepService {
 
 func (s *DepService) Init() {
 	path := filepath.Join(SettingPath, "trans.properties")
+	if !util.IsFileExists(path) {
+		return
+	}
 	go initTransConfig(filepath.Clean(path))
 }
 

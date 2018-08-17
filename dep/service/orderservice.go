@@ -15,7 +15,8 @@ import (
     Created: 2018-05-08 17:08:17
 */
 type OrderService struct {
-	lock       sync.RWMutex
+	lock    sync.RWMutex
+	orderCh chan bool
 }
 
 func NewOrderService() *OrderService {
@@ -23,11 +24,25 @@ func NewOrderService() *OrderService {
 }
 
 func (o *OrderService) Init() {
+	o.orderCh = make(chan bool, 1)
+
 	path := filepath.Join(SettingPath, "order.properties")
-	go initOrderConfig(filepath.Clean(path))
+	go o.initOrderConfig(filepath.Clean(path))
+
+	// 初始化order route
+	select {
+	case ret := <-o.orderCh:
+		fmt.Println(" order route init", ret)
+
+		for _, o := range order.GetOrderInfos().Order {
+			NewRouteService().InitByJobId(o.JobId)
+		}
+
+		break
+	}
 }
 
-func initOrderConfig(configDir string) {
+func (o *OrderService) initOrderConfig(configDir string) {
 	newAgollo := agollo.NewAgollo(configDir)
 	go newAgollo.Start()
 
@@ -57,5 +72,6 @@ func initOrderConfig(configDir string) {
 		}
 		//bytes, _ := json.Marshal(changeEvent)
 		//fmt.Println("event:", string(bytes))
+		o.orderCh <- true
 	}
 }

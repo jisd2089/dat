@@ -59,12 +59,6 @@ var SMARTREQUEST = &DataBox{
 			"queryresponse": {
 				ParseFunc: callSmartResponseFunc,
 			},
-			"aesdecrypt": {
-				ParseFunc: aesDecryptFunc,
-			},
-			"buildresp": {
-				ParseFunc: callResponseFunc,
-			},
 			"end": {
 				ParseFunc: procEndFunc,
 			},

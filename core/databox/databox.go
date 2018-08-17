@@ -42,6 +42,7 @@ type (
 		SubNamespace       func(self *DataBox, dataCell map[string]interface{}) string // 次级命名，用于输出文件、路径的命名，可依赖具体数据内容
 		//DetailCount        int                                                         // 明细条数
 		TsfSuccCount       int                                                         // 流通成功明细条数
+		RequestIndex 	   int 															// 请求索引
 		BlockChan          chan bool                                                   // 用于ActiveDataBox阻塞，持续活跃
 		StartWG            *sync.WaitGroup                                             // 启动成功通知
 		RuleTree           *RuleTree                                                   // 定义具体的配送规则树

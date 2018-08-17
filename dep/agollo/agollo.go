@@ -34,6 +34,16 @@ func NewAgollo(configFileName string) Agollo {
 	}
 }
 
+func NewAgolloByConfig(config *AppConfig) Agollo {
+	return &agollo{
+		appConfig: config,
+		repository: &Repository{
+			currentConnApolloConfig: &ApolloConnConfig{},
+			apolloConfigCache:       freecache.NewCache(apolloConfigCacheSize),
+		},
+	}
+}
+
 func (a *agollo) Start() {
 
 	//if loggerInterface != nil {

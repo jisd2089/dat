@@ -43,6 +43,7 @@ type (
 		GetXidParams() map[string]interface{}
 		GetPostArgs() map[string]string
 		GetHeaderArgs() *fasthttp.RequestHeader
+		GetRuleName() string
 
 		Param(key string) string
 		ParamKeys() []string

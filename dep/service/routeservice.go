@@ -61,3 +61,46 @@ func initRouteConfig(configDir string) {
 		}
 	}
 }
+
+func initRouteCfg(config *agollo.AppConfig, jobId string) {
+	newAgollo := agollo.NewAgolloByConfig(config)
+	go newAgollo.Start()
+
+	event := newAgollo.ListenChangeEvent()
+	for {
+		changeEvent := <-event
+
+		fmt.Println("initRouteConfig")
+
+		changesCnt := changeEvent.Changes["content"]
+		value := changesCnt.NewValue
+
+		switch changesCnt.ChangeType {
+		case 0:
+			orderRoute := &or.OrderRoute{}
+			err := xml.Unmarshal([]byte(value), orderRoute)
+			if err != nil {
+			}
+
+			orderRoute.LoadOrderRouteMap(jobId)
+
+			//order.SetOrderInfos(orderInfoList)
+		case 1:
+			orderRoute := &or.OrderRoute{}
+			err := xml.Unmarshal([]byte(value), orderRoute)
+			if err != nil {
+			}
+			//order.SetOrderInfos(orderInfoList)
+			orderRoute.LoadOrderRouteMap(jobId)
+		}
+	}
+}
+
+func (o *RouteService) InitByJobId(jobId string) {
+	config := &agollo.AppConfig{}
+	config.AppId = "DLS"
+	config.Cluster = "default"
+	config.Ip = "10.101.12.29:8085"
+	config.NamespaceName = fmt.Sprintf("route_%s.xml", jobId)
+	go initRouteCfg(config, jobId)
+}

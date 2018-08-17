@@ -119,6 +119,7 @@ func execPostByBody(req Request, dataResponse *DataResponse) {
 	dataResponse.ReturnCode = "000000"
 	dataResponse.Body = fresp.Body()
 	dataResponse.ReturnMsg = "请求成功"
+	dataResponse.PreRule = req.GetRuleName()
 
 	//pipelineClient := getPipelineClient(req.GetUrl())
 	//for {
