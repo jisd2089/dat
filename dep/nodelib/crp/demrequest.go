@@ -459,7 +459,7 @@ func execQuery(ctx *Context, supMemberId string) error {
 		Rule:         "staticquery",
 		Method:       "POSTBODY",
 		Url:          memberDetailInfo.SvrURL,
-		TransferType: request.NONETYPE,
+		TransferType: request.FASTHTTP,
 		Reloadable:   true,
 		HeaderArgs:   header,
 		Parameters:   ctx.GetDataBox().HttpRequestBody,
@@ -477,21 +477,21 @@ func callResponseFunc(ctx *Context) {
 
 	pubRespMsg := &PubResProductMsg{}
 	// TODO mock
-	pubAnsInfo := &PubAnsInfo{}
-	pubAnsInfo.ResCode = "000000"
-	pubAnsInfo.ResMsg = "成功"
-	pubRespMsg.PubAnsInfo = pubAnsInfo
-	pubRespMsg.DetailInfo.Tag = "疑似仿冒包装"
-	pubRespMsg.DetailInfo.EvilScore = 77
-	ctx.DataResponse.Body, _ = json.Marshal(pubRespMsg)
+	//pubAnsInfo := &PubAnsInfo{}
+	//pubAnsInfo.ResCode = "000000"
+	//pubAnsInfo.ResMsg = "成功"
+	//pubRespMsg.PubAnsInfo = pubAnsInfo
+	//pubRespMsg.DetailInfo.Tag = "疑似仿冒包装"
+	//pubRespMsg.DetailInfo.EvilScore = 77
+	//ctx.DataResponse.Body, _ = json.Marshal(pubRespMsg)
 	//fmt.Println(string(ctx.DataResponse.Body))
 	// TODO mock-end
 
-	//if err := json.Unmarshal(ctx.DataResponse.Body, pubRespMsg); err != nil {
-	//	logger.Error("[callResponseFunc] unmarshal response body to PubResProductMsg_0_000_000 err: [%s] ", err.Error())
-	//	returnBalanceFunc(ctx)
-	//	return
-	//}
+	if err := json.Unmarshal(ctx.DataResponse.Body, pubRespMsg); err != nil {
+		logger.Error("[callResponseFunc] unmarshal response body to PubResProductMsg_0_000_000 err: [%s] ", err.Error())
+		returnBalanceFunc(ctx)
+		return
+	}
 
 	ctx.GetDataBox().BodyChan <- ctx.DataResponse.Body
 
@@ -525,9 +525,9 @@ func callResponseFunc(ctx *Context) {
 	priKey, _ := security.GetPrivateKey()
 	signInfo := cncrypt.Sign(priKey, []byte(msg))
 	stepInfoM := []map[string]interface{}{}
-	stepInfo1 := map[string]interface{}{"no": 1, "memID": demMemberId, "stepStatus": security.StepStatusSucc, "signature": ""}
-	stepInfo2 := map[string]interface{}{"no": 2, "memID": "", "stepStatus": security.StepStatusSucc, "signature": ""}
-	stepInfo3 := map[string]interface{}{"no": 3, "memID": demMemberId, "stepStatus": security.StepStatusSucc, "signature": signInfo}
+	stepInfo1 := map[string]interface{}{"no": 1, "memID": demMemberId, "stepStatus": string(security.StepStatusSucc), "signature": ""}
+	stepInfo2 := map[string]interface{}{"no": 2, "memID": "", "stepStatus": string(security.StepStatusSucc), "signature": ""}
+	stepInfo3 := map[string]interface{}{"no": 3, "memID": demMemberId, "stepStatus": string(security.StepStatusSucc), "signature": signInfo}
 	stepInfoM = append(stepInfoM, stepInfo1)
 	stepInfoM = append(stepInfoM, stepInfo2)
 	stepInfoM = append(stepInfoM, stepInfo3)
@@ -538,9 +538,9 @@ func callResponseFunc(ctx *Context) {
 		"supMemID":   ctx.GetDataBox().Param("supMemId"),
 		"taskID":     strings.Replace(ctx.GetDataBox().Param("taskIdStr"), "|@|", ".", -1),
 		"seqNo":      busiSerialNo,
-		"recordType": RecordTypeSingle,
+		"recordType": string(RecordTypeSingle),
 		"succCount":  "1",
-		"flowStatus": FlowStatusDemSucc,
+		"flowStatus": string(FlowStatusDemSucc),
 		"usedTime":   endTime - startTime,
 		"errCode":    ErrCodeSucc,
 		"stepInfoM":  stepInfoM,

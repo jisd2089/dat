@@ -1,9 +1,9 @@
 package collector
 
 import (
-	"fmt"
-	//"drcs/common/mq"
 	"drcs/common/mq/posixmq"
+	"fmt"
+	"drcs/common/mq"
 )
 
 /**
@@ -20,14 +20,14 @@ func init() {
 			}
 		}()
 
-		//recordor, err := mq.GetRecordor()
-		//if err != nil {
-		//	fmt.Println("get mq recordor err: ", err.Error())
-		//	return
-		//}
+		recordor, err := mq.GetRecordor()
+		if err != nil {
+			err = fmt.Errorf("get mq recordor err: ", err.Error())
+			return
+		}
 
 		for _, dataCell := range self.dataDocker {
-			fmt.Println("dataCell: ", dataCell)
+			//fmt.Println("dataCell: ", dataCell)
 
 			data := dataCell["Data"].(map[string]interface{})
 
@@ -90,7 +90,7 @@ func init() {
 				record.StepInfos = stepInfos // 步骤信息
 			}
 
-			//recordor.Record(record)
+			recordor.Record(record)
 		}
 
 		return
