@@ -30,35 +30,35 @@ type Cross struct {
 
 func NewCross() Carrier {
 	return &Cross{
-		httpTsf:     transfer.NewHttpTransfer(),
+		//httpTsf:     transfer.NewHttpTransfer(),
 		fastHttpTsf: transfer.NewFastTransfer(),
-		sftpTsf:     transfer.NewSftpTransfer(),
+		//sftpTsf:     transfer.NewSftpTransfer(),
 		noneTsf:     transfer.NewNoneTransfer(),
-		fileTsf:     transfer.NewFileTransfer(),
-		shellTsf:    transfer.NewShellTransfer(),
-		sshTsf:      transfer.NewSshTransfer(),
+		//fileTsf:     transfer.NewFileTransfer(),
+		//shellTsf:    transfer.NewShellTransfer(),
+		//sshTsf:      transfer.NewSshTransfer(),
 		redisTsf:    transfer.NewRedisTransfer(),
 		encryptTsf:  transfer.NewEncryptTransfer(),
 		encodeTsf:   transfer.NewEncodeTransfer(),
 		depauthTsf:  transfer.NewDepAuthTransfer(),
-		xidTsf:      transfer.NewXidTransfer(),
+		//xidTsf:      transfer.NewXidTransfer(),
 	}
 }
 
-var CrossHandler = &Cross{
-	httpTsf:     transfer.NewHttpTransfer(),
-	fastHttpTsf: transfer.NewFastTransfer(),
-	sftpTsf:     transfer.NewSftpTransfer(),
-	noneTsf:     transfer.NewNoneTransfer(),
-	fileTsf:     transfer.NewFileTransfer(),
-	shellTsf:    transfer.NewShellTransfer(),
-	sshTsf:      transfer.NewSshTransfer(),
-	redisTsf:    transfer.NewRedisTransfer(),
-	encryptTsf:  transfer.NewEncryptTransfer(),
-	encodeTsf:   transfer.NewEncodeTransfer(),
-	depauthTsf:  transfer.NewDepAuthTransfer(),
-	xidTsf:      transfer.NewXidTransfer(),
-}
+//var CrossHandler = &Cross{
+//	httpTsf:     transfer.NewHttpTransfer(),
+//	fastHttpTsf: transfer.NewFastTransfer(),
+//	sftpTsf:     transfer.NewSftpTransfer(),
+//	noneTsf:     transfer.NewNoneTransfer(),
+//	fileTsf:     transfer.NewFileTransfer(),
+//	shellTsf:    transfer.NewShellTransfer(),
+//	sshTsf:      transfer.NewSshTransfer(),
+//	redisTsf:    transfer.NewRedisTransfer(),
+//	encryptTsf:  transfer.NewEncryptTransfer(),
+//	encodeTsf:   transfer.NewEncodeTransfer(),
+//	depauthTsf:  transfer.NewDepAuthTransfer(),
+//	xidTsf:      transfer.NewXidTransfer(),
+//}
 
 func (c *Cross) Handle(b *databox.DataBox, cReq *request.DataRequest) *databox.Context {
 	c.RLock()

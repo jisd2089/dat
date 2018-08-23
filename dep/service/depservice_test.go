@@ -13,7 +13,7 @@ import (
     Created: 2018-08-14 18:51:55
 */
 func init() {
-	runtime.GOMAXPROCS(16)
+	runtime.GOMAXPROCS(8)
 
 	SettingPath = "/home/deplab/project/drcs/config"
 

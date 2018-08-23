@@ -37,19 +37,19 @@ func newMatrix(dataBoxName, dataBoxSubName string, maxPage int64) *Matrix {
 		dataBoxName: dataBoxName,
 		maxPage:     maxPage,
 		//addrs:       make(map[int][]*request.NodeAddress),
-		addpriors:   []int{},
+		//addpriors:   []int{},
 		//reqs:        make(map[int][]*request.DataRequest),
-		priorities:  []int{},
-		reqChan:     make(chan *request.DataRequest, 1),
-		history:     history.New(dataBoxName, dataBoxSubName),
-		tempHistory: make(map[string]bool),
-		failures:    make(map[string]*request.DataRequest),
+		//priorities:  []int{},
+		reqChan:     make(chan *request.DataRequest, 10),
+		//history:     history.New(dataBoxName, dataBoxSubName),
+		//tempHistory: make(map[string]bool),
+		//failures:    make(map[string]*request.DataRequest),
 	}
-	if cache.Task.Mode != status.SERVER {
-		matrix.history.ReadSuccess(cache.Task.OutType, cache.Task.SuccessInherit)
-		matrix.history.ReadFailure(cache.Task.OutType, cache.Task.FailureInherit)
-		matrix.setFailures(matrix.history.PullFailure())
-	}
+	//if cache.Task.Mode != status.SERVER {
+	//	matrix.history.ReadSuccess(cache.Task.OutType, cache.Task.SuccessInherit)
+	//	matrix.history.ReadFailure(cache.Task.OutType, cache.Task.FailureInherit)
+	//	matrix.setFailures(matrix.history.PullFailure())
+	//}
 	return matrix
 }
 

@@ -376,10 +376,10 @@ func (m *dataMan) Process(req *request.DataRequest) {
 				return
 			}
 			// 返回是否作为新的失败请求被添加至队列尾部
-			if b.DoHistory(req, false) {
-				// 统计失败数
-				cache.PageFailCount()
-			}
+			//if b.DoHistory(req, false) {
+			//	// 统计失败数
+			//	cache.PageFailCount()
+			//}
 			// 提示错误
 			stack := make([]byte, 4<<10) //4KB
 			length := runtime.Stack(stack, true)
@@ -401,10 +401,10 @@ func (m *dataMan) Process(req *request.DataRequest) {
 
 	if err := ctx.GetError(); err != nil {
 		// 返回是否作为新的失败请求被添加至队列尾部
-		if b.DoHistory(req, false) {
-			// 统计失败数
-			cache.PageFailCount()
-		}
+		//if b.DoHistory(req, false) {
+		//	// 统计失败数
+		//	cache.PageFailCount()
+		//}
 		// 提示错误
 		//logs.Log.Error(" *     Fail  [download][%v]: %v\n", downUrl, err)
 		return
@@ -429,7 +429,7 @@ func (m *dataMan) Process(req *request.DataRequest) {
 	//}
 
 	// 处理成功请求记录
-	b.DoHistory(req, true)
+	//b.DoHistory(req, true)
 
 	// 统计成功页数
 	cache.PageSuccCount()

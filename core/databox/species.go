@@ -38,11 +38,15 @@ func (self *DataBoxSpecies) Add(b *DataBox) *DataBox {
 	return b
 }
 
-func (self *DataBoxSpecies) AddPool(b *DataBox) *DataBox {
+func (self *DataBoxSpecies) AddPool(b DataBox) *DataBox {
 
 	boxPool := &sync.Pool{
 		New: func() interface{} {
-			return b
+			return &DataBox{
+				status: b.status,
+				dnames: make([]string, 0, maxParam),
+				dvalues: make([]string, 0, maxParam),
+			}
 		},
 	}
 	name := b.Name
@@ -54,7 +58,7 @@ func (self *DataBoxSpecies) AddPool(b *DataBox) *DataBox {
 		}
 		//name = fmt.Sprintf("%s(%d)", b.Name, i)
 	}
-	return b
+	return &b
 }
 
 // 获取全部数据流产品种类
@@ -77,6 +81,6 @@ func (self *DataBoxSpecies) Get() []*DataBox {
 }
 
 func (self *DataBoxSpecies) GetByName(name string) *DataBox {
-	//return self.hash[name]
-	return self.hashPool[name].Get().(*DataBox)
+	return self.hash[name]
+	//return self.hashPool[name].Get().(*DataBox)
 }

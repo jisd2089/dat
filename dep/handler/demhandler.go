@@ -62,7 +62,7 @@ func (d *DemHandler) SendDemReqToSup(ctx *fasthttp.RequestCtx) {
 func setDataBoxQueue(box *databox.DataBox) {
 	dataBoxs := []*databox.DataBox{}
 	dataBoxs = append(dataBoxs, box)
-	assetnode.AssetNodeEntity.PushDataBox(dataBoxs)
+	assetnode.AssetNodeEntity.PushDataBoxs(dataBoxs)
 }
 
 /**********************************************************************************************

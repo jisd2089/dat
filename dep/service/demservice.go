@@ -45,7 +45,5 @@ func (d *DemService) SendFromDemReqToSup(batchPath string) {
 }
 
 func setDataBoxQueue(box *databox.DataBox) {
-	dataBoxs := []*databox.DataBox{}
-	dataBoxs = append(dataBoxs, box)
-	assetnode.AssetNodeEntity.PushDataBox(dataBoxs)
+	assetnode.AssetNodeEntity.PushDataBox(box)
 }

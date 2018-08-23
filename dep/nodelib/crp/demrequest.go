@@ -83,32 +83,40 @@ var DEMREQUEST = &DataBox{
 func demrequestRootFunc(ctx *Context) {
 	//logger.Info("demrequestRootFunc start ", ctx.GetDataBox().GetId())
 
-	//start := int(time.Now().UnixNano() / 1e6)
-	//
-	//ctx.GetDataBox().SetParam("startTime", strconv.Itoa(start))
-	//
-	//ctx.AddChanQueue(&request.DataRequest{
-	//	Rule:          "parseparam",
-	//	Method:        "PING",
-	//	TransferType:  request.REDIS,
-	//	Reloadable:    true,
-	//	CommandParams: ctx.GetDataBox().Params,
-	//})
+	start := int(time.Now().UnixNano() / 1e6)
+
+	ctx.GetDataBox().SetParam("startTime", strconv.Itoa(start))
+
+	ctx.AddChanQueue(&request.DataRequest{
+		Rule:          "parseparam",
+		Method:        "PING",
+		TransferType:  request.REDIS,
+		Reloadable:    true,
+		CommandParams: ctx.GetDataBox().Params,
+	})
 
 
 	// TODO mock
-	pubRespMsg := &PubResProductMsg{}
-	pubAnsInfo := &PubAnsInfo{}
-	pubAnsInfo.ResCode = "000000"
-	pubAnsInfo.ResMsg = "成功"
-	pubRespMsg.PubAnsInfo = pubAnsInfo
-	pubRespMsg.DetailInfo.Tag = "疑似仿冒包装"
-	pubRespMsg.DetailInfo.EvilScore = 88
-	bodyByte, _ := json.Marshal(pubRespMsg)
-
-	ctx.GetDataBox().BodyChan <- bodyByte
-
-	procEndFunc(ctx)
+//	bodyByte := []byte(`{
+//	"pubReqInfo": {
+//		"timeStamp": "1469613279966",
+//		"jobId": "JON20180816000000631",
+//		"reqSign": "dd4239bbbaca226924a4cf6babd002b9d5f02d33d03025589e937b4ce1b3b3dc",
+//		"serialNo": "2201611161916567677531846",
+//		"memId": "0000162",
+//		"authMode": "00"
+//	},
+//	"busiInfo": {
+//		"fullName": "尚书",
+//		"phoneNumber": "17316332755",
+//		"starttime": "1531479822"
+//	}
+//}`)
+//
+//	ctx.GetDataBox().BodyChan <- bodyByte
+//
+//	procEndFunc(ctx)
+// TODO mock-end
 }
 
 /**
@@ -448,13 +456,13 @@ func staticQueryFunc(ctx *Context) {
 			}
 
 			// TODO mock
-			pubAnsInfo := &PubAnsInfo{}
-			pubAnsInfo.ResCode = "000000"
-			pubAnsInfo.ResMsg = "成功"
-			pubRespMsg.PubAnsInfo = pubAnsInfo
-			pubRespMsg.DetailInfo.Tag = "疑似仿冒包装"
-			pubRespMsg.DetailInfo.EvilScore = 77
-			ctx.DataResponse.Body, _ = json.Marshal(pubRespMsg)
+			//pubAnsInfo := &PubAnsInfo{}
+			//pubAnsInfo.ResCode = "000000"
+			//pubAnsInfo.ResMsg = "成功"
+			//pubRespMsg.PubAnsInfo = pubAnsInfo
+			//pubRespMsg.DetailInfo.Tag = "疑似仿冒包装"
+			//pubRespMsg.DetailInfo.EvilScore = 77
+			//ctx.DataResponse.Body, _ = json.Marshal(pubRespMsg)
 			//fmt.Println(string(ctx.DataResponse.Body))
 			// TODO mock-end
 
@@ -505,7 +513,7 @@ func execQuery(ctx *Context, supMemberId string) error {
 		Rule:         "staticquery",
 		Method:       "POSTBODY",
 		Url:          memberDetailInfo.SvrURL,
-		TransferType: request.NONETYPE,
+		TransferType: request.FASTHTTP,
 		Reloadable:   true,
 		HeaderArgs:   header,
 		Parameters:   ctx.GetDataBox().HttpRequestBody,

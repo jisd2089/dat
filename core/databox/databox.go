@@ -92,8 +92,8 @@ func (self DataBox) Register() *DataBox {
 	self.status = status.STOPPED
 	self.dnames = make([]string, 0, maxParam)
 	self.dvalues = make([]string, 0, maxParam)
-	//return Species.Add(&self)
-	return Species.AddPool(&self)
+	return Species.Add(&self)
+	//return Species.AddPool(self)
 }
 
 // 根据名称获取child box
@@ -175,8 +175,8 @@ func (self *DataBox) Defer() {
 	// 等待处理中的请求完成
 	self.reqMatrix.Wait()
 	// 更新失败记录
-	self.reqMatrix.TryFlushFailure()
-	self.reqMatrix.TryFlushSuccess()
+	//self.reqMatrix.TryFlushFailure()
+	//self.reqMatrix.TryFlushSuccess()
 }
 
 // 是否输出默认添加的字段 Url/ParentUrl/DownloadTime

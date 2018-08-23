@@ -7,8 +7,6 @@ import (
 	"drcs/core/databox"
 	"drcs/common/util"
 	ws "drcs/common/websocket"
-	"drcs/config"
-
 	"drcs/runtime/status"
 )
 
@@ -157,7 +155,7 @@ func init() {
 	// 初始化运行
 	wsApi["refresh"] = func(sessID string, req map[string]interface{}) {
 		// 写入发送通道
-		Sc.Write(sessID, tplData(assetnode.AssetNodeEntity.GetConfig("mode").(int)), 1)
+		//Sc.Write(sessID, tplData(assetnode.AssetNodeEntity.GetConfig("mode").(int)), 1)
 	}
 
 	// 初始化运行
@@ -177,7 +175,7 @@ func init() {
 		}
 
 		// 写入发送通道
-		Sc.Write(sessID, tplData(mode))
+		//Sc.Write(sessID, tplData(mode))
 	}
 
 	wsApi["run"] = func(sessID string, req map[string]interface{}) {
@@ -227,91 +225,91 @@ func init() {
 	}
 }
 
-func tplData(mode int) map[string]interface{} {
-	var info = map[string]interface{}{"operate": "init", "mode": mode}
-
-	// 运行模式标题
-	switch mode {
-	case status.OFFLINE:
-		info["title"] = config.FULL_NAME + "                                                          【 运行模式 ->  单机 】"
-	case status.SERVER:
-		info["title"] = config.FULL_NAME + "                                                          【 运行模式 ->  服务端 】"
-	case status.CLIENT:
-		info["title"] = config.FULL_NAME + "                                                          【 运行模式 ->  客户端 】"
-	}
-
-	if mode == status.CLIENT {
-		return info
-	}
-
-	// databoxs家族清单
-	info["databoxs"] = map[string]interface{}{
-		"menu": dataBoxMenu,
-		"curr": func() interface{} {
-			l := assetnode.AssetNodeEntity.GetDataBoxQueue().Len()
-			if l == 0 {
-				return 0
-			}
-			var curr = make(map[string]bool, l)
-			for _, sp := range assetnode.AssetNodeEntity.GetDataBoxQueue().GetAll() {
-				curr[sp.GetName()] = true
-			}
-
-			return curr
-		}(),
-	}
-
-	// 输出方式清单
-	info["OutType"] = map[string]interface{}{
-		"menu": assetnode.AssetNodeEntity.GetOutputLib(),
-		"curr": assetnode.AssetNodeEntity.GetConfig("OutType"),
-	}
-
-	// 并发协程上限
-	info["ThreadNum"] = map[string]int{
-		"max":  999999,
-		"min":  1,
-		"curr": assetnode.AssetNodeEntity.GetConfig("ThreadNum").(int),
-	}
-
-	// 暂停区间/ms(随机: Pausetime/2 ~ Pausetime*2)
-	info["Pausetime"] = map[string][]int64{
-		"menu": {0, 100, 300, 500, 1000, 3000, 5000, 10000, 15000, 20000, 30000, 60000},
-		"curr": []int64{assetnode.AssetNodeEntity.GetConfig("Pausetime").(int64)},
-	}
-
-	// 代理IP更换的间隔分钟数
-	info["ProxyMinute"] = map[string][]int64{
-		"menu": {0, 1, 3, 5, 10, 15, 20, 30, 45, 60, 120, 180},
-		"curr": []int64{assetnode.AssetNodeEntity.GetConfig("ProxyMinute").(int64)},
-	}
-
-	// 分批输出的容量
-	info["DockerCap"] = map[string]int{
-		"min":  1,
-		"max":  5000000,
-		"curr": assetnode.AssetNodeEntity.GetConfig("DockerCap").(int),
-	}
-
-	// 采集上限
-	if assetnode.AssetNodeEntity.GetConfig("Limit").(int64) == databox.LIMIT {
-		info["Limit"] = 0
-	} else {
-		info["Limit"] = assetnode.AssetNodeEntity.GetConfig("Limit")
-	}
-
-	// 自定义配置
-	info["Keyins"] = assetnode.AssetNodeEntity.GetConfig("Keyins")
-
-	// 继承历史记录
-	info["SuccessInherit"] = assetnode.AssetNodeEntity.GetConfig("SuccessInherit")
-	info["FailureInherit"] = assetnode.AssetNodeEntity.GetConfig("FailureInherit")
-
-	// 运行状态
-	info["status"] = assetnode.AssetNodeEntity.Status()
-
-	return info
-}
+//func tplData(mode int) map[string]interface{} {
+//	var info = map[string]interface{}{"operate": "init", "mode": mode}
+//
+//	// 运行模式标题
+//	switch mode {
+//	case status.OFFLINE:
+//		info["title"] = config.FULL_NAME + "                                                          【 运行模式 ->  单机 】"
+//	case status.SERVER:
+//		info["title"] = config.FULL_NAME + "                                                          【 运行模式 ->  服务端 】"
+//	case status.CLIENT:
+//		info["title"] = config.FULL_NAME + "                                                          【 运行模式 ->  客户端 】"
+//	}
+//
+//	if mode == status.CLIENT {
+//		return info
+//	}
+//
+//	// databoxs家族清单
+//	info["databoxs"] = map[string]interface{}{
+//		"menu": dataBoxMenu,
+//		"curr": func() interface{} {
+//			l := assetnode.AssetNodeEntity.GetDataBoxQueue().Len()
+//			if l == 0 {
+//				return 0
+//			}
+//			var curr = make(map[string]bool, l)
+//			for _, sp := range assetnode.AssetNodeEntity.GetDataBoxQueue().GetAll() {
+//				curr[sp.GetName()] = true
+//			}
+//
+//			return curr
+//		}(),
+//	}
+//
+//	// 输出方式清单
+//	info["OutType"] = map[string]interface{}{
+//		"menu": assetnode.AssetNodeEntity.GetOutputLib(),
+//		"curr": assetnode.AssetNodeEntity.GetConfig("OutType"),
+//	}
+//
+//	// 并发协程上限
+//	info["ThreadNum"] = map[string]int{
+//		"max":  999999,
+//		"min":  1,
+//		"curr": assetnode.AssetNodeEntity.GetConfig("ThreadNum").(int),
+//	}
+//
+//	// 暂停区间/ms(随机: Pausetime/2 ~ Pausetime*2)
+//	info["Pausetime"] = map[string][]int64{
+//		"menu": {0, 100, 300, 500, 1000, 3000, 5000, 10000, 15000, 20000, 30000, 60000},
+//		"curr": []int64{assetnode.AssetNodeEntity.GetConfig("Pausetime").(int64)},
+//	}
+//
+//	// 代理IP更换的间隔分钟数
+//	info["ProxyMinute"] = map[string][]int64{
+//		"menu": {0, 1, 3, 5, 10, 15, 20, 30, 45, 60, 120, 180},
+//		"curr": []int64{assetnode.AssetNodeEntity.GetConfig("ProxyMinute").(int64)},
+//	}
+//
+//	// 分批输出的容量
+//	info["DockerCap"] = map[string]int{
+//		"min":  1,
+//		"max":  5000000,
+//		"curr": assetnode.AssetNodeEntity.GetConfig("DockerCap").(int),
+//	}
+//
+//	// 采集上限
+//	if assetnode.AssetNodeEntity.GetConfig("Limit").(int64) == databox.LIMIT {
+//		info["Limit"] = 0
+//	} else {
+//		info["Limit"] = assetnode.AssetNodeEntity.GetConfig("Limit")
+//	}
+//
+//	// 自定义配置
+//	info["Keyins"] = assetnode.AssetNodeEntity.GetConfig("Keyins")
+//
+//	// 继承历史记录
+//	info["SuccessInherit"] = assetnode.AssetNodeEntity.GetConfig("SuccessInherit")
+//	info["FailureInherit"] = assetnode.AssetNodeEntity.GetConfig("FailureInherit")
+//
+//	// 运行状态
+//	info["status"] = assetnode.AssetNodeEntity.Status()
+//
+//	return info
+//}
 
 // 配置运行参数
 func setConf(req map[string]interface{}) {

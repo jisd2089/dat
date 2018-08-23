@@ -30,8 +30,9 @@ type (
 		GetConfig(k ...string) interface{}                            // 获取全局参数
 		SetConfig(k string, v interface{}) AssetNode                  // 设置全局参数
 		DataBoxPrepare(original []*databox.DataBox) AssetNode         // 须在设置全局运行参数后Run()前调用（client模式下不调用该方法）
-		PushDataBox(original []*databox.DataBox) AssetNode            // 将DataBox放入channel
-		PushActiveDataBox(original *databox.DataBox) *databox.DataBox // 将DataBox放入active channel
+		PushDataBoxs(original []*databox.DataBox) AssetNode           // 将DataBox放入channel
+		PushDataBox(original *databox.DataBox) AssetNode              // 将DataBox放入channel
+		//PushActiveDataBox(original *databox.DataBox) *databox.DataBox // 将DataBox放入active channel
 		Run()                                                         // 阻塞式运行直至任务完成（须在所有应当配置项配置完成后调用）
 		SyncRun()                                                     // 同步运行ActiveBox
 		//RunActiveBox(b *databox.DataBox, obj interface{}) response.DataResponse // 执行ActiveBox请求，同步返回
@@ -177,25 +178,42 @@ func (self *NodeEntity) SetConfig(k string, v interface{}) AssetNode {
 func (self *NodeEntity) DataBoxPrepare(original []*databox.DataBox) AssetNode {
 	self.DataBoxQueue.Reset()
 	// 遍历任务
-	for _, df := range original {
-		dfcopy := df.Copy()
+	//for _, df := range original {
+	//	dfcopy := df.Copy()
+	//	dfcopy.SetPausetime(self.AppConf.Pausetime)
+	//	if dfcopy.GetLimit() == databox.LIMIT {
+	//		dfcopy.SetLimit(self.AppConf.Limit)
+	//	} else {
+	//		dfcopy.SetLimit(-1 * self.AppConf.Limit)
+	//	}
+	//	self.DataBoxQueue.Add(dfcopy)
+	//}
+	//// 遍历自定义配置
+	//self.DataBoxQueue.AddKeyins(self.AppConf.Keyins)
+	return self
+}
+
+func (self *NodeEntity) PushDataBoxs(original []*databox.DataBox) AssetNode {
+	// 遍历任务
+	for _, b := range original {
+		dfcopy := b.Copy()
 		dfcopy.SetPausetime(self.AppConf.Pausetime)
 		if dfcopy.GetLimit() == databox.LIMIT {
 			dfcopy.SetLimit(self.AppConf.Limit)
 		} else {
 			dfcopy.SetLimit(-1 * self.AppConf.Limit)
 		}
-		self.DataBoxQueue.Add(dfcopy)
+		b.Refresh()
+		self.DataBoxQueue.AddChan(dfcopy)
+
 	}
 	// 遍历自定义配置
-	self.DataBoxQueue.AddKeyins(self.AppConf.Keyins)
+	//self.DataBoxQueue.AddKeyins(self.AppConf.Keyins)
 	return self
 }
 
-func (self *NodeEntity) PushDataBox(original []*databox.DataBox) AssetNode {
+func (self *NodeEntity) PushDataBox(b *databox.DataBox) AssetNode {
 	// 遍历任务
-	b := original[0]
-	//for _, b := range original {
 	dfcopy := b.Copy()
 	dfcopy.SetPausetime(self.AppConf.Pausetime)
 	if dfcopy.GetLimit() == databox.LIMIT {
@@ -203,30 +221,29 @@ func (self *NodeEntity) PushDataBox(original []*databox.DataBox) AssetNode {
 	} else {
 		dfcopy.SetLimit(-1 * self.AppConf.Limit)
 	}
-	b.Refresh()
 	self.DataBoxQueue.AddChan(dfcopy)
 
-	//}
+	b.Refresh()
 	// 遍历自定义配置
 	//self.DataBoxQueue.AddKeyins(self.AppConf.Keyins)
 	return self
 }
 
-func (self *NodeEntity) PushActiveDataBox(original *databox.DataBox) *databox.DataBox {
-	// 拷贝任务
-	dfcopy := original.Copy()
-	dfcopy.SetPausetime(self.AppConf.Pausetime)
-	dfcopy.ActiveWG = &sync.WaitGroup{}
-	if dfcopy.GetLimit() == databox.LIMIT {
-		dfcopy.SetLimit(self.AppConf.Limit)
-	} else {
-		dfcopy.SetLimit(-1 * self.AppConf.Limit)
-	}
-	self.DataBoxQueue.AddActiveChan(dfcopy)
-	// 遍历自定义配置
-	//self.DataBoxQueue.AddKeyins(self.AppConf.Keyins)
-	return dfcopy
-}
+//func (self *NodeEntity) PushActiveDataBox(original *databox.DataBox) *databox.DataBox {
+//	// 拷贝任务
+//	dfcopy := original.Copy()
+//	dfcopy.SetPausetime(self.AppConf.Pausetime)
+//	dfcopy.ActiveWG = &sync.WaitGroup{}
+//	if dfcopy.GetLimit() == databox.LIMIT {
+//		dfcopy.SetLimit(self.AppConf.Limit)
+//	} else {
+//		dfcopy.SetLimit(-1 * self.AppConf.Limit)
+//	}
+//	self.DataBoxQueue.AddActiveChan(dfcopy)
+//	// 遍历自定义配置
+//	//self.DataBoxQueue.AddKeyins(self.AppConf.Keyins)
+//	return dfcopy
+//}
 
 // 获取全部输出方式
 func (self *NodeEntity) GetOutputLib() []string {
@@ -326,7 +343,7 @@ func (ne *NodeEntity) exec() {
 
 	//TODO 根据节点支持业务类型启动 两类DataBox
 	// goroutine 1
-	for i := 0; i < 100; i++ {
+	for i := 0; i < 1000; i++ {
 		go ne.runDataBox()
 	}
 	// goroutine 2
@@ -337,103 +354,103 @@ func (ne *NodeEntity) exec() {
 func (ne *NodeEntity) syncExec() {
 
 	// 根据模式选择合理的并发
-	go ne.goSyncRun()
+	//go ne.goSyncRun()
 }
 
 // 任务执行
-func (ne *NodeEntity) goRun(count int) {
-	// 执行任务
-	var i int
-	for i = 0; i < count && ne.Status() != status.STOP; i++ {
-	pause:
-		if ne.IsPause() {
-			time.Sleep(time.Second)
-			goto pause
-		}
-		// 从数据信使队列取出空闲信使，并发执行
-		m := ne.DataManPool.Use()
-		if m != nil {
-			go func(i int, m dataman.DataMan) {
-				// 执行并返回结果消息
-				m.Init(ne.DataBoxQueue.GetByIndex(i)).Run()
-				// 任务结束后回收该信使
-				ne.RWMutex.RLock()
-				if ne.status != status.STOP {
-					ne.DataManPool.Free(m)
-				}
-				ne.RWMutex.RUnlock()
-			}(i, m)
-		}
-	}
-	// 监控结束任务
-	for ii := 0; ii < i; ii++ {
-		s := <-cache.ReportChan
-		if (s.DataNum == 0) && (s.FileNum == 0) {
-			//logs.Log.App(" *     [任务小计：%s | KEYIN：%s]   无采集结果，用时 %v！\n", s.DataBoxName, s.Keyin, s.Time)
-			continue
-		}
-		//logs.Log.Informational(" * ")
-		switch {
-		case s.DataNum > 0 && s.FileNum == 0:
-			//logs.Log.App(" *     [任务小计：%s | KEYIN：%s]   共采集数据 %v 条，用时 %v！\n",
-			//	s.DataBoxName, s.Keyin, s.DataNum, s.Time)
-		case s.DataNum == 0 && s.FileNum > 0:
-			//logs.Log.App(" *     [任务小计：%s | KEYIN：%s]   共下载文件 %v 个，用时 %v！\n",
-			//	s.DataBoxName, s.Keyin, s.FileNum, s.Time)
-		default:
-			//logs.Log.App(" *     [任务小计：%s | KEYIN：%s]   共采集数据 %v 条 + 下载文件 %v 个，用时 %v！\n",
-			//	s.DataBoxName, s.Keyin, s.DataNum, s.FileNum, s.Time)
-		}
-
-		ne.sum[0] += s.DataNum
-		ne.sum[1] += s.FileNum
-	}
-
-	// 总耗时
-	ne.takeTime = time.Since(cache.StartTime)
-	var prefix = func() string {
-		if ne.Status() == status.STOP {
-			return "任务中途取消："
-		}
-		return "本次"
-	}()
-	// 打印总结报告
-	//logs.Log.Informational(" * ")
-	//logs.Log.Informational(` *********************************************************************************************************************************** `)
-	fmt.Println(` *********************************************************************************************************************************** `)
-	//logs.Log.Informational(" * ")
-	switch {
-	case ne.sum[0] > 0 && ne.sum[1] == 0:
-		fmt.Println(" *                            —— %s合计采集【数据 %v 条】， 实爬【成功 %v URL + 失败 %v URL = 合计 %v URL】，耗时【%v】 ——",
-			prefix, ne.sum[0], cache.GetPageCount(1), cache.GetPageCount(-1), cache.GetPageCount(0), ne.takeTime)
-		//logs.Log.App(" *                            —— %s合计采集【数据 %v 条】， 实爬【成功 %v URL + 失败 %v URL = 合计 %v URL】，耗时【%v】 ——",
-		//	prefix, ne.sum[0], cache.GetPageCount(1), cache.GetPageCount(-1), cache.GetPageCount(0), ne.takeTime)
-	case ne.sum[0] == 0 && ne.sum[1] > 0:
-		fmt.Println(" *                            —— %s合计采集【文件 %v 个】， 实爬【成功 %v URL + 失败 %v URL = 合计 %v URL】，耗时【%v】 ——",
-			prefix, ne.sum[1], cache.GetPageCount(1), cache.GetPageCount(-1), cache.GetPageCount(0), ne.takeTime)
-		//logs.Log.App(" *                            —— %s合计采集【文件 %v 个】， 实爬【成功 %v URL + 失败 %v URL = 合计 %v URL】，耗时【%v】 ——",
-		//	prefix, ne.sum[1], cache.GetPageCount(1), cache.GetPageCount(-1), cache.GetPageCount(0), ne.takeTime)
-	case ne.sum[0] == 0 && ne.sum[1] == 0:
-		fmt.Println(" *                            —— %s无采集结果，实爬【成功 %v URL + 失败 %v URL = 合计 %v URL】，耗时【%v】 ——",
-			prefix, cache.GetPageCount(1), cache.GetPageCount(-1), cache.GetPageCount(0), ne.takeTime)
-		//logs.Log.App(" *                            —— %s无采集结果，实爬【成功 %v URL + 失败 %v URL = 合计 %v URL】，耗时【%v】 ——",
-		//	prefix, cache.GetPageCount(1), cache.GetPageCount(-1), cache.GetPageCount(0), ne.takeTime)
-	default:
-		fmt.Println(" *                            —— %s合计采集【数据 %v 条 + 文件 %v 个】，实爬【成功 %v URL + 失败 %v URL = 合计 %v URL】，耗时【%v】 ——",
-			prefix, ne.sum[0], ne.sum[1], cache.GetPageCount(1), cache.GetPageCount(-1), cache.GetPageCount(0), ne.takeTime)
-		//logs.Log.App(" *                            —— %s合计采集【数据 %v 条 + 文件 %v 个】，实爬【成功 %v URL + 失败 %v URL = 合计 %v URL】，耗时【%v】 ——",
-		//	prefix, ne.sum[0], ne.sum[1], cache.GetPageCount(1), cache.GetPageCount(-1), cache.GetPageCount(0), ne.takeTime)
-	}
-	//logs.Log.Informational(" * ")
-	//logs.Log.Informational(` *********************************************************************************************************************************** `)
-	fmt.Println(` *********************************************************************************************************************************** `)
-
-	// 单机模式并发运行，需要标记任务结束
-	if ne.AppConf.Mode == status.OFFLINE {
-		//ne.LogRest()
-		ne.finishOnce.Do(func() { close(ne.finish) })
-	}
-}
+//func (ne *NodeEntity) goRun(count int) {
+//	// 执行任务
+//	var i int
+//	for i = 0; i < count && ne.Status() != status.STOP; i++ {
+//	pause:
+//		if ne.IsPause() {
+//			time.Sleep(time.Second)
+//			goto pause
+//		}
+//		// 从数据信使队列取出空闲信使，并发执行
+//		m := ne.DataManPool.Use()
+//		if m != nil {
+//			go func(i int, m dataman.DataMan) {
+//				// 执行并返回结果消息
+//				m.Init(ne.DataBoxQueue.GetByIndex(i)).Run()
+//				// 任务结束后回收该信使
+//				ne.RWMutex.RLock()
+//				if ne.status != status.STOP {
+//					ne.DataManPool.Free(m)
+//				}
+//				ne.RWMutex.RUnlock()
+//			}(i, m)
+//		}
+//	}
+//	// 监控结束任务
+//	for ii := 0; ii < i; ii++ {
+//		s := <-cache.ReportChan
+//		if (s.DataNum == 0) && (s.FileNum == 0) {
+//			//logs.Log.App(" *     [任务小计：%s | KEYIN：%s]   无采集结果，用时 %v！\n", s.DataBoxName, s.Keyin, s.Time)
+//			continue
+//		}
+//		//logs.Log.Informational(" * ")
+//		switch {
+//		case s.DataNum > 0 && s.FileNum == 0:
+//			//logs.Log.App(" *     [任务小计：%s | KEYIN：%s]   共采集数据 %v 条，用时 %v！\n",
+//			//	s.DataBoxName, s.Keyin, s.DataNum, s.Time)
+//		case s.DataNum == 0 && s.FileNum > 0:
+//			//logs.Log.App(" *     [任务小计：%s | KEYIN：%s]   共下载文件 %v 个，用时 %v！\n",
+//			//	s.DataBoxName, s.Keyin, s.FileNum, s.Time)
+//		default:
+//			//logs.Log.App(" *     [任务小计：%s | KEYIN：%s]   共采集数据 %v 条 + 下载文件 %v 个，用时 %v！\n",
+//			//	s.DataBoxName, s.Keyin, s.DataNum, s.FileNum, s.Time)
+//		}
+//
+//		ne.sum[0] += s.DataNum
+//		ne.sum[1] += s.FileNum
+//	}
+//
+//	// 总耗时
+//	ne.takeTime = time.Since(cache.StartTime)
+//	var prefix = func() string {
+//		if ne.Status() == status.STOP {
+//			return "任务中途取消："
+//		}
+//		return "本次"
+//	}()
+//	// 打印总结报告
+//	//logs.Log.Informational(" * ")
+//	//logs.Log.Informational(` *********************************************************************************************************************************** `)
+//	fmt.Println(` *********************************************************************************************************************************** `)
+//	//logs.Log.Informational(" * ")
+//	switch {
+//	case ne.sum[0] > 0 && ne.sum[1] == 0:
+//		fmt.Println(" *                            —— %s合计采集【数据 %v 条】， 实爬【成功 %v URL + 失败 %v URL = 合计 %v URL】，耗时【%v】 ——",
+//			prefix, ne.sum[0], cache.GetPageCount(1), cache.GetPageCount(-1), cache.GetPageCount(0), ne.takeTime)
+//		//logs.Log.App(" *                            —— %s合计采集【数据 %v 条】， 实爬【成功 %v URL + 失败 %v URL = 合计 %v URL】，耗时【%v】 ——",
+//		//	prefix, ne.sum[0], cache.GetPageCount(1), cache.GetPageCount(-1), cache.GetPageCount(0), ne.takeTime)
+//	case ne.sum[0] == 0 && ne.sum[1] > 0:
+//		fmt.Println(" *                            —— %s合计采集【文件 %v 个】， 实爬【成功 %v URL + 失败 %v URL = 合计 %v URL】，耗时【%v】 ——",
+//			prefix, ne.sum[1], cache.GetPageCount(1), cache.GetPageCount(-1), cache.GetPageCount(0), ne.takeTime)
+//		//logs.Log.App(" *                            —— %s合计采集【文件 %v 个】， 实爬【成功 %v URL + 失败 %v URL = 合计 %v URL】，耗时【%v】 ——",
+//		//	prefix, ne.sum[1], cache.GetPageCount(1), cache.GetPageCount(-1), cache.GetPageCount(0), ne.takeTime)
+//	case ne.sum[0] == 0 && ne.sum[1] == 0:
+//		fmt.Println(" *                            —— %s无采集结果，实爬【成功 %v URL + 失败 %v URL = 合计 %v URL】，耗时【%v】 ——",
+//			prefix, cache.GetPageCount(1), cache.GetPageCount(-1), cache.GetPageCount(0), ne.takeTime)
+//		//logs.Log.App(" *                            —— %s无采集结果，实爬【成功 %v URL + 失败 %v URL = 合计 %v URL】，耗时【%v】 ——",
+//		//	prefix, cache.GetPageCount(1), cache.GetPageCount(-1), cache.GetPageCount(0), ne.takeTime)
+//	default:
+//		fmt.Println(" *                            —— %s合计采集【数据 %v 条 + 文件 %v 个】，实爬【成功 %v URL + 失败 %v URL = 合计 %v URL】，耗时【%v】 ——",
+//			prefix, ne.sum[0], ne.sum[1], cache.GetPageCount(1), cache.GetPageCount(-1), cache.GetPageCount(0), ne.takeTime)
+//		//logs.Log.App(" *                            —— %s合计采集【数据 %v 条 + 文件 %v 个】，实爬【成功 %v URL + 失败 %v URL = 合计 %v URL】，耗时【%v】 ——",
+//		//	prefix, ne.sum[0], ne.sum[1], cache.GetPageCount(1), cache.GetPageCount(-1), cache.GetPageCount(0), ne.takeTime)
+//	}
+//	//logs.Log.Informational(" * ")
+//	//logs.Log.Informational(` *********************************************************************************************************************************** `)
+//	fmt.Println(` *********************************************************************************************************************************** `)
+//
+//	// 单机模式并发运行，需要标记任务结束
+//	if ne.AppConf.Mode == status.OFFLINE {
+//		//ne.LogRest()
+//		ne.finishOnce.Do(func() { close(ne.finish) })
+//	}
+//}
 
 // 任务执行
 func (ne *NodeEntity) runDataBox() {
@@ -539,23 +556,23 @@ func (ne *NodeEntity) runMonitorTask(i int) {
 }
 
 // 任务同步执行
-func (ne *NodeEntity) goSyncRun() {
-	// 执行任务
-	//pause:
-	//	if ne.IsPause() {
-	//		time.Sleep(time.Second)
-	//		goto pause
-	//	}
-	defer func() {
-		fmt.Println("goSyncRun end ^^^^^^^^^^^^^")
-	}()
-	for {
-		b := ne.DataBoxQueue.GetOneActive()
-		fmt.Println("GetOneActive%%%%%%%%%%%%%%%%%%%%%")
-		// 从数据信使队列取出空闲信使，并发执行
-		go ne.goManRunBox(b)
-	}
-}
+//func (ne *NodeEntity) goSyncRun() {
+//	// 执行任务
+//	//pause:
+//	//	if ne.IsPause() {
+//	//		time.Sleep(time.Second)
+//	//		goto pause
+//	//	}
+//	defer func() {
+//		fmt.Println("goSyncRun end ^^^^^^^^^^^^^")
+//	}()
+//	for {
+//		b := ne.DataBoxQueue.GetOneActive()
+//		fmt.Println("GetOneActive%%%%%%%%%%%%%%%%%%%%%")
+//		// 从数据信使队列取出空闲信使，并发执行
+//		go ne.goManRunBox(b)
+//	}
+//}
 
 func (ne *NodeEntity) goManRunBox(b *databox.DataBox) {
 	m := ne.DataManPool.Use()
@@ -703,68 +720,68 @@ func (self *NodeEntity) offline() {
 
 // 服务器模式运行，必须在DataBoxPrepare()执行之后调用才可以成功添加任务
 // 生成的任务与自身当前全局配置相同
-func (self *NodeEntity) server() {
-	// 标记结束
-	defer func() {
-		self.finishOnce.Do(func() { close(self.finish) })
-	}()
-
-	// 便利添加任务到库
-	tasksNum, dataBoxsNum := self.addNewTask()
-
-	if tasksNum == 0 {
-		return
-	}
-
-	// 打印报告
-	//logs.Log.Informational(" * ")
-	//logs.Log.Informational(` *********************************************************************************************************************************** `)
-	//logs.Log.Informational(" * ")
-	//logs.Log.Informational(" *                               —— 本次成功添加 %v 条任务，共包含 %v 条采集规则 ——", tasksNum, dataBoxsNum)
-	//logs.Log.Informational(" * ")
-	//logs.Log.Informational(` *********************************************************************************************************************************** `)
-	fmt.Println(" * ")
-	fmt.Println(` *********************************************************************************************************************************** `)
-	fmt.Println(" * ")
-	fmt.Println(" *                               —— 本次成功添加 %v 条任务，共包含 %v 条采集规则 ——", tasksNum, dataBoxsNum)
-	fmt.Println(" * ")
-	fmt.Println(` *********************************************************************************************************************************** `)
-}
+//func (self *NodeEntity) server() {
+//	// 标记结束
+//	defer func() {
+//		self.finishOnce.Do(func() { close(self.finish) })
+//	}()
+//
+//	// 便利添加任务到库
+//	tasksNum, dataBoxsNum := self.addNewTask()
+//
+//	if tasksNum == 0 {
+//		return
+//	}
+//
+//	// 打印报告
+//	//logs.Log.Informational(" * ")
+//	//logs.Log.Informational(` *********************************************************************************************************************************** `)
+//	//logs.Log.Informational(" * ")
+//	//logs.Log.Informational(" *                               —— 本次成功添加 %v 条任务，共包含 %v 条采集规则 ——", tasksNum, dataBoxsNum)
+//	//logs.Log.Informational(" * ")
+//	//logs.Log.Informational(` *********************************************************************************************************************************** `)
+//	fmt.Println(" * ")
+//	fmt.Println(` *********************************************************************************************************************************** `)
+//	fmt.Println(" * ")
+//	fmt.Println(" *                               —— 本次成功添加 %v 条任务，共包含 %v 条采集规则 ——", tasksNum, dataBoxsNum)
+//	fmt.Println(" * ")
+//	fmt.Println(` *********************************************************************************************************************************** `)
+//}
 
 // 服务器模式下，生成task并添加至库
-func (self *NodeEntity) addNewTask() (tasksNum, dataBoxsNum int) {
-	length := self.DataBoxQueue.Len()
-	t := distribute.Task{}
-	// 从配置读取字段
-	self.setTask(&t)
-
-	for i, sp := range self.DataBoxQueue.GetAll() {
-
-		t.DataBoxs = append(t.DataBoxs, map[string]string{"name": sp.GetName(), "keyin": sp.GetKeyin()})
-		dataBoxsNum++
-
-		// 每十个databox存为一个任务
-		if i > 0 && i%10 == 0 && length > 10 {
-			// 存入
-			one := t
-			self.TaskBase.Push(&one)
-			// logs.Log.App(" *     [新增任务]   详情： %#v", *t)
-
-			tasksNum++
-
-			// 清空databox
-			t.DataBoxs = []map[string]string{}
-		}
-	}
-
-	if len(t.DataBoxs) != 0 {
-		// 存入
-		one := t
-		self.TaskBase.Push(&one)
-		tasksNum++
-	}
-	return
-}
+//func (self *NodeEntity) addNewTask() (tasksNum, dataBoxsNum int) {
+//	length := self.DataBoxQueue.Len()
+//	t := distribute.Task{}
+//	// 从配置读取字段
+//	self.setTask(&t)
+//
+//	for i, sp := range self.DataBoxQueue.GetAll() {
+//
+//		t.DataBoxs = append(t.DataBoxs, map[string]string{"name": sp.GetName(), "keyin": sp.GetKeyin()})
+//		dataBoxsNum++
+//
+//		// 每十个databox存为一个任务
+//		if i > 0 && i%10 == 0 && length > 10 {
+//			// 存入
+//			one := t
+//			self.TaskBase.Push(&one)
+//			// logs.Log.App(" *     [新增任务]   详情： %#v", *t)
+//
+//			tasksNum++
+//
+//			// 清空databox
+//			t.DataBoxs = []map[string]string{}
+//		}
+//	}
+//
+//	if len(t.DataBoxs) != 0 {
+//		// 存入
+//		one := t
+//		self.TaskBase.Push(&one)
+//		tasksNum++
+//	}
+//	return
+//}
 
 // 客户端模式运行
 func (self *NodeEntity) client() {
@@ -775,14 +792,14 @@ func (self *NodeEntity) client() {
 
 	for {
 		// 从任务库获取一个任务
-		t := self.downTask()
+		//t := self.downTask()
 
 		if self.Status() == status.STOP || self.Status() == status.STOPPED {
 			return
 		}
 
 		// 准备运行
-		self.taskToRun(t)
+		//self.taskToRun(t)
 
 		// 重置计数
 		self.sum[0], self.sum[1] = 0, 0
@@ -818,32 +835,32 @@ ReStartLabel:
 }
 
 // client模式下从task准备运行条件
-func (self *NodeEntity) taskToRun(t *distribute.Task) {
-	// 清空历史任务
-	self.DataBoxQueue.Reset()
-
-	// 更改全局配置
-	self.setAppConf(t)
-
-	// 初始化databox队列
-	for _, n := range t.DataBoxs {
-		df := self.GetDataBoxByName(n["name"])
-		if df == nil {
-			continue
-		}
-		dfcopy := df.Copy()
-		dfcopy.SetPausetime(t.Pausetime)
-		if dfcopy.GetLimit() > 0 {
-			dfcopy.SetLimit(t.Limit)
-		} else {
-			dfcopy.SetLimit(-1 * t.Limit)
-		}
-		if v, ok := n["keyin"]; ok {
-			dfcopy.SetKeyin(v)
-		}
-		self.DataBoxQueue.Add(dfcopy)
-	}
-}
+//func (self *NodeEntity) taskToRun(t *distribute.Task) {
+//	// 清空历史任务
+//	self.DataBoxQueue.Reset()
+//
+//	// 更改全局配置
+//	self.setAppConf(t)
+//
+//	// 初始化databox队列
+//	for _, n := range t.DataBoxs {
+//		df := self.GetDataBoxByName(n["name"])
+//		if df == nil {
+//			continue
+//		}
+//		dfcopy := df.Copy()
+//		dfcopy.SetPausetime(t.Pausetime)
+//		if dfcopy.GetLimit() > 0 {
+//			dfcopy.SetLimit(t.Limit)
+//		} else {
+//			dfcopy.SetLimit(-1 * t.Limit)
+//		}
+//		if v, ok := n["keyin"]; ok {
+//			dfcopy.SetKeyin(v)
+//		}
+//		self.DataBoxQueue.Add(dfcopy)
+//	}
+//}
 
 // 设置任务运行时公共配置
 func (self *NodeEntity) setAppConf(task *distribute.Task) {

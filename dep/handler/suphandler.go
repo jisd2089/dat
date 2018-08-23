@@ -65,7 +65,7 @@ func (s *SupHandler) RecDemReqAndPushToSup(ctx *fasthttp.RequestCtx) {
 		b.StartWG = &wg
 		//b.PairDataBoxId = pairDataBoxId
 
-		assetnode.AssetNodeEntity.PushActiveDataBox(b)
+		//assetnode.AssetNodeEntity.PushActiveDataBox(b)
 		wg.Wait()
 		//fmt.Println("waitgroup end")
 
