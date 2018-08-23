@@ -24,8 +24,11 @@ import (
 	"fmt"
 	"encoding/json"
 	"drcs/dep/order"
-	"time"
 	"drcs/dep/member"
+)
+
+var (
+	boxMap map[string]string
 )
 
 type DepService struct {
@@ -51,6 +54,11 @@ func NewDepService() *DepService {
 }
 
 func (s *DepService) Init() {
+	// TODO 根据prdtIdCd 确认boxname
+	boxMap = make(map[string]string)
+	boxMap["5001002"] = "smart_response"
+	boxMap["4004096"] = "sup_response"
+
 	path := filepath.Join(SettingPath, "trans.properties")
 	if !util.IsFileExists(path) {
 		return
@@ -292,10 +300,10 @@ func (s *DepService) ProcessCrpTrans(ctx *fasthttp.RequestCtx) {
 	pubkey := member.GetMemberInfoList().MemberDetailList.MemberDetailInfo[0].PubKey
 	b.SetParam("pubkey", pubkey)
 	b.SetParam("balanceUrl", common.Other.Crp.BalanceUrl)
-	b.SetParam("prdtIdCd", "1003004")
+	//b.SetParam("prdtIdCd", "1003004")
 
 	// redis address
-	fmt.Println("redis addr: ", common.Redis.Addr)
+	//fmt.Println("redis addr: ", common.Redis.Addr)
 	b.Params = common.Redis.Addr
 	b.BodyChan = bodyChan
 
@@ -306,10 +314,11 @@ func (s *DepService) ProcessCrpTrans(ctx *fasthttp.RequestCtx) {
 	select {
 	case body := <-bodyChan:
 		ctx.SetBody(body)
+		//logger.Info("close copy box id ", copyBoxId)
 		close(bodyChan)
-	//case <-time.After(timeOut):
-	//	logger.Error("http response timeout")
-	//	break
+		//case <-time.After(timeOut):
+		//	logger.Error("http response timeout")
+		//	break
 	}
 
 	//fmt.Println("DepService middle time: ", time.Since(middle))
@@ -317,9 +326,9 @@ func (s *DepService) ProcessCrpTrans(ctx *fasthttp.RequestCtx) {
 }
 
 func (s *DepService) ProcessCrpResponse(ctx *fasthttp.RequestCtx) {
-	logger.Info("DepService ProcessCrpResponse start")
+	//logger.Info("DepService ProcessCrpResponse start")
 
-	timeOut := time.Duration(300000) * time.Millisecond
+	//timeOut := time.Duration(300000) * time.Millisecond
 
 	prdtIdCd := string(ctx.Request.Header.Peek("prdtIdCd"))
 	if prdtIdCd == "" {
@@ -339,7 +348,11 @@ func (s *DepService) ProcessCrpResponse(ctx *fasthttp.RequestCtx) {
 		return
 	}
 
-	boxName := "sup_response"
+	//logger.Info("prdtIdCd: [%s]", prdtIdCd)
+
+	boxName := boxMap[prdtIdCd]
+
+	//logger.Info("boxName: [%s]", boxName)
 	//boxName = "smart_response"
 	b := assetnode.AssetNodeEntity.GetDataBoxByName(boxName)
 	if b == nil {
@@ -361,9 +374,9 @@ func (s *DepService) ProcessCrpResponse(ctx *fasthttp.RequestCtx) {
 	case body := <-bodyChan:
 		ctx.SetBody(body)
 		close(bodyChan)
-	case <-time.After(timeOut):
-		logger.Error("http response timeout")
-		break
+	//case <-time.After(timeOut):
+	//	logger.Error("http response timeout")
+	//	break
 	}
 }
 

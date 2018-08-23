@@ -25,38 +25,38 @@ import (
 // 数据资产方
 type (
 	AssetNode interface {
-		Init() AssetNode                                                         // 初始化
-		Empower() AssetNode                                                      // 资产方赋权
-		GetConfig(k ...string) interface{}                                       // 获取全局参数
-		SetConfig(k string, v interface{}) AssetNode                             // 设置全局参数
-		DataBoxPrepare(original []*databox.DataBox) AssetNode                    // 须在设置全局运行参数后Run()前调用（client模式下不调用该方法）
-		PushDataBox(original []*databox.DataBox) AssetNode                       // 将DataBox放入channel
-		PushActiveDataBox(original *databox.DataBox) *databox.DataBox            // 将DataBox放入active channel
-		Run()                                                                    // 阻塞式运行直至任务完成（须在所有应当配置项配置完成后调用）
-		SyncRun()                                                                // 同步运行ActiveBox
+		Init() AssetNode                                              // 初始化
+		Empower() AssetNode                                           // 资产方赋权
+		GetConfig(k ...string) interface{}                            // 获取全局参数
+		SetConfig(k string, v interface{}) AssetNode                  // 设置全局参数
+		DataBoxPrepare(original []*databox.DataBox) AssetNode         // 须在设置全局运行参数后Run()前调用（client模式下不调用该方法）
+		PushDataBox(original []*databox.DataBox) AssetNode            // 将DataBox放入channel
+		PushActiveDataBox(original *databox.DataBox) *databox.DataBox // 将DataBox放入active channel
+		Run()                                                         // 阻塞式运行直至任务完成（须在所有应当配置项配置完成后调用）
+		SyncRun()                                                     // 同步运行ActiveBox
 		//RunActiveBox(b *databox.DataBox, obj interface{}) response.DataResponse // 执行ActiveBox请求，同步返回
-		StopActiveBox(b *databox.DataBox)                                        // 停止Active DataBox
-		Stop()                                                                   // Offline 模式下中途终止任务（对外为阻塞式运行直至当前任务终止）
-		IsRunning() bool                                                         // 检查任务是否正在运行
-		IsPause() bool                                                           // 检查任务是否处于暂停状态
-		IsStopped() bool                                                         // 检查任务是否已经终止
-		PauseRecover()                                                           // Offline 模式下暂停\恢复任务
-		Status() int                                                             // 返回当前状态
-		GetDataBoxLib() []*databox.DataBox                                       // 获取全部databox种类
-		GetDataBoxByName(string) *databox.DataBox                                // 通过名字获取某DataBox
+		StopActiveBox(b *databox.DataBox)         // 停止Active DataBox
+		Stop()                                    // Offline 模式下中途终止任务（对外为阻塞式运行直至当前任务终止）
+		IsRunning() bool                          // 检查任务是否正在运行
+		IsPause() bool                            // 检查任务是否处于暂停状态
+		IsStopped() bool                          // 检查任务是否已经终止
+		PauseRecover()                            // Offline 模式下暂停\恢复任务
+		Status() int                              // 返回当前状态
+		GetDataBoxLib() []*databox.DataBox        // 获取全部databox种类
+		GetDataBoxByName(string) *databox.DataBox // 通过名字获取某DataBox
 		//GetActiveDataBoxByName(string) *databox.DataBox                          // 通过名字获取某活跃DataBox
-		GetDataBoxQueue() dataman.DataBoxQueue                                   // 获取DataBox队列接口实例
-		GetDataManPool() dataman.DataManPool                                     // 获取DataManPool
-		GetOutputLib() []string                                                  // 获取全部输出方式
-		GetTaskBase() *distribute.TaskBase                                       // 返回任务库
-		distribute.Distributer                                                   // 实现分布式接口
+		GetDataBoxQueue() dataman.DataBoxQueue // 获取DataBox队列接口实例
+		GetDataManPool() dataman.DataManPool   // 获取DataManPool
+		GetOutputLib() []string                // 获取全部输出方式
+		GetTaskBase() *distribute.TaskBase     // 返回任务库
+		distribute.Distributer                 // 实现分布式接口
 	}
 	NodeEntity struct {
-		id           int           // 资产方系统ID
-		rights       []string      // 资产方权利
-		roleType     string        // 资产方角色类型
-		*cache.AppConf             // 全局配置
-		*databox.DataBoxSpecies    // 数据产品流种类
+		id       int            // 资产方系统ID
+		rights   []string       // 资产方权利
+		roleType string         // 资产方角色类型
+		*cache.AppConf          // 全局配置
+		*databox.DataBoxSpecies // 数据产品流种类
 		//*databox.DataBoxActivites  // DataBox活跃列表
 		*distribute.TaskBase       // 服务器与客户端间传递任务的存储库
 		dataman.DataBoxQueue       // 当前任务的数据产品流队列
@@ -87,14 +87,14 @@ func New() AssetNode {
 func getNewNodeEntity() *NodeEntity {
 	once.Do(func() {
 		newNodeEntity = &NodeEntity{
-			AppConf:          cache.Task,
-			DataBoxSpecies:   databox.Species,
+			AppConf:        cache.Task,
+			DataBoxSpecies: databox.Species,
 			//DataBoxActivites: databox.Activites,
-			status:           status.STOPPED,
-			Teleport:         teleport.New(),
-			TaskBase:         distribute.NewTaskBase(),
-			DataBoxQueue:     dataman.NewDataBoxQueue(),
-			DataManPool:      dataman.NewDataManPool(),
+			status:       status.STOPPED,
+			Teleport:     teleport.New(),
+			TaskBase:     distribute.NewTaskBase(),
+			DataBoxQueue: dataman.NewDataBoxQueue(),
+			DataManPool:  dataman.NewDataManPool(),
 			//CarrierPool:      dataman.NewCarrierPool(),
 		}
 	})
@@ -194,18 +194,19 @@ func (self *NodeEntity) DataBoxPrepare(original []*databox.DataBox) AssetNode {
 
 func (self *NodeEntity) PushDataBox(original []*databox.DataBox) AssetNode {
 	// 遍历任务
-	for _, b := range original {
-		dfcopy := b.Copy()
-		dfcopy.SetPausetime(self.AppConf.Pausetime)
-		if dfcopy.GetLimit() == databox.LIMIT {
-			dfcopy.SetLimit(self.AppConf.Limit)
-		} else {
-			dfcopy.SetLimit(-1 * self.AppConf.Limit)
-		}
-		self.DataBoxQueue.AddChan(dfcopy)
-
-		b.Refresh()
+	b := original[0]
+	//for _, b := range original {
+	dfcopy := b.Copy()
+	dfcopy.SetPausetime(self.AppConf.Pausetime)
+	if dfcopy.GetLimit() == databox.LIMIT {
+		dfcopy.SetLimit(self.AppConf.Limit)
+	} else {
+		dfcopy.SetLimit(-1 * self.AppConf.Limit)
 	}
+	b.Refresh()
+	self.DataBoxQueue.AddChan(dfcopy)
+
+	//}
 	// 遍历自定义配置
 	//self.DataBoxQueue.AddKeyins(self.AppConf.Keyins)
 	return self

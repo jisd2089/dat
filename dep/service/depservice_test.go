@@ -6,7 +6,6 @@ import (
 	_ "drcs/dep/nodelib/crp"
 	"runtime"
 	"drcs/core"
-	"time"
 )
 
 /**
@@ -14,7 +13,7 @@ import (
     Created: 2018-08-14 18:51:55
 */
 func init() {
-	runtime.GOMAXPROCS(8)
+	runtime.GOMAXPROCS(16)
 
 	SettingPath = "/home/deplab/project/drcs/config"
 
@@ -32,24 +31,21 @@ func BenchmarkProcessCrpTrans(b *testing.B) {
 	requestBody := []byte(`{
 	"pubReqInfo": {
 		"timeStamp": "1469613279966",
-		"jobId": "JON20180516000000431",
-		"reqSign": "5f4d604a00df289b6b90b66e4d0e1be9d43cd236fc018197dd27e01a0f7e8a3c",
+		"jobId": "JON20180816000000631",
+		"reqSign": "dd4239bbbaca226924a4cf6babd002b9d5f02d33d03025589e937b4ce1b3b3dc",
 		"serialNo": "2201611161916567677531846",
 		"memId": "0000162",
 		"authMode": "00"
 	},
 	"busiInfo": {
-		"fullName": "高尚",
-		"identityNumber": "330123197507134199",
-		"phoneNumber": "13211109876",
-		"timestamp": "1531479822"
+		"fullName": "尚书",
+		"phoneNumber": "17316332755",
+		"starttime": "1531479822"
 	}
 }`)
 
 	ctx := &fasthttp.RequestCtx{}
 	ctx.Request.SetBody(requestBody)
-
-	time.Sleep(time.Duration(time.Second * 1))
 
 	for i:=0; i<b.N; i++ {
 		depService.ProcessCrpTrans(ctx)

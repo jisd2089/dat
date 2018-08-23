@@ -43,7 +43,7 @@ func (ft *DepAuthTransfer) ExecuteMethod(req Request) Response {
 	return &response.DataResponse{
 		StatusCode: 200,
 		ReturnCode: retCode,
-		Bobject:    req.GetBobject(),
+		//Bobject:    req.GetBobject(),
 		ReturnMsg:  retMsg,
 	}
 }

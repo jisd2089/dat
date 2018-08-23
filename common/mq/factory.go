@@ -26,7 +26,7 @@ func createRecordor() (Recordor, error) {
 		return nil, fmt.Errorf("配置缺失:%s", settings_xpath_mqpath)
 	}
 
-	fmt.Println("mqPath: ", mqPath)
+	//fmt.Println("mqPath: ", mqPath)
 	recordor, err := posixmq.New(mqPath)
 	if err != nil {
 		logger.Error("create posixmq error ", err)

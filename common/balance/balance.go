@@ -113,7 +113,7 @@ func ApplyBalance(accId string, unitPrice float64, quotaNum int64, balanceUrl st
 	}
 	client := http.Client{}
 
-	logger.Info("apply balance start:", string(reqBalanceParamByte))
+	//logger.Info("apply balance start:", string(reqBalanceParamByte))
 	resp, err := client.Post(balanceUrl, "application/json", bytes.NewReader(reqBalanceParamByte))
 	defer resp.Body.Close()
 	if err != nil {
@@ -122,7 +122,7 @@ func ApplyBalance(accId string, unitPrice float64, quotaNum int64, balanceUrl st
 	}
 
 	respData, err := ioutil.ReadAll(resp.Body)
-	logger.Info("apply balance end:", string(respData))
+	//logger.Info("apply balance end:", string(respData))
 	if err != nil {
 		return 0, errors.RawNew("042000", "Read resp.Body error")
 	}

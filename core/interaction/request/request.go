@@ -123,40 +123,40 @@ func (self *DataRequest) Prepare() error {
 		self.Method = strings.ToUpper(self.Method)
 	}
 
-	if self.Header == nil {
-		self.Header = make(http.Header)
-	}
+	//if self.Header == nil {
+	//	self.Header = make(http.Header)
+	//}
 
-	if self.DialTimeout < 0 {
-		self.DialTimeout = 0
-	} else if self.DialTimeout == 0 {
-		self.DialTimeout = DefaultDialTimeout
-	}
-
-	if self.TryTimes == 0 {
-		self.TryTimes = DefaultTryTimes
-	}
-
-	if self.RetryPause <= 0 {
-		self.RetryPause = DefaultRetryPause
-	}
-
-	if self.Priority < 0 {
-		self.Priority = 0
-	}
+	//if self.DialTimeout < 0 {
+	//	self.DialTimeout = 0
+	//} else if self.DialTimeout == 0 {
+	//	self.DialTimeout = DefaultDialTimeout
+	//}
+	//
+	//if self.TryTimes == 0 {
+	//	self.TryTimes = DefaultTryTimes
+	//}
+	//
+	//if self.RetryPause <= 0 {
+	//	self.RetryPause = DefaultRetryPause
+	//}
+	//
+	//if self.Priority < 0 {
+	//	self.Priority = 0
+	//}
 
 	// TODO
-	if self.DownloaderID < SURF_ID || self.DownloaderID > PHANTOM_ID {
-		self.DownloaderID = SURF_ID
-	}
-
-	if self.TempIsJson == nil {
-		self.TempIsJson = make(map[string]bool)
-	}
-
-	if self.Temp == nil {
-		self.Temp = make(Temp)
-	}
+	//if self.DownloaderID < SURF_ID || self.DownloaderID > PHANTOM_ID {
+	//	self.DownloaderID = SURF_ID
+	//}
+	//
+	//if self.TempIsJson == nil {
+	//	self.TempIsJson = make(map[string]bool)
+	//}
+	//
+	//if self.Temp == nil {
+	//	self.Temp = make(Temp)
+	//}
 
 	return nil
 }

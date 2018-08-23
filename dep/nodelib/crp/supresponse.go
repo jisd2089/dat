@@ -14,7 +14,6 @@ import (
 	"github.com/valyala/fasthttp"
 	"time"
 	logger "drcs/log"
-	"encoding/json"
 )
 
 func init() {

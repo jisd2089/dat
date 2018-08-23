@@ -10,12 +10,14 @@ import (
 
 	"drcs/runtime/status"
 	"drcs/config"
+	"drcs/common/util"
 )
 
 type (
 	DataManPool interface {
 		Reset(dataBoxNum int) int  // 设置数据信使数量，根据数据流产品数量按需分配
 		Use() DataMan              // 并发安全的使用数据信使
+		UseOne() DataMan           // 并发安全的使用数据信使
 		Free(DataMan)              // 释放信使资源
 		Stop()                     // 主动停止
 		GetOneById(id int) DataMan // 根据id获取dataman
@@ -38,6 +40,15 @@ func NewDataManPool() DataManPool {
 		all:    make([]DataMan, 0, config.DATAMANS_CAP),
 	}
 }
+
+var (
+	idInc  = util.NewAutoInc(0, 1)
+	dmPool = &sync.Pool{
+		New: func() interface{} {
+			return New(idInc.Id())
+		},
+	}
+)
 
 // 根据要执行的dataBox数量设置DataManPool
 // 在二次使用Pool实例时，可根据容量高效转换
@@ -95,6 +106,10 @@ func (dmp *dataManPool) Use() DataMan {
 		time.Sleep(time.Second)
 	}
 	return nil
+}
+
+func (dmp *dataManPool) UseOne() DataMan {
+	return dmPool.Get().(DataMan)
 }
 
 func (dmp *dataManPool) Free(dataMan DataMan) {

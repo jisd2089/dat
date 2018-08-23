@@ -92,7 +92,8 @@ func (self DataBox) Register() *DataBox {
 	self.status = status.STOPPED
 	self.dnames = make([]string, 0, maxParam)
 	self.dvalues = make([]string, 0, maxParam)
-	return Species.Add(&self)
+	//return Species.Add(&self)
+	return Species.AddPool(&self)
 }
 
 // 根据名称获取child box
@@ -415,6 +416,7 @@ func (b *DataBox) Refresh() *DataBox {
 
 	b.status = status.RUN
 	b.StartWG = nil
+	b.BodyChan = nil
 	//b.PairDataBoxId = 0
 	//b.IsParentBox = false
 	return b

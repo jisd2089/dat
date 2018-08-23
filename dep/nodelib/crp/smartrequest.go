@@ -16,7 +16,6 @@ import (
 	logger "drcs/log"
 	"crypto/md5"
 	"fmt"
-	"encoding/json"
 )
 
 func init() {

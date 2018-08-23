@@ -24,7 +24,7 @@ func New(path string) (*PosixMQ, error) {
 }
 
 func (pm *PosixMQ) Record(record *Record) {
-	fmt.Println("posixmq record start~")
+	//fmt.Println("posixmq record start~")
 
 	tm := time.Now()
 	record.rdate = tm.Format("20060102")
@@ -36,11 +36,11 @@ func (pm *PosixMQ) Record(record *Record) {
 
 	flatRecordIntoBuffer(record, buffer)
 
-	fmt.Println("posixmq record before send~", string(buffer.Bytes()))
+	//fmt.Println("posixmq record before send~", string(buffer.Bytes()))
 	err := pm.mq.Send(buffer.Bytes())
 	if err != nil {
 		fmt.Println("mq send err: ", err.Error())
 	}
-	fmt.Println("posixmq record end~")
+	//fmt.Println("posixmq record end~")
 }
 

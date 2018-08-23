@@ -12,7 +12,6 @@ import (
 	"encoding/xml"
 	"fmt"
 	"io/ioutil"
-	"os"
 	"regexp"
 	"time"
 	"drcs/common/util"
@@ -175,7 +174,7 @@ func SaveDataToxml(seed, memId, userkey string) (string, *errors.MeanfulError) {
 
 	util.Mkdir(xmlPath)
 
-	ioutil.WriteFile(xmlPath, xmldata, os.ModeAppend)
+	ioutil.WriteFile(xmlPath, xmldata, 0644)
 
 	return pubkey, nil
 }

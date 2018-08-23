@@ -16,7 +16,7 @@ import (
 	logger "drcs/log"
 	"strconv"
 	"time"
-	"encoding/json"
+	"github.com/json-iterator/go"
 )
 
 /**
@@ -24,7 +24,7 @@ import (
     Created: 2018-05-15 19:30:06
 */
 
-//var json = jsoniter.ConfigCompatibleWithStandardLibrary
+var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
 func procEndFunc(ctx *Context) {
 	//logger.Info("end start")

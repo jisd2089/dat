@@ -25,7 +25,6 @@ import (
 	"drcs/dep/security"
 	"drcs/common/cncrypt"
 	"strings"
-	"encoding/json"
 	"drcs/dep/member"
 )
 
@@ -82,19 +81,34 @@ var DEMREQUEST = &DataBox{
 }
 
 func demrequestRootFunc(ctx *Context) {
-	logger.Info("demrequestRootFunc start")
+	//logger.Info("demrequestRootFunc start ", ctx.GetDataBox().GetId())
 
-	start := int(time.Now().UnixNano() / 1e6)
+	//start := int(time.Now().UnixNano() / 1e6)
+	//
+	//ctx.GetDataBox().SetParam("startTime", strconv.Itoa(start))
+	//
+	//ctx.AddChanQueue(&request.DataRequest{
+	//	Rule:          "parseparam",
+	//	Method:        "PING",
+	//	TransferType:  request.REDIS,
+	//	Reloadable:    true,
+	//	CommandParams: ctx.GetDataBox().Params,
+	//})
 
-	ctx.GetDataBox().SetParam("startTime", strconv.Itoa(start))
 
-	ctx.AddChanQueue(&request.DataRequest{
-		Rule:          "parseparam",
-		Method:        "PING",
-		TransferType:  request.REDIS,
-		Reloadable:    true,
-		CommandParams: ctx.GetDataBox().Params,
-	})
+	// TODO mock
+	pubRespMsg := &PubResProductMsg{}
+	pubAnsInfo := &PubAnsInfo{}
+	pubAnsInfo.ResCode = "000000"
+	pubAnsInfo.ResMsg = "成功"
+	pubRespMsg.PubAnsInfo = pubAnsInfo
+	pubRespMsg.DetailInfo.Tag = "疑似仿冒包装"
+	pubRespMsg.DetailInfo.EvilScore = 88
+	bodyByte, _ := json.Marshal(pubRespMsg)
+
+	ctx.GetDataBox().BodyChan <- bodyByte
+
+	procEndFunc(ctx)
 }
 
 /**
@@ -116,7 +130,7 @@ func demrequestRootFunc(ctx *Context) {
 	}`
  */
 func parseReqParamFunc(ctx *Context) {
-	logger.Info("parseReqParamFunc start")
+	//logger.Info("parseReqParamFunc start ", ctx.GetDataBox().GetId())
 
 	if ctx.DataResponse.StatusCode == 200 && !strings.EqualFold(ctx.DataResponse.ReturnCode, "000000") {
 		logger.Error("[parseReqParamFunc] ping redis failed: [%s] ", ctx.DataResponse.ReturnMsg)
@@ -124,22 +138,29 @@ func parseReqParamFunc(ctx *Context) {
 		return
 	}
 
-	reqBody := ctx.GetDataBox().HttpRequestBody
-
 	commonRequestData := &CommonRequestData{}
-	err := json.Unmarshal(reqBody, &commonRequestData)
+	err := json.Unmarshal(ctx.GetDataBox().HttpRequestBody, &commonRequestData)
 	if err != nil {
 		logger.Error("[parseReqParamFunc] unmarshal CommonRequestData err: [%s] ", err.Error())
 		errEnd(ctx)
 		return
 	}
 
+	reqDataJson, err := json.Marshal(commonRequestData.BusiInfo)
+	if err != nil {
+		logger.Error("[depAuthFunc] marshal request data err: [%s] ", err.Error())
+		errEnd(ctx)
+		return
+	}
+
+	ctx.GetDataBox().HttpRequestBody = reqDataJson
+
 	dataReq := &request.DataRequest{
-		Rule:         "depauth",
+		Rule:         "applybalance",
 		TransferType: request.DEPAUTH,
 		Method:       "APPKEY",
 		Reloadable:   true,
-		Bobject:      commonRequestData.BusiInfo,
+		//Bobject:      commonRequestData.BusiInfo,
 	}
 
 	dataReq.SetParam("memberId", commonRequestData.PubReqInfo.MemId)
@@ -156,24 +177,13 @@ func parseReqParamFunc(ctx *Context) {
 }
 
 func depAuthFunc(ctx *Context) {
-	logger.Info("depAuthFunc start")
+	//logger.Info("depAuthFunc start ", ctx.GetDataBox().GetId())
 
 	if ctx.DataResponse.StatusCode == 200 && !strings.EqualFold(ctx.DataResponse.ReturnCode, "000000") {
 		logger.Error("[depAuthFunc] dep authentication failed: [%s] ", ctx.DataResponse.ReturnMsg)
 		errEnd(ctx)
 		return
 	}
-
-	reqData := ctx.DataResponse.Bobject
-
-	reqDataJson, err := json.Marshal(reqData)
-	if err != nil {
-		logger.Error("[depAuthFunc] marshal request data err: [%s] ", err.Error())
-		errEnd(ctx)
-		return
-	}
-
-	ctx.GetDataBox().HttpRequestBody = reqDataJson
 
 	ctx.AddChanQueue(&request.DataRequest{
 		Rule: "applybalance",
@@ -187,17 +197,45 @@ func depAuthFunc(ctx *Context) {
 }
 
 func applyBalanceFunc(ctx *Context) {
-	logger.Info("applyBalanceFunc start")
+	//logger.Info("applyBalanceFunc start ", ctx.GetDataBox().GetId())
+
+	if ctx.DataResponse.StatusCode == 200 && !strings.EqualFold(ctx.DataResponse.ReturnCode, "000000") {
+		logger.Error("[applyBalanceFunc] dep authentication failed: [%s] ", ctx.DataResponse.ReturnMsg)
+		errEnd(ctx)
+		return
+	}
 
 	// TODO
 	jobId := ctx.GetDataBox().Param("jobId")
-	orderRoutePolicy := or.OrderRoutePolicyMap[jobId]
+	orderRoutePolicy, ok := or.OrderRoutePolicyMap[jobId]
+	if !ok {
+		logger.Error("[applyBalanceFunc] can not get order route policy map by jobid [%s]", jobId)
+		errEnd(ctx)
+		return
+	}
 	supMemberId := orderRoutePolicy.Calllist[0]
-	taskId := orderRoutePolicy.MemTaskIdMap[supMemberId]
+	taskId, ok := orderRoutePolicy.MemTaskIdMap[supMemberId]
+	if !ok {
+		logger.Error("[applyBalanceFunc] can not get memtask map by memberid [%s]", supMemberId)
+		errEnd(ctx)
+		return
+	}
 
-	orderData := order.GetOrderInfoMap()[jobId]
+	orderData, ok := order.GetOrderInfoMap()[jobId]
+	if !ok {
+		logger.Error("[applyBalanceFunc] can not get orderinfo map by jobid [%s]", jobId)
+		errEnd(ctx)
+		return
+	}
 
-	orderDetailInfo := orderData.TaskInfoMapById[taskId]
+	orderDetailInfo, ok := orderData.TaskInfoMapById[taskId]
+	if !ok {
+		logger.Error("[applyBalanceFunc] can not get taskinfo map by taskid [%s]", taskId)
+		errEnd(ctx)
+		return
+	}
+
+	ctx.GetDataBox().SetParam("prdtIdCd", orderDetailInfo.PrdtIdCd)
 
 	unitPriceStr := orderDetailInfo.ValuationPrice
 
@@ -255,7 +293,7 @@ func applyBalanceFunc(ctx *Context) {
 }
 
 func updateRedisQuatoFunc(ctx *Context) {
-	logger.Info("updateRedisQuatoFunc start")
+	//logger.Info("updateRedisQuatoFunc start ", ctx.GetDataBox().GetId())
 
 	if ctx.DataResponse.StatusCode == 200 && !strings.EqualFold(ctx.DataResponse.ReturnCode, "000000") {
 		logger.Error("[updateRedisQuatoFunc] update quato redis value failed: [%s] ", ctx.DataResponse.ReturnMsg)
@@ -298,7 +336,7 @@ func updateRedisQuatoFunc(ctx *Context) {
 }
 
 func reduceRedisQuatoFunc(ctx *Context) {
-	logger.Info("reduceRedisQuatoFunc start")
+	//logger.Info("reduceRedisQuatoFunc start ", ctx.GetDataBox().GetId())
 
 	if ctx.DataResponse.StatusCode == 200 && !strings.EqualFold(ctx.DataResponse.ReturnCode, "000000") {
 		logger.Error("[updateRedisQuatoFunc] update quato redis value failed: [%s]", ctx.DataResponse.ReturnMsg)
@@ -319,7 +357,13 @@ func reduceRedisQuatoFunc(ctx *Context) {
 	supMemId := orPolicyMap.Calllist[0]
 	ctx.GetDataBox().SetParam("supMemId", supMemId)
 
-	taskIdStr := orPolicyMap.MemTaskIdMap[supMemId]
+	taskIdStr, ok := orPolicyMap.MemTaskIdMap[supMemId]
+	if !ok {
+		logger.Error("[updateRedisQuatoFunc] can not get member task map by memberid [%s]", supMemId)
+		returnBalanceFunc(ctx)
+		return
+	}
+
 	ctx.GetDataBox().SetParam("taskIdStr", taskIdStr)
 
 	demMemberId := ctx.GetDataBox().Param("demMemberId")
@@ -347,7 +391,7 @@ func reduceRedisQuatoFunc(ctx *Context) {
 }
 
 func singleQueryFunc(ctx *Context) {
-	logger.Info("singleQueryFunc start")
+	//logger.Info("singleQueryFunc start ", ctx.GetDataBox().GetId())
 
 	supMemberId := ctx.DataResponse.BodyStrs[0]
 	memberDetailInfo, err := member.GetPartnerInfoById(supMemberId)
@@ -369,7 +413,7 @@ func singleQueryFunc(ctx *Context) {
 		Method: "POSTBODY",
 		//Url:    "http://127.0.0.1:8096/api/crp/sup", "http://10.101.12.43:8097/api/crp/sup"
 		Url:          memberDetailInfo.SvrURL,
-		TransferType: request.NONETYPE,
+		TransferType: request.FASTHTTP,
 		Reloadable:   true,
 		HeaderArgs:   header,
 		Parameters:   ctx.GetDataBox().HttpRequestBody,
@@ -380,7 +424,7 @@ func singleQueryFunc(ctx *Context) {
 }
 
 func staticQueryFunc(ctx *Context) {
-	logger.Info("staticQueryFunc start")
+	//logger.Info("staticQueryFunc start ", ctx.GetDataBox().GetId())
 
 	callList := ctx.DataResponse.BodyStrs
 
@@ -398,7 +442,7 @@ func staticQueryFunc(ctx *Context) {
 		if ctx.DataResponse.StatusCode == 200 && strings.EqualFold(ctx.DataResponse.ReturnCode, "000000") {
 			pubRespMsg := &PubResProductMsg{}
 			if err := json.Unmarshal(ctx.DataResponse.Body, pubRespMsg); err != nil {
-				logger.Error("[callResponseFunc] unmarshal response body to PubResProductMsg_0_000_000 err: [%s] ", err.Error())
+				logger.Error("[staticQueryFunc] unmarshal response body to PubResProductMsg err: [%s] ", err.Error())
 				returnBalanceFunc(ctx)
 				return
 			}
@@ -410,7 +454,7 @@ func staticQueryFunc(ctx *Context) {
 			pubRespMsg.PubAnsInfo = pubAnsInfo
 			pubRespMsg.DetailInfo.Tag = "疑似仿冒包装"
 			pubRespMsg.DetailInfo.EvilScore = 77
-			//ctx.DataResponse.Body, _ = json.Marshal(pubRespMsg)
+			ctx.DataResponse.Body, _ = json.Marshal(pubRespMsg)
 			//fmt.Println(string(ctx.DataResponse.Body))
 			// TODO mock-end
 
@@ -421,6 +465,7 @@ func staticQueryFunc(ctx *Context) {
 					TransferType: request.NONETYPE,
 					Reloadable:   true,
 					Parameters:   ctx.DataResponse.Body,
+					ConnTimeout:  time.Duration(time.Minute * 60),
 				})
 				return
 
@@ -445,9 +490,10 @@ func staticQueryFunc(ctx *Context) {
 func execQuery(ctx *Context, supMemberId string) error {
 	memberDetailInfo, err := member.GetPartnerInfoById(supMemberId)
 	if err != nil {
-		logger.Error("[singleQueryFunc] get partner info by memberid [%s] error: [%s]", supMemberId, err.Error())
+		logger.Error("[staticQueryFunc] get partner info by memberid [%s] error: [%s]", supMemberId, err.Error())
 		return err
 	}
+
 	header := &fasthttp.RequestHeader{}
 	header.SetContentType("application/json;charset=UTF-8")
 	header.SetMethod("POST")
@@ -459,7 +505,7 @@ func execQuery(ctx *Context, supMemberId string) error {
 		Rule:         "staticquery",
 		Method:       "POSTBODY",
 		Url:          memberDetailInfo.SvrURL,
-		TransferType: request.FASTHTTP,
+		TransferType: request.NONETYPE,
 		Reloadable:   true,
 		HeaderArgs:   header,
 		Parameters:   ctx.GetDataBox().HttpRequestBody,
@@ -473,7 +519,7 @@ func execQuery(ctx *Context, supMemberId string) error {
 }
 
 func callResponseFunc(ctx *Context) {
-	logger.Info("callResponseFunc start")
+	//logger.Info("callResponseFunc start ", ctx.GetDataBox().GetId())
 
 	pubRespMsg := &PubResProductMsg{}
 	// TODO mock
@@ -487,13 +533,13 @@ func callResponseFunc(ctx *Context) {
 	//fmt.Println(string(ctx.DataResponse.Body))
 	// TODO mock-end
 
+	ctx.GetDataBox().BodyChan <- ctx.DataResponse.Body
+
 	if err := json.Unmarshal(ctx.DataResponse.Body, pubRespMsg); err != nil {
 		logger.Error("[callResponseFunc] unmarshal response body to PubResProductMsg_0_000_000 err: [%s] ", err.Error())
 		returnBalanceFunc(ctx)
 		return
 	}
-
-	ctx.GetDataBox().BodyChan <- ctx.DataResponse.Body
 
 	// 不收费处理逻辑
 	if strings.EqualFold(pubRespMsg.PubAnsInfo.ResCode, CenterCodeReqFailNoCharge) {
@@ -551,7 +597,7 @@ func callResponseFunc(ctx *Context) {
 }
 
 func returnBalanceFunc(ctx *Context) {
-	logger.Info("returnBalanceFunc start")
+	//logger.Info("returnBalanceFunc start ", ctx.GetDataBox().GetId())
 
 	memberId := ctx.GetDataBox().Param("demMemberId")
 	unitPriceStr := ctx.GetDataBox().Param("unitPrice")

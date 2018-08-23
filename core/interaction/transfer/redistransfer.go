@@ -11,10 +11,13 @@ import (
 	"fmt"
 	"sync"
 	"strconv"
+	"runtime"
+	"bytes"
 )
 
 type RedisTransfer struct {
 	redisCli redisLib.RedisClient
+	lock     sync.RWMutex
 }
 
 func NewRedisTransfer() Transfer {
@@ -24,6 +27,7 @@ func NewRedisTransfer() Transfer {
 var (
 	redOnce   sync.Once
 	redRtOnce sync.Once
+	redisCli  redisLib.RedisClient
 )
 
 // 封装redis服务
@@ -31,11 +35,24 @@ func (rt *RedisTransfer) ExecuteMethod(req Request) Response {
 	//fmt.Println("RedisTransfer")
 
 	defer func() {
-		err := recover()
-		if err != nil {
-			fmt.Println("redisTransfer recover error: ", err)
+		if p := recover(); p != nil {
+			fmt.Println("redisTransfer recover error: ", p)
+
+			stack := make([]byte, 4<<10) //4KB
+			length := runtime.Stack(stack, true)
+			start := bytes.Index(stack, []byte("/src/runtime/panic.go"))
+			stack = stack[start:length]
+			start = bytes.Index(stack, []byte("\n")) + 1
+			stack = stack[start:]
+			if end := bytes.Index(stack, []byte("\ngoroutine ")); end != -1 {
+				stack = stack[:end]
+			}
+			stack = bytes.Replace(stack, []byte("\n"), []byte("\r\n"), -1)
+			fmt.Println(" *     Panic  [redisTransfer][%s]: %s\r\n[TRACE]\r\n%s", "", p, string(stack))
 		}
 	}()
+	rt.lock.Lock()
+	defer rt.lock.Unlock()
 
 	rt.connect(req)
 
@@ -91,7 +108,7 @@ RETRY:
 		}
 		err = rt.redisCli.HIncrBy(req.Param("key"), req.Param("field"), int64(incr))
 	case "HDecrBy":
-		incr, errmsg := strconv.ParseFloat(req.Param("amount"),  64)
+		incr, errmsg := strconv.ParseFloat(req.Param("amount"), 64)
 		if errmsg != nil {
 			return &DataResponse{
 				StatusCode: 200,
@@ -123,7 +140,7 @@ RETRY:
 		BodyStrs:   values,
 		StatusCode: 200,
 		ReturnCode: retCode,
-		ReturnMsg: "redis transfer success",
+		ReturnMsg:  "redis transfer success",
 	}
 }
 
@@ -145,11 +162,13 @@ func (rt *RedisTransfer) connect(req Request) {
 			DBIndex:     dbIndex,
 			PoolSize:    redisPoolSize,
 		}
-		rt.redisCli, _ = redisLib.GetRedisClient(o)
+		//rt.redisCli, _ = redisLib.GetRedisClient(o)
+		redisCli, _ = redisLib.GetRedisClient(o)
 		//if err != nil {
 		//	return
 		//}
 	})
+	rt.redisCli = redisCli
 }
 
 func (rt *RedisTransfer) refresh(req Request) {
@@ -170,11 +189,13 @@ func (rt *RedisTransfer) refresh(req Request) {
 			DBIndex:     dbIndex,
 			PoolSize:    redisPoolSize,
 		}
-		rt.redisCli, _ = redisLib.GetRedisClient(o)
+		redisCli, _ = redisLib.GetRedisClient(o)
+		//rt.redisCli, _ = redisLib.GetRedisClient(o)
 		//if err != nil {
 		//	return
 		//}
 	})
+	rt.redisCli = redisCli
 }
 
 func (rt *RedisTransfer) Close() {

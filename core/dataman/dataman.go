@@ -264,7 +264,7 @@ func (m *dataMan) execProcess(req *request.DataRequest) {
 		m.FreeOne()
 		break
 	case <-time.After(req.ConnTimeout):
-		fmt.Println("exec process timeout~")
+		fmt.Println("exec process timeout~", req.GetRuleName())
 		m.FreeOne()
 		defer m.DataBox.SetStatus(status.STOP)
 		defer m.DataBox.CloseRequestChan()
@@ -416,11 +416,11 @@ func (m *dataMan) Process(req *request.DataRequest) {
 	ctx.Parse(req.GetRuleName())
 
 	// 该条请求文件结果存入pipeline
-	for _, f := range ctx.PullFiles() {
-		if m.Pipeline.CollectFile(f) != nil {
-			break
-		}
-	}
+	//for _, f := range ctx.PullFiles() {
+	//	if m.Pipeline.CollectFile(f) != nil {
+	//		break
+	//	}
+	//}
 	// 该条请求文本结果存入pipeline
 	//for _, item := range ctx.PullItems() {
 	//	if m.Pipeline.CollectData(item) != nil {

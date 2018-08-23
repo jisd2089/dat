@@ -14,8 +14,6 @@ import (
 	logger "drcs/log"
 	"strconv"
 	"time"
-	"encoding/json"
-	"fmt"
 )
 
 func init() {
@@ -35,21 +33,15 @@ var SMARTRESPONSE = &DataBox{
 			"rsaencrypt": {
 				ParseFunc: rsaEncryptParamFunc,
 			},
-			//"base64encode": {
-			//	ParseFunc: base64EncodeParamFunc,
-			//},
 			"execquery": {
 				ParseFunc: querySmartResponseFunc,
 			},
-			//"base64decode": {
-			//	ParseFunc: base64DecodeRespFunc,
-			//},
+			"mockexecquery": {
+				ParseFunc: mockQuerySmartResponseFunc,
+			},
 			"rsadecrypt": {
 				ParseFunc: rsaDecryptFunc,
 			},
-			//"base64decode": {
-			//	ParseFunc: base64DecodeParamFunc,
-			//},
 			"end": {
 				ParseFunc: procEndFunc,
 			},
@@ -58,7 +50,7 @@ var SMARTRESPONSE = &DataBox{
 }
 
 func smartResponseRootFunc(ctx *Context) {
-	logger.Info("smartResponseRootFunc start")
+	logger.Info("smartResponseRootFunc start ", ctx.GetDataBox().GetId())
 
 	ctx.AddChanQueue(&request.DataRequest{
 		Rule:         "parseparam",
@@ -69,7 +61,7 @@ func smartResponseRootFunc(ctx *Context) {
 }
 
 func parseResponseParamFunc(ctx *Context) {
-	logger.Info("parseResponseParamFunc start")
+	logger.Info("parseResponseParamFunc start ", ctx.GetDataBox().GetId())
 
 	reqBody := ctx.GetDataBox().HttpRequestBody
 
@@ -111,8 +103,6 @@ func parseResponseParamFunc(ctx *Context) {
 		return
 	}
 
-	fmt.Println("request data:", string(requestDataByte))
-
 	dataReq := &request.DataRequest{
 		Rule:         "rsaencrypt",
 		Method:       "RSAENCRYPT",
@@ -126,34 +116,14 @@ func parseResponseParamFunc(ctx *Context) {
 	ctx.AddChanQueue(dataReq)
 }
 
-//func rsaEncryptParamFunc(ctx *Context) {
-//	logger.Info("rsaEncryptParamFunc start")
-//
-//	if ctx.DataResponse.StatusCode == 200 && !strings.EqualFold(ctx.DataResponse.ReturnCode, "000000") {
-//		logger.Error("[rsaEncryptParamFunc] rsa encrypt failed [%s]", ctx.DataResponse.ReturnMsg)
-//		errEnd(ctx)
-//		return
-//	}
-//
-//	ctx.AddChanQueue(&request.DataRequest{
-//		Rule:         "base64encode",
-//		Method:       "BASE64ENCODE",
-//		TransferType: request.ENCODE,
-//		Reloadable:   true,
-//		Parameters:   ctx.DataResponse.Body,
-//	})
-//}
-
 func rsaEncryptParamFunc(ctx *Context) {
-	logger.Info("rsaEncryptParamFunc start")
+	logger.Info("rsaEncryptParamFunc start ", ctx.GetDataBox().GetId())
 
 	if ctx.DataResponse.StatusCode == 200 && !strings.EqualFold(ctx.DataResponse.ReturnCode, "000000") {
 		logger.Error("[rsaEncryptParamFunc] base64 encode failed [%s]", ctx.DataResponse.ReturnMsg)
 		errEnd(ctx)
 		return
 	}
-
-	fmt.Println("base64:", ctx.DataResponse.BodyStr)
 
 	header := &fasthttp.RequestHeader{}
 	header.SetContentType("application/json;charset=UTF-8")
@@ -173,13 +143,12 @@ func rsaEncryptParamFunc(ctx *Context) {
 	args := make(map[string]string, 0)
 	args["data"] = string(requestMsgByte)
 
-	fmt.Println("data:", string(requestMsgByte))
-
 	ctx.AddChanQueue(&request.DataRequest{
 		Rule:         "execquery",
 		Method:       "POSTARGS",
-		Url:          SMARTSAIL_URL,
-		TransferType: request.NONETYPE,
+		Url:          "http://10.101.12.43:8088/api/sup/resp",
+		//Url:          SMARTSAIL_URL,
+		TransferType: request.FASTHTTP,
 		Reloadable:   true,
 		HeaderArgs:   header,
 		PostArgs:     args,
@@ -187,17 +156,13 @@ func rsaEncryptParamFunc(ctx *Context) {
 }
 
 func querySmartResponseFunc(ctx *Context) {
-	logger.Info("querySmartResponseFunc start")
+	logger.Info("querySmartResponseFunc start ", ctx.GetDataBox().GetId())
 
 	if ctx.DataResponse.StatusCode == 200 && !strings.EqualFold(ctx.DataResponse.ReturnCode, "000000") {
 		logger.Error("[querySmartResponseFunc] execute query failed [%s]", ctx.DataResponse.ReturnMsg)
 		errEnd(ctx)
 		return
 	}
-
-	ctx.DataResponse.Body = []byte(`{"code":0,"msg":"系统正常","data":"ySApoEWkw0dMfRIk8vGV4ufnnR9ojNHUsR0PSyuxD39WVP/XLujQm8W130BqUw/yAb1hodRf8PK7iy+OyXCAlQJ+y960nIsKcvwvP2oaAVfTbe/cu2J4s3eeO0GroghY0VhMSJfTP2VKcrOu6EpbaJHDZpQ83y3XCjmB1SH9KGSgjapVpEiON/nG4I5Nb4a4rCcsgntH6CyWjOsabvbYlx6Ix5HYhqGL96KCNPwRmGpce9bAlaK/5/UBIKocSvCYog1kDUl9g39eT68F+oPNmD0U7p8WyxDFoyUkcweXL9mp1yOfnpXUZdpVGosM+qrwsfNeVTCGydX0PAkXEq3jGg=="}`)
-
-	fmt.Println("response body:", string(ctx.DataResponse.Body))
 
 	responseData := &ResponseData{}
 	if err := json.Unmarshal(ctx.DataResponse.Body, responseData); err != nil {
@@ -247,40 +212,73 @@ func querySmartResponseFunc(ctx *Context) {
 	ctx.AddChanQueue(dataRequest)
 }
 
-//func base64DecodeRespFunc(ctx *Context) {
-//	logger.Info("base64DecodeRespFunc start")
-//
-//	if ctx.DataResponse.StatusCode == 200 && !strings.EqualFold(ctx.DataResponse.ReturnCode, "000000") {
-//		logger.Error("[base64DecodeRespFunc] base64 decode err [%s]", ctx.DataResponse.ReturnMsg)
-//		errEnd(ctx)
-//		return
-//	}
-//
-//	fmt.Println("base64:", string(ctx.DataResponse.Body))
-//
-//	dataRequest := &request.DataRequest{
-//		Rule:         "rsadecrypt",
-//		Method:       "RSADECRYPT",
-//		TransferType: request.ENCRYPT,
-//		Reloadable:   true,
-//		Parameters:   ctx.DataResponse.Body,
-//	}
-//
-//	dataRequest.SetParam("encryptKey", SMARTSAIL_PRIVATE_KEY)
-//
-//	ctx.AddChanQueue(dataRequest)
-//}
+func mockQuerySmartResponseFunc(ctx *Context) {
+	logger.Info("mockQuerySmartResponseFunc start ", ctx.GetDataBox().GetId())
+
+	if ctx.DataResponse.StatusCode == 200 && !strings.EqualFold(ctx.DataResponse.ReturnCode, "000000") {
+		logger.Error("[mockQuerySmartResponseFunc] execute query failed [%s]", ctx.DataResponse.ReturnMsg)
+		errEnd(ctx)
+		return
+	}
+
+	ctx.DataResponse.Body = []byte(`{"code":0,"msg":"系统正常","data":"ySApoEWkw0dMfRIk8vGV4ufnnR9ojNHUsR0PSyuxD39WVP/XLujQm8W130BqUw/yAb1hodRf8PK7iy+OyXCAlQJ+y960nIsKcvwvP2oaAVfTbe/cu2J4s3eeO0GroghY0VhMSJfTP2VKcrOu6EpbaJHDZpQ83y3XCjmB1SH9KGSgjapVpEiON/nG4I5Nb4a4rCcsgntH6CyWjOsabvbYlx6Ix5HYhqGL96KCNPwRmGpce9bAlaK/5/UBIKocSvCYog1kDUl9g39eT68F+oPNmD0U7p8WyxDFoyUkcweXL9mp1yOfnpXUZdpVGosM+qrwsfNeVTCGydX0PAkXEq3jGg=="}`)
+
+	responseData := &ResponseData{}
+	if err := json.Unmarshal(ctx.DataResponse.Body, responseData); err != nil {
+		logger.Error("[mockQuerySmartResponseFunc] json unmarshal response data err [%s]", err.Error())
+		errEnd(ctx)
+		return
+	}
+
+	if responseData.RespCode != SMARTSAIL_SUCC {
+		logger.Error("[mockQuerySmartResponseFunc] smartsail execute query response [%s]", responseData.RespMessage)
+
+		pubRespMsg := &PubResProductMsg{}
+
+		pubAnsInfo := &PubAnsInfo{}
+		pubAnsInfo.ResCode = GetCenterCodeFromSMARTSAIL(responseData.RespCode)
+		pubAnsInfo.ResMsg = responseData.RespMessage
+		pubAnsInfo.SerialNo = ctx.GetDataBox().Param("serialNo")
+		pubAnsInfo.BusiSerialNo = ctx.GetDataBox().Param("busiSerialNo")
+		pubAnsInfo.TimeStamp = strconv.Itoa(int(time.Now().UnixNano() / 1e6))
+
+		pubRespMsg.PubAnsInfo = pubAnsInfo
+
+		pubRespMsgByte, err := json.Marshal(pubRespMsg)
+		if err != nil {
+			errEnd(ctx)
+			return
+		}
+
+		ctx.GetDataBox().BodyChan <- pubRespMsgByte
+
+		procEndFunc(ctx)
+		return
+	}
+
+	ctx.GetDataBox().SetParam("resCode", GetCenterCodeFromSMARTSAIL(responseData.RespCode))
+
+	dataRequest := &request.DataRequest{
+		Rule:         "rsadecrypt",
+		Method:       "RSADECRYPT",
+		TransferType: request.ENCRYPT,
+		Reloadable:   true,
+		PostData:     responseData.RespDetail,
+	}
+
+	dataRequest.SetParam("encryptKey", SMARTSAIL_PRIVATE_KEY)
+
+	ctx.AddChanQueue(dataRequest)
+}
 
 func rsaDecryptFunc(ctx *Context) {
-	logger.Info("rsaDecryptFunc start")
+	logger.Info("rsaDecryptFunc start ", ctx.GetDataBox().GetId())
 
 	if ctx.DataResponse.StatusCode == 200 && !strings.EqualFold(ctx.DataResponse.ReturnCode, "000000") {
 		logger.Error("[rsaDecryptFunc] rsa decrypt err [%s]", ctx.DataResponse.ReturnMsg)
 		errEnd(ctx)
 		return
 	}
-
-	fmt.Println("response body:", string(ctx.DataResponse.Body))
 
 	responseData := &ResponseDecryptData{}
 	if err := json.Unmarshal(ctx.DataResponse.Body, responseData); err != nil {

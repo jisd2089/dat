@@ -141,7 +141,7 @@ func (c *Collector) Start() {
 		// println("OutputStopped$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$")
 
 		// 返回报告
-		c.Report()
+		//c.Report()
 	}()
 }
 
