@@ -16,15 +16,19 @@ type (
 		Get(key string) ([]byte, error)
 		Set(key string, value []byte, expiration time.Duration) error
 		HGet(key, field string) ([]byte, error)
+		HGetAll(key string) (map[string]string, error)
 
 		GetString(key string) (string, error)
 		SetString(key string, value string, expiration time.Duration) error
 		HGetString(key, field string) (string, error)
 		HSetString(key, field, value string) error
+		HDelString(key string, field []string) error
 		HMSetStrings(key string, fields map[string]string) error
 		Expire(key string, expiration time.Duration) error
 		HExistString(key string) (bool, error)
 		HIncrBy(key, field string, incr int64) error
+		HGetInt64(key, field string) (int64, error)
+		HSetIn64(key, field string, value int64) error
 		Keys(pattern string) ([]string, error)
 		PipeLineSetString(kvs []PipeKeyValue) error
 		ConfigSet(password string) error
@@ -202,6 +206,17 @@ func (rc *redisClient) HGet(key, field string) ([]byte, error) {
 	return value, err
 }
 
+func (rc *redisClient) HGetAll(key string) (map[string]string, error) {
+	var val map[string]string
+	var err error
+	if rc.isSingle {
+		val, err = rc.client.HGetAll(key).Result()
+	} else {
+		val, err = rc.clusterClient.HGetAll(key).Result()
+	}
+	return val, err
+}
+
 func (rc *redisClient) GetString(key string) (string, error) {
 	value, err := rc.Get(key)
 	if err == redis.Nil {
@@ -237,6 +252,16 @@ func (rc *redisClient) HSetString(key, field, value string) error {
 		return err
 	}
 	return nil
+}
+
+func (rc *redisClient) HDelString(key string, field []string) error {
+	var err error
+	if rc.isSingle {
+		err = rc.client.HDel(key, field...).Err()
+	} else {
+		err = rc.clusterClient.HDel(key, field...).Err()
+	}
+	return err
 }
 
 func (rc *redisClient) HMSetStrings(key string, fields map[string]string) error {
@@ -290,6 +315,31 @@ func (rc *redisClient) HIncrBy(key, field string, incr int64) error {
 		err = rc.client.HIncrBy(key, field, incr).Err()
 	} else {
 		err = rc.clusterClient.HIncrBy(key, field, incr).Err()
+	}
+	return err
+}
+
+func (rc *redisClient) HGetInt64(key, field string) (int64, error) {
+	var value int64
+	var err error
+	if rc.isSingle {
+		value, err = rc.client.HGet(key, field).Int64()
+	} else {
+		value, err = rc.clusterClient.HGet(key, field).Int64()
+	}
+	if err == redis.Nil {
+		return 0, nil
+	}
+	return value, err
+}
+
+func (rc *redisClient) HSetIn64(key, field string, value int64) error {
+	var err error
+	if rc.isSingle {
+		err = rc.client.HSet(key, field, value).Err()
+
+	} else {
+		err = rc.clusterClient.HSet(key, field, value).Err()
 	}
 	return err
 }

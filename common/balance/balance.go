@@ -15,6 +15,8 @@ import (
 	"sync"
 	"drcs/dep/member"
 	"drcs/dep/errors"
+	"strings"
+	"strconv"
 )
 
 var getBalanceURL = "http://10.101.12.6:8899/api/getQuota/"
@@ -41,6 +43,7 @@ func Hasbalance(memId string, unitPrice float64) bool {
 		if int64(unitPrice*1000) <= *p {
 			return true
 		}
+		logger.Info("BanlanceMutex ", memId, *p)
 	}
 	return false
 }
@@ -52,6 +55,7 @@ func UpdateBalance(accId string, sum float64) error {
 		return fmt.Errorf("account[%s] balance is nil", accId)
 	}
 	atomic.AddInt64(BanlanceMutex[accId], int64(sum*1000))
+	logger.Info("UpdateBalance BanlanceMutex ", accId, *BanlanceMutex[accId])
 	return nil
 }
 
@@ -143,12 +147,23 @@ func ApplyBalance(accId string, unitPrice float64, quotaNum int64, balanceUrl st
 	balance := ResPamat.QuotaNum
 	msg := ResPamat.ResMsg
 
-	// "000000"：全部成功   "000001"：部分成功
-	if resCode != "000000" && resCode != "000001" {
+	var applyAmount float64
+
+	switch resCode {
+	case "000000":  //"000000"：全部成功 quotaNum:单价倍数
+		applyAmount = (float64)(balance) * unitPrice
+	case "000001":  //"000001"：部分成功 quotaNum:剩余金额
+		respMsg := strings.Split(msg, "||")
+		amtStr := respMsg[0][24:]
+		amt, err := strconv.ParseFloat(amtStr, 64)
+		if err != nil || amt <= 0 {
+			return 0, errors.RawNew("042000", msg)
+		}
+
+		applyAmount = amt
+	default:
 		return 0, errors.RawNew("042000", msg)
 	}
-
-	applyAmount := (float64)(balance) * unitPrice
 
 	if err := UpdateBalance(accId, applyAmount); err != nil {
 		return 0, errors.RawNew("042000", err.Error())
@@ -156,4 +171,3 @@ func ApplyBalance(accId string, unitPrice float64, quotaNum int64, balanceUrl st
 
 	return applyAmount, nil
 }
-

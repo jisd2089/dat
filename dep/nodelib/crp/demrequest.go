@@ -83,17 +83,28 @@ var DEMREQUEST = &DataBox{
 func demrequestRootFunc(ctx *Context) {
 	//logger.Info("demrequestRootFunc start ", ctx.GetDataBox().GetId())
 
+	_, err := security.GetPrivateKey()
+	if err != nil {
+		logger.Error("[demrequestRootFunc] get private key error: [%s] ", err.Error())
+		errEnd(ctx)
+		return
+	}
+
 	start := int(time.Now().UnixNano() / 1e6)
 
 	ctx.GetDataBox().SetParam("startTime", strconv.Itoa(start))
 
-	ctx.AddChanQueue(&request.DataRequest{
+	dataRequest := &request.DataRequest{
 		Rule:          "parseparam",
 		Method:        "PING",
 		TransferType:  request.REDIS,
 		Reloadable:    true,
 		CommandParams: ctx.GetDataBox().Params,
-	})
+	}
+
+	dataRequest.SetParam("redisDB", ctx.GetDataBox().Param("redisDB"))
+
+	ctx.AddChanQueue(dataRequest)
 
 
 	// TODO mock
@@ -200,7 +211,7 @@ func depAuthFunc(ctx *Context) {
 		TransferType: request.NONETYPE,
 		Reloadable:   true,
 		//Parameters:   reqDataJson,
-		ConnTimeout: time.Duration(time.Second * 300),
+		ConnTimeout: time.Duration(time.Second * 3000),
 	})
 }
 
@@ -517,7 +528,7 @@ func execQuery(ctx *Context, supMemberId string) error {
 		Reloadable:   true,
 		HeaderArgs:   header,
 		Parameters:   ctx.GetDataBox().HttpRequestBody,
-		ConnTimeout:  time.Duration(time.Second * 300),
+		ConnTimeout:  time.Duration(time.Minute * 30),
 		PreRule:      "staticquery",
 	}
 

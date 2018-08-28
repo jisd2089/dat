@@ -25,6 +25,7 @@ import (
 	"encoding/json"
 	"drcs/dep/order"
 	"drcs/dep/member"
+	"strconv"
 )
 
 var (
@@ -300,6 +301,8 @@ func (s *DepService) ProcessCrpTrans(ctx *fasthttp.RequestCtx) {
 	pubkey := member.GetMemberInfoList().MemberDetailList.MemberDetailInfo[0].PubKey
 	b.SetParam("pubkey", pubkey)
 	b.SetParam("balanceUrl", common.Other.Crp.BalanceUrl)
+	b.SetParam("redisDB", strconv.Itoa(common.Redis.DB))
+
 	//b.SetParam("prdtIdCd", "1003004")
 
 	// redis address

@@ -6,7 +6,6 @@ import (
 	"crypto/sha256"
 	"drcs/common/cncrypt"
 	"drcs/dep/errors"
-	logger "drcs/log"
 	"drcs/settings"
 	"encoding/hex"
 	"encoding/xml"
@@ -38,22 +37,22 @@ func GetPrivateKey() (string, error) {
 
 func Initialize() error {
 	filePath := settings.GetCommonSettings().ConfigFile.KeysFile
-	logger.Info("security init filePath: %s", filePath)
+	//logger.Info("security init filePath: %s", filePath)
 
 	if filePath == "" {
-		return fmt.Errorf("配置缺失:%s", settings_xpath_filepath)
+		return fmt.Errorf("security config not found: %s", settings_xpath_filepath)
 	}
 
-	// TODO
 	if !util.IsFileExists(filePath) {
-		filePath = "D:/GoglandProjects/src/drcs/dep/security/memkeys.xml"
+		return fmt.Errorf("security config not found:%s", filePath)
 	}
 
 	key, err := parseConfigFileAndCalcPriKey(filePath)
 	if err != nil {
 		return err
 	}
-	logger.Info("security init private key: %s", key)
+
+	//logger.Info("security init private key: %s", key)
 	_privateKey = key
 	// 调用国密模块的初始化方法
 	cncrypt.Init(_privateKey)

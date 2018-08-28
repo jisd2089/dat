@@ -77,7 +77,7 @@ func Init(privateKey string) {
 		sm2.SignCtx.Init = 0
 	}
 	signInitContext(sm2.SM2Params, sm2.SignCtx, privateKey)
-	fmt.Println("cnrypt manul init")
+	//fmt.Println("cnrypt manul init")
 }
 
 //func init() {

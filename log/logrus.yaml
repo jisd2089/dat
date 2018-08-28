@@ -1,5 +1,5 @@
 Root:
-    # Appender: app
+    Appender: busilog
     # Hooks: [syslog]
     Formatter: root_format
     Level: INFO
@@ -18,16 +18,16 @@ Loggers:
         # Level: INFO
 
 Appenders:
-    #app:
-    #    Type: NormalFile
-    #    Options:
-    #        Path: app.log
+    app:
+        Type: NormalFile
+        Options:
+            Path: ./logs/app.log
 
     busilog:
         Type: RotationFile
         Options:
             Name: app.log
-            Dir:  ./
+            Dir:  ./logs/
             # h: per hour
             # d: per day
             # m: per month

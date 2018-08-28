@@ -3,12 +3,12 @@ package service
 import (
 	"sync"
 	"encoding/xml"
-
 	"drcs/dep/agollo"
 	"drcs/dep/member"
 	"fmt"
 	"path/filepath"
 	"drcs/common/balance"
+
 )
 
 /**
@@ -17,8 +17,8 @@ import (
 */
 
 type MemberService struct {
-	lock       sync.RWMutex
-	memCh     chan bool
+	lock     sync.RWMutex
+	memCh    chan bool
 }
 
 func NewMemberService() *MemberService {
@@ -37,11 +37,13 @@ func (o *MemberService) Init() {
 	case ret := <-o.memCh:
 		fmt.Println("balance init", ret)
 		balance.InitBalanceMutex()
+
+		wg.Done()
 		break
 	}
 }
 
-func (o *MemberService)initMemberConfig(configDir string) {
+func (o *MemberService) initMemberConfig(configDir string) {
 	newAgollo := agollo.NewAgollo(configDir)
 	go newAgollo.Start()
 
@@ -112,3 +114,5 @@ func initPartnersConfig(configDir string) {
 		//fmt.Println("event:", string(bytes))
 	}
 }
+
+

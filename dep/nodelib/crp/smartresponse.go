@@ -50,7 +50,7 @@ var SMARTRESPONSE = &DataBox{
 }
 
 func smartResponseRootFunc(ctx *Context) {
-	logger.Info("smartResponseRootFunc start ", ctx.GetDataBox().GetId())
+	//logger.Info("smartResponseRootFunc start ", ctx.GetDataBox().GetId())
 
 	ctx.AddChanQueue(&request.DataRequest{
 		Rule:         "parseparam",
@@ -61,7 +61,7 @@ func smartResponseRootFunc(ctx *Context) {
 }
 
 func parseResponseParamFunc(ctx *Context) {
-	logger.Info("parseResponseParamFunc start ", ctx.GetDataBox().GetId())
+	//logger.Info("parseResponseParamFunc start ", ctx.GetDataBox().GetId())
 
 	reqBody := ctx.GetDataBox().HttpRequestBody
 
@@ -117,7 +117,7 @@ func parseResponseParamFunc(ctx *Context) {
 }
 
 func rsaEncryptParamFunc(ctx *Context) {
-	logger.Info("rsaEncryptParamFunc start ", ctx.GetDataBox().GetId())
+	//logger.Info("rsaEncryptParamFunc start ", ctx.GetDataBox().GetId())
 
 	if ctx.DataResponse.StatusCode == 200 && !strings.EqualFold(ctx.DataResponse.ReturnCode, "000000") {
 		logger.Error("[rsaEncryptParamFunc] base64 encode failed [%s]", ctx.DataResponse.ReturnMsg)
@@ -144,9 +144,9 @@ func rsaEncryptParamFunc(ctx *Context) {
 	args["data"] = string(requestMsgByte)
 
 	ctx.AddChanQueue(&request.DataRequest{
-		Rule:         "execquery",
-		Method:       "POSTARGS",
-		Url:          "http://10.101.12.43:8088/api/sup/resp",
+		Rule:   "execquery",
+		Method: "POSTARGS",
+		Url:    "http://10.101.12.43:8088/api/sup/resp",
 		//Url:          SMARTSAIL_URL,
 		TransferType: request.FASTHTTP,
 		Reloadable:   true,
@@ -156,7 +156,7 @@ func rsaEncryptParamFunc(ctx *Context) {
 }
 
 func querySmartResponseFunc(ctx *Context) {
-	logger.Info("querySmartResponseFunc start ", ctx.GetDataBox().GetId())
+	//logger.Info("querySmartResponseFunc start ", ctx.GetDataBox().GetId())
 
 	if ctx.DataResponse.StatusCode == 200 && !strings.EqualFold(ctx.DataResponse.ReturnCode, "000000") {
 		logger.Error("[querySmartResponseFunc] execute query failed [%s]", ctx.DataResponse.ReturnMsg)
@@ -213,7 +213,7 @@ func querySmartResponseFunc(ctx *Context) {
 }
 
 func mockQuerySmartResponseFunc(ctx *Context) {
-	logger.Info("mockQuerySmartResponseFunc start ", ctx.GetDataBox().GetId())
+	//logger.Info("mockQuerySmartResponseFunc start ", ctx.GetDataBox().GetId())
 
 	if ctx.DataResponse.StatusCode == 200 && !strings.EqualFold(ctx.DataResponse.ReturnCode, "000000") {
 		logger.Error("[mockQuerySmartResponseFunc] execute query failed [%s]", ctx.DataResponse.ReturnMsg)
@@ -264,6 +264,7 @@ func mockQuerySmartResponseFunc(ctx *Context) {
 		TransferType: request.ENCRYPT,
 		Reloadable:   true,
 		PostData:     responseData.RespDetail,
+		ConnTimeout:  time.Duration(time.Minute * 30),
 	}
 
 	dataRequest.SetParam("encryptKey", SMARTSAIL_PRIVATE_KEY)
@@ -272,7 +273,7 @@ func mockQuerySmartResponseFunc(ctx *Context) {
 }
 
 func rsaDecryptFunc(ctx *Context) {
-	logger.Info("rsaDecryptFunc start ", ctx.GetDataBox().GetId())
+	//logger.Info("rsaDecryptFunc start ", ctx.GetDataBox().GetId())
 
 	if ctx.DataResponse.StatusCode == 200 && !strings.EqualFold(ctx.DataResponse.ReturnCode, "000000") {
 		logger.Error("[rsaDecryptFunc] rsa decrypt err [%s]", ctx.DataResponse.ReturnMsg)
@@ -302,7 +303,7 @@ func rsaDecryptFunc(ctx *Context) {
 
 	pubRespMsgByte, err := json.Marshal(pubRespMsg)
 	if err != nil {
-		logger.Error("[rsaDecryptFunc] json marshal PubResProductMsg_0_000_000 err [%s]", err.Error())
+		logger.Error("[rsaDecryptFunc] json marshal PubResProductMsg err [%s]", err.Error())
 		errEnd(ctx)
 		return
 	}
