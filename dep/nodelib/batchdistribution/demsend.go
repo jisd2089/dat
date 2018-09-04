@@ -68,7 +68,8 @@ var BATCH_DEM_SEND = &DataBox{
 func batchDemSendRootFunc(ctx *Context) {
 	fmt.Println("batchDemSendRootFunc ...")
 
-	ctx.AddQueue(&request.DataRequest{
+	// 业务逻辑
+	ctx.AddChanQueue(&request.DataRequest{
 		Rule:         "pullReqFile",
 		Method:       "GET",
 		TransferType: request.NONETYPE,

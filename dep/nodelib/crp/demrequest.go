@@ -179,8 +179,8 @@ func parseReqParamFunc(ctx *Context) {
 		TransferType: request.DEPAUTH,
 		Method:       "APPKEY",
 		Reloadable:   true,
-		//Bobject:      commonRequestData.BusiInfo,
-	}
+	//Bobject:      commonRequestData.BusiInfo,
+}
 
 	dataReq.SetParam("memberId", commonRequestData.PubReqInfo.MemId)
 	dataReq.SetParam("serialNo", commonRequestData.PubReqInfo.SerialNo)
@@ -467,13 +467,13 @@ func staticQueryFunc(ctx *Context) {
 			}
 
 			// TODO mock
-			//pubAnsInfo := &PubAnsInfo{}
-			//pubAnsInfo.ResCode = "000000"
-			//pubAnsInfo.ResMsg = "成功"
-			//pubRespMsg.PubAnsInfo = pubAnsInfo
-			//pubRespMsg.DetailInfo.Tag = "疑似仿冒包装"
-			//pubRespMsg.DetailInfo.EvilScore = 77
-			//ctx.DataResponse.Body, _ = json.Marshal(pubRespMsg)
+			pubAnsInfo := &PubAnsInfo{}
+			pubAnsInfo.ResCode = "000000"
+			pubAnsInfo.ResMsg = "成功"
+			pubRespMsg.PubAnsInfo = pubAnsInfo
+			pubRespMsg.DetailInfo.Tag = "疑似仿冒包装"
+			pubRespMsg.DetailInfo.EvilScore = 77
+			ctx.DataResponse.Body, _ = json.Marshal(pubRespMsg)
 			//fmt.Println(string(ctx.DataResponse.Body))
 			// TODO mock-end
 
@@ -524,7 +524,7 @@ func execQuery(ctx *Context, supMemberId string) error {
 		Rule:         "staticquery",
 		Method:       "POSTBODY",
 		Url:          memberDetailInfo.SvrURL,
-		TransferType: request.FASTHTTP,
+		TransferType: request.NONETYPE,
 		Reloadable:   true,
 		HeaderArgs:   header,
 		Parameters:   ctx.GetDataBox().HttpRequestBody,
