@@ -10,8 +10,8 @@ import (
 
 type PubResProductMsg struct {
 	PubAnsInfo *PubAnsInfo `json:"pubAnsInfo"`
-	HitInfo struct {
-		HitResult string `json:"hitResult"`
-	} `json:"hitInfo"`
+	//HitInfo struct {
+	//	HitResult string `json:"hitResult"`
+	//} `json:"hitInfo"`
 	DetailInfo []*RespDetail  `json:"respData"`
 }

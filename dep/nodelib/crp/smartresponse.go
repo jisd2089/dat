@@ -50,7 +50,7 @@ var SMARTRESPONSE = &DataBox{
 }
 
 func smartResponseRootFunc(ctx *Context) {
-	//logger.Info("smartResponseRootFunc start ", ctx.GetDataBox().GetId())
+	logger.Info("smartResponseRootFunc start ", ctx.GetDataBox().GetId())
 
 	ctx.AddChanQueue(&request.DataRequest{
 		Rule:         "parseparam",
@@ -61,7 +61,7 @@ func smartResponseRootFunc(ctx *Context) {
 }
 
 func parseResponseParamFunc(ctx *Context) {
-	//logger.Info("parseResponseParamFunc start ", ctx.GetDataBox().GetId())
+	logger.Info("parseResponseParamFunc start ", ctx.GetDataBox().GetId())
 
 	reqBody := ctx.GetDataBox().HttpRequestBody
 
@@ -117,7 +117,7 @@ func parseResponseParamFunc(ctx *Context) {
 }
 
 func rsaEncryptParamFunc(ctx *Context) {
-	//logger.Info("rsaEncryptParamFunc start ", ctx.GetDataBox().GetId())
+	logger.Info("rsaEncryptParamFunc start ", ctx.GetDataBox().GetId())
 
 	if ctx.DataResponse.StatusCode == 200 && !strings.EqualFold(ctx.DataResponse.ReturnCode, "000000") {
 		logger.Error("[rsaEncryptParamFunc] base64 encode failed [%s]", ctx.DataResponse.ReturnMsg)
@@ -146,17 +146,18 @@ func rsaEncryptParamFunc(ctx *Context) {
 	ctx.AddChanQueue(&request.DataRequest{
 		Rule:   "execquery",
 		Method: "POSTARGS",
-		Url:    "http://10.101.12.43:8088/api/sup/resp",
-		//Url:          SMARTSAIL_URL,
+		//Url:    "http://10.101.12.43:8088/api/sup/resp",
+		Url:          SMARTSAIL_URL,
 		TransferType: request.FASTHTTP,
 		Reloadable:   true,
 		HeaderArgs:   header,
 		PostArgs:     args,
+		ConnTimeout:  time.Duration(time.Minute * 30),
 	})
 }
 
 func querySmartResponseFunc(ctx *Context) {
-	//logger.Info("querySmartResponseFunc start ", ctx.GetDataBox().GetId())
+	logger.Info("querySmartResponseFunc start ", ctx.GetDataBox().GetId())
 
 	if ctx.DataResponse.StatusCode == 200 && !strings.EqualFold(ctx.DataResponse.ReturnCode, "000000") {
 		logger.Error("[querySmartResponseFunc] execute query failed [%s]", ctx.DataResponse.ReturnMsg)
@@ -197,7 +198,7 @@ func querySmartResponseFunc(ctx *Context) {
 		return
 	}
 
-	ctx.GetDataBox().SetParam("resCode", GetCenterCodeFromSMARTSAIL(responseData.RespCode))
+	//ctx.GetDataBox().SetParam("resCode", GetCenterCodeFromSMARTSAIL(responseData.RespCode))
 
 	dataRequest := &request.DataRequest{
 		Rule:         "rsadecrypt",
@@ -205,6 +206,7 @@ func querySmartResponseFunc(ctx *Context) {
 		TransferType: request.ENCRYPT,
 		Reloadable:   true,
 		PostData:     responseData.RespDetail,
+		ConnTimeout:  time.Duration(time.Minute * 30),
 	}
 
 	dataRequest.SetParam("encryptKey", SMARTSAIL_PRIVATE_KEY)
@@ -273,7 +275,7 @@ func mockQuerySmartResponseFunc(ctx *Context) {
 }
 
 func rsaDecryptFunc(ctx *Context) {
-	//logger.Info("rsaDecryptFunc start ", ctx.GetDataBox().GetId())
+	logger.Info("rsaDecryptFunc start ", ctx.GetDataBox().GetId())
 
 	if ctx.DataResponse.StatusCode == 200 && !strings.EqualFold(ctx.DataResponse.ReturnCode, "000000") {
 		logger.Error("[rsaDecryptFunc] rsa decrypt err [%s]", ctx.DataResponse.ReturnMsg)
@@ -288,11 +290,38 @@ func rsaDecryptFunc(ctx *Context) {
 		return
 	}
 
+	if responseData.RespCode != SMARTSAIL_RESP_SUCC {
+		logger.Error("[rsaDecryptFunc] smartsail response no charge [%s]", responseData.RespMessage)
+
+		pubRespMsg := &PubResProductMsg{}
+
+		pubAnsInfo := &PubAnsInfo{}
+		pubAnsInfo.ResCode = GetCenterCodeFromSMARTSAIL(responseData.RespCode)
+		pubAnsInfo.ResMsg = responseData.RespMessage
+		pubAnsInfo.SerialNo = ctx.GetDataBox().Param("serialNo")
+		pubAnsInfo.BusiSerialNo = ctx.GetDataBox().Param("busiSerialNo")
+		pubAnsInfo.TimeStamp = strconv.Itoa(int(time.Now().UnixNano() / 1e6))
+
+		pubRespMsg.PubAnsInfo = pubAnsInfo
+
+		pubRespMsgByte, err := json.Marshal(pubRespMsg)
+		if err != nil {
+			errEnd(ctx)
+			return
+		}
+
+		ctx.GetDataBox().BodyChan <- pubRespMsgByte
+
+		procEndFunc(ctx)
+		return
+	}
+
 	// 请求真实供方 成功返回
 	pubRespMsg := &PubResProductMsg{}
 
 	pubAnsInfo := &PubAnsInfo{}
-	pubAnsInfo.ResCode = ctx.GetDataBox().Param("resCode")
+	//pubAnsInfo.ResCode = ctx.GetDataBox().Param("resCode")
+	pubAnsInfo.ResCode = GetCenterCodeFromSMARTSAIL(responseData.RespCode)
 	pubAnsInfo.ResMsg = "成功"
 	pubAnsInfo.SerialNo = ctx.GetDataBox().Param("serialNo")
 	pubAnsInfo.BusiSerialNo = ctx.GetDataBox().Param("busiSerialNo")

@@ -91,6 +91,7 @@ type PubResProductMsg_Error struct {
 	PubAnsInfo *PubAnsInfo `json:"pubAnsInfo"`
 }
 
+
 /*
 业务日志相关数据结构和接口
 */

@@ -26,6 +26,7 @@ import (
 	"drcs/dep/order"
 	"drcs/dep/member"
 	"strconv"
+	"time"
 )
 
 var (
@@ -329,9 +330,9 @@ func (s *DepService) ProcessCrpTrans(ctx *fasthttp.RequestCtx) {
 }
 
 func (s *DepService) ProcessCrpResponse(ctx *fasthttp.RequestCtx) {
-	//logger.Info("DepService ProcessCrpResponse start")
+	logger.Info("DepService ProcessCrpResponse start")
 
-	//timeOut := time.Duration(300000) * time.Millisecond
+	timeOut := time.Duration(1800000) * time.Millisecond
 
 	prdtIdCd := string(ctx.Request.Header.Peek("prdtIdCd"))
 	if prdtIdCd == "" {
@@ -351,12 +352,8 @@ func (s *DepService) ProcessCrpResponse(ctx *fasthttp.RequestCtx) {
 		return
 	}
 
-	//logger.Info("prdtIdCd: [%s]", prdtIdCd)
-
 	boxName := boxMap[prdtIdCd]
 
-	//logger.Info("boxName: [%s]", boxName)
-	//boxName = "smart_response"
 	b := assetnode.AssetNodeEntity.GetDataBoxByName(boxName)
 	if b == nil {
 		logger.Error("databox is nil!")
@@ -377,9 +374,9 @@ func (s *DepService) ProcessCrpResponse(ctx *fasthttp.RequestCtx) {
 	case body := <-bodyChan:
 		ctx.SetBody(body)
 		close(bodyChan)
-	//case <-time.After(timeOut):
-	//	logger.Error("http response timeout")
-	//	break
+	case <-time.After(timeOut):
+		logger.Error("http response timeout")
+		break
 	}
 }
 

@@ -8,7 +8,6 @@ import (
 	"drcs/core/interaction/request"
 	. "drcs/core/databox"
 	. "drcs/dep/nodelib/crp/common"
-	. "drcs/dep/nodelib/crp/edunwang"
 	"fmt"
 
 	"drcs/common/balance"
@@ -81,7 +80,7 @@ var DEMREQUEST = &DataBox{
 }
 
 func demrequestRootFunc(ctx *Context) {
-	//logger.Info("demrequestRootFunc start ", ctx.GetDataBox().GetId())
+	logger.Info("demrequestRootFunc start ", ctx.GetDataBox().GetId())
 
 	_, err := security.GetPrivateKey()
 	if err != nil {
@@ -149,7 +148,7 @@ func demrequestRootFunc(ctx *Context) {
 	}`
  */
 func parseReqParamFunc(ctx *Context) {
-	//logger.Info("parseReqParamFunc start ", ctx.GetDataBox().GetId())
+	logger.Info("parseReqParamFunc start ", ctx.GetDataBox().GetId())
 
 	if ctx.DataResponse.StatusCode == 200 && !strings.EqualFold(ctx.DataResponse.ReturnCode, "000000") {
 		logger.Error("[parseReqParamFunc] ping redis failed: [%s] ", ctx.DataResponse.ReturnMsg)
@@ -196,7 +195,7 @@ func parseReqParamFunc(ctx *Context) {
 }
 
 func depAuthFunc(ctx *Context) {
-	//logger.Info("depAuthFunc start ", ctx.GetDataBox().GetId())
+	logger.Info("depAuthFunc start ", ctx.GetDataBox().GetId())
 
 	if ctx.DataResponse.StatusCode == 200 && !strings.EqualFold(ctx.DataResponse.ReturnCode, "000000") {
 		logger.Error("[depAuthFunc] dep authentication failed: [%s] ", ctx.DataResponse.ReturnMsg)
@@ -216,7 +215,7 @@ func depAuthFunc(ctx *Context) {
 }
 
 func applyBalanceFunc(ctx *Context) {
-	//logger.Info("applyBalanceFunc start ", ctx.GetDataBox().GetId())
+	logger.Info("applyBalanceFunc start ", ctx.GetDataBox().GetId())
 
 	if ctx.DataResponse.StatusCode == 200 && !strings.EqualFold(ctx.DataResponse.ReturnCode, "000000") {
 		logger.Error("[applyBalanceFunc] dep authentication failed: [%s] ", ctx.DataResponse.ReturnMsg)
@@ -312,7 +311,7 @@ func applyBalanceFunc(ctx *Context) {
 }
 
 func updateRedisQuatoFunc(ctx *Context) {
-	//logger.Info("updateRedisQuatoFunc start ", ctx.GetDataBox().GetId())
+	logger.Info("updateRedisQuatoFunc start ", ctx.GetDataBox().GetId())
 
 	if ctx.DataResponse.StatusCode == 200 && !strings.EqualFold(ctx.DataResponse.ReturnCode, "000000") {
 		logger.Error("[updateRedisQuatoFunc] update quato redis value failed: [%s] ", ctx.DataResponse.ReturnMsg)
@@ -355,7 +354,7 @@ func updateRedisQuatoFunc(ctx *Context) {
 }
 
 func reduceRedisQuatoFunc(ctx *Context) {
-	//logger.Info("reduceRedisQuatoFunc start ", ctx.GetDataBox().GetId())
+	logger.Info("reduceRedisQuatoFunc start ", ctx.GetDataBox().GetId())
 
 	if ctx.DataResponse.StatusCode == 200 && !strings.EqualFold(ctx.DataResponse.ReturnCode, "000000") {
 		logger.Error("[updateRedisQuatoFunc] update quato redis value failed: [%s]", ctx.DataResponse.ReturnMsg)
@@ -410,7 +409,7 @@ func reduceRedisQuatoFunc(ctx *Context) {
 }
 
 func singleQueryFunc(ctx *Context) {
-	//logger.Info("singleQueryFunc start ", ctx.GetDataBox().GetId())
+	logger.Info("singleQueryFunc start ", ctx.GetDataBox().GetId())
 
 	supMemberId := ctx.DataResponse.BodyStrs[0]
 	memberDetailInfo, err := member.GetPartnerInfoById(supMemberId)
@@ -443,7 +442,7 @@ func singleQueryFunc(ctx *Context) {
 }
 
 func staticQueryFunc(ctx *Context) {
-	//logger.Info("staticQueryFunc start ", ctx.GetDataBox().GetId())
+	logger.Info("staticQueryFunc start ", ctx.GetDataBox().GetId())
 
 	callList := ctx.DataResponse.BodyStrs
 
@@ -459,7 +458,7 @@ func staticQueryFunc(ctx *Context) {
 
 	} else {
 		if ctx.DataResponse.StatusCode == 200 && strings.EqualFold(ctx.DataResponse.ReturnCode, "000000") {
-			pubRespMsg := &PubResProductMsg{}
+			pubRespMsg := &PubResProductMsg_Error{}
 			if err := json.Unmarshal(ctx.DataResponse.Body, pubRespMsg); err != nil {
 				logger.Error("[staticQueryFunc] unmarshal response body to PubResProductMsg err: [%s] ", err.Error())
 				returnBalanceFunc(ctx)
@@ -538,9 +537,9 @@ func execQuery(ctx *Context, supMemberId string) error {
 }
 
 func callResponseFunc(ctx *Context) {
-	//logger.Info("callResponseFunc start ", ctx.GetDataBox().GetId())
+	logger.Info("callResponseFunc start ", ctx.GetDataBox().GetId())
 
-	pubRespMsg := &PubResProductMsg{}
+	pubRespMsg := &PubResProductMsg_Error{}
 	// TODO mock
 	//pubAnsInfo := &PubAnsInfo{}
 	//pubAnsInfo.ResCode = "000000"
@@ -616,7 +615,7 @@ func callResponseFunc(ctx *Context) {
 }
 
 func returnBalanceFunc(ctx *Context) {
-	//logger.Info("returnBalanceFunc start ", ctx.GetDataBox().GetId())
+	logger.Info("returnBalanceFunc start ", ctx.GetDataBox().GetId())
 
 	memberId := ctx.GetDataBox().Param("demMemberId")
 	unitPriceStr := ctx.GetDataBox().Param("unitPrice")
@@ -633,6 +632,22 @@ func returnBalanceFunc(ctx *Context) {
 		errEnd(ctx)
 		return
 	}
+
+	pubResProductMsg_Error := &PubResProductMsg_Error{}
+	pubAnsInfo := &PubAnsInfo{}
+	pubAnsInfo.ResCode = CenterCodeReqFailNoCharge
+	pubAnsInfo.ResMsg = GetCenterCodeText(CenterCodeReqFailNoCharge)
+	pubAnsInfo.SerialNo = ctx.GetDataBox().Param("serialNo")
+	pubAnsInfo.BusiSerialNo = ctx.GetDataBox().Param("busiSerialNo")
+	pubAnsInfo.TimeStamp = strconv.Itoa(int(time.Now().UnixNano() / 1e6))
+	pubResProductMsg_Error.PubAnsInfo = pubAnsInfo
+
+	responseByte, err := json.Marshal(pubResProductMsg_Error)
+	if err != nil {
+		responseByte = []byte("response error")
+	}
+
+	ctx.GetDataBox().BodyChan <- responseByte
 
 	dataRequest := &request.DataRequest{
 		Rule:          "end",
