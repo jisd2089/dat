@@ -13,6 +13,7 @@ import (
 	"bufio"
 	"mime/multipart"
 	"bytes"
+	"strings"
 )
 
 /**
@@ -69,7 +70,9 @@ func execPostByArgs(req Request, dataResponse *DataResponse) {
 		url += "?" + freq.PostArgs().String()
 		//url += "?" + "appid=422833408034&seq_no=2201611161916567677531846&secret_id=302fab9c7acc4209a328e81c3354&product_id=11&req_data=%2Fn6cuhNfBLlq0khkZExUBVsXVjw0aUWTMrrQl5PSxt5GYDAZvdShNJQgmSyP9v2tYK%252Fd%252BhjDgIhNJDA0fls8G%252BDOLn0ncCl9BT2voTMJ8KCtH5AT7HHbhMlnikHVVL33aiCXlJte9EeYnPDR3iu%252FCg%253D%253D"
 	}
+         url=strings.Replace(url,"%2C",",",-1)
 
+	fmt.Println("url:", url)
 
 	freq.SetRequestURI(url)
 
@@ -99,7 +102,12 @@ func execPostByBody(req Request, dataResponse *DataResponse) {
 	//freq.Header.SetContentType("application/json")
 	//freq.Header.SetMethod("POST")
 
-	freq.Header = *req.GetHeaderArgs()
+	if req.GetHeaderArgs() != nil {
+		freq.Header = *req.GetHeaderArgs()
+	} else {
+		freq.Header.SetContentType("application/json;charset=UTF-8")
+		freq.Header.SetMethod("POST")
+	}
 
 	freq.SetRequestURI(req.GetUrl())
 	freq.SetBody(req.GetParameters())
@@ -155,8 +163,8 @@ func execPostFile(req Request, dataResponse *DataResponse) error {
 	fileWriter, err := bodyWriter.CreateFormFile("file", fileName)
 	if err != nil {
 		fmt.Println("error writing to buffer")
-		dataResponse.SetStatusCode(500)
-		dataResponse.ReturnCode = "000000"
+		dataResponse.SetStatusCode(200)
+		dataResponse.ReturnCode = "100001"
 		return err
 	}
 
@@ -165,16 +173,18 @@ func execPostFile(req Request, dataResponse *DataResponse) error {
 	defer fh.Close()
 	if err != nil {
 		fmt.Println("error opening file")
-		dataResponse.SetStatusCode(500)
-		dataResponse.ReturnCode = "000000"
+		dataResponse.SetStatusCode(200)
+		dataResponse.ReturnCode = "100002"
+		dataResponse.ReturnMsg = err.Error()
 		return err
 	}
 
 	//iocopy
 	_, err = io.Copy(fileWriter, fh)
 	if err != nil {
-		dataResponse.SetStatusCode(500)
-		dataResponse.ReturnCode = "000000"
+		dataResponse.SetStatusCode(200)
+		dataResponse.ReturnCode = "100003"
+		dataResponse.ReturnMsg = err.Error()
 		return err
 	}
 
@@ -196,6 +206,9 @@ func execPostFile(req Request, dataResponse *DataResponse) error {
 	defer fasthttp.ReleaseRequest(freq)
 	defer fasthttp.ReleaseResponse(fresp)
 
+	if req.GetHeaderArgs() != nil {
+		freq.Header = *req.GetHeaderArgs()
+	}
 	freq.Header.SetContentType(contentType)
 	freq.Header.SetMethod("POST")
 	freq.SetRequestURI(targetUrl)
@@ -203,13 +216,17 @@ func execPostFile(req Request, dataResponse *DataResponse) error {
 
 	err = fasthttp.DoTimeout(freq, fresp, timeOut)
 	if err != nil {
-		dataResponse.SetStatusCode(500)
-		dataResponse.ReturnCode = "000000"
+		dataResponse.SetStatusCode(200)
+		dataResponse.ReturnCode = "100004"
+		dataResponse.ReturnMsg = err.Error()
 		return err
 	}
 
+	fmt.Println("fresp:", string(fresp.Body()), fresp.String())
+	dataResponse.Body = fresp.Body()
 	dataResponse.SetStatusCode(200)
 	dataResponse.ReturnCode = "000000"
+	dataResponse.ReturnMsg = "文件发送成功"
 	return nil
 }
 
