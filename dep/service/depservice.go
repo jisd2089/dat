@@ -279,11 +279,12 @@ func (s *DepService) ProcessBatchRcv(ctx *fasthttp.RequestCtx, targetFilePath st
 
 // 金融消费
 func (s *DepService) ProcessCrpTrans(ctx *fasthttp.RequestCtx) {
-	//logger.Info("DepService ProcessCrpTrans start")
+	logger.Info("DepService ProcessCrpTrans start")
 
 	bodyChan := make(chan []byte)
+	stopChan := make(chan bool)
 
-	//timeOut := time.Duration(300000) * time.Millisecond
+	timeOut := time.Duration(1800000) * time.Millisecond
 
 	//boxName, err := getCrpBoxName(ctx.Request.Body())
 	//if err != nil {
@@ -307,9 +308,9 @@ func (s *DepService) ProcessCrpTrans(ctx *fasthttp.RequestCtx) {
 	//b.SetParam("prdtIdCd", "1003004")
 
 	// redis address
-	//fmt.Println("redis addr: ", common.Redis.Addr)
 	b.Params = common.Redis.Addr
 	b.BodyChan = bodyChan
+	b.StopChan = stopChan
 
 	b.HttpRequestBody = ctx.Request.Body()
 
@@ -319,10 +320,12 @@ func (s *DepService) ProcessCrpTrans(ctx *fasthttp.RequestCtx) {
 	case body := <-bodyChan:
 		ctx.SetBody(body)
 		//logger.Info("close copy box id ", copyBoxId)
-		close(bodyChan)
-		//case <-time.After(timeOut):
-		//	logger.Error("http response timeout")
-		//	break
+		close(stopChan)
+	case <-time.After(timeOut):
+		ctx.SetBody([]byte("http request timeout"))
+		logger.Error("http response timeout")
+		close(stopChan)
+		break
 	}
 
 	//fmt.Println("DepService middle time: ", time.Since(middle))
@@ -366,16 +369,20 @@ func (s *DepService) ProcessCrpResponse(ctx *fasthttp.RequestCtx) {
 	b.HttpRequestBody = ctx.Request.Body()
 
 	bodyChan := make(chan []byte)
+	stopChan := make(chan bool)
 	b.BodyChan = bodyChan
+	b.StopChan = stopChan
 
 	setDataBoxQueue(b)
 
 	select {
 	case body := <-bodyChan:
 		ctx.SetBody(body)
-		close(bodyChan)
+		close(stopChan)
 	case <-time.After(timeOut):
 		logger.Error("http response timeout")
+		ctx.SetBody([]byte("http request timeout"))
+		close(stopChan)
 		break
 	}
 }

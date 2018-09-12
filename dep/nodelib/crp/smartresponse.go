@@ -192,7 +192,12 @@ func querySmartResponseFunc(ctx *Context) {
 			return
 		}
 
-		ctx.GetDataBox().BodyChan <- pubRespMsgByte
+		select {
+		case <-ctx.GetDataBox().StopChan:
+		case ctx.GetDataBox().BodyChan <- pubRespMsgByte:
+		}
+
+		//ctx.GetDataBox().BodyChan <- pubRespMsgByte
 
 		procEndFunc(ctx)
 		return
@@ -252,7 +257,11 @@ func mockQuerySmartResponseFunc(ctx *Context) {
 			return
 		}
 
-		ctx.GetDataBox().BodyChan <- pubRespMsgByte
+		select {
+		case <-ctx.GetDataBox().StopChan:
+		case ctx.GetDataBox().BodyChan <- pubRespMsgByte:
+		}
+		//ctx.GetDataBox().BodyChan <- pubRespMsgByte
 
 		procEndFunc(ctx)
 		return
@@ -310,7 +319,11 @@ func rsaDecryptFunc(ctx *Context) {
 			return
 		}
 
-		ctx.GetDataBox().BodyChan <- pubRespMsgByte
+		select {
+		case <-ctx.GetDataBox().StopChan:
+		case ctx.GetDataBox().BodyChan <- pubRespMsgByte:
+		}
+		//ctx.GetDataBox().BodyChan <- pubRespMsgByte
 
 		procEndFunc(ctx)
 		return
@@ -337,7 +350,11 @@ func rsaDecryptFunc(ctx *Context) {
 		return
 	}
 
-	ctx.GetDataBox().BodyChan <- pubRespMsgByte
+	select {
+	case <-ctx.GetDataBox().StopChan:
+	case ctx.GetDataBox().BodyChan <- pubRespMsgByte:
+	}
+	//ctx.GetDataBox().BodyChan <- pubRespMsgByte
 
 	procEndFunc(ctx)
 }

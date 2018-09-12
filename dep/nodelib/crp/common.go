@@ -51,7 +51,12 @@ func errEnd(ctx *Context) {
 		responseByte = []byte("response error")
 	}
 
-	ctx.GetDataBox().BodyChan <- responseByte
+	select {
+	case <-ctx.GetDataBox().StopChan:
+	case ctx.GetDataBox().BodyChan <- responseByte:
+	}
+
+	//ctx.GetDataBox().BodyChan <- responseByte
 	ctx.AddChanQueue(&request.DataRequest{
 		Rule:         "end",
 		TransferType: request.NONETYPE,

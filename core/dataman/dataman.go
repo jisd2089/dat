@@ -265,7 +265,13 @@ func (m *dataMan) execProcess(req *request.DataRequest) {
 		break
 	case <-time.After(req.ConnTimeout):
 		fmt.Println("exec process timeout~", req.GetRuleName())
-		m.DataBox.BodyChan <- []byte("exec process timeout~")
+
+		select {
+		case <-m.DataBox.StopChan:
+			close(m.DataBox.BodyChan)
+		case m.DataBox.BodyChan <- []byte("exec process timeout~"):
+		}
+		//m.DataBox.BodyChan <- []byte("exec process timeout~")
 		m.FreeOne()
 		defer m.DataBox.SetStatus(status.STOP)
 		defer m.DataBox.CloseRequestChan()

@@ -105,28 +105,27 @@ func demrequestRootFunc(ctx *Context) {
 
 	ctx.AddChanQueue(dataRequest)
 
-
 	// TODO mock
-//	bodyByte := []byte(`{
-//	"pubReqInfo": {
-//		"timeStamp": "1469613279966",
-//		"jobId": "JON20180816000000631",
-//		"reqSign": "dd4239bbbaca226924a4cf6babd002b9d5f02d33d03025589e937b4ce1b3b3dc",
-//		"serialNo": "2201611161916567677531846",
-//		"memId": "0000162",
-//		"authMode": "00"
-//	},
-//	"busiInfo": {
-//		"fullName": "尚书",
-//		"phoneNumber": "17316332755",
-//		"starttime": "1531479822"
-//	}
-//}`)
-//
-//	ctx.GetDataBox().BodyChan <- bodyByte
-//
-//	procEndFunc(ctx)
-// TODO mock-end
+	//	bodyByte := []byte(`{
+	//	"pubReqInfo": {
+	//		"timeStamp": "1469613279966",
+	//		"jobId": "JON20180816000000631",
+	//		"reqSign": "dd4239bbbaca226924a4cf6babd002b9d5f02d33d03025589e937b4ce1b3b3dc",
+	//		"serialNo": "2201611161916567677531846",
+	//		"memId": "0000162",
+	//		"authMode": "00"
+	//	},
+	//	"busiInfo": {
+	//		"fullName": "尚书",
+	//		"phoneNumber": "17316332755",
+	//		"starttime": "1531479822"
+	//	}
+	//}`)
+	//
+	//	ctx.GetDataBox().BodyChan <- bodyByte
+	//
+	//	procEndFunc(ctx)
+	// TODO mock-end
 }
 
 /**
@@ -431,7 +430,7 @@ func singleQueryFunc(ctx *Context) {
 		Method: "POSTBODY",
 		//Url:    "http://127.0.0.1:8096/api/crp/sup", "http://10.101.12.43:8097/api/crp/sup"
 		Url:          memberDetailInfo.SvrURL,
-		TransferType: request.FASTHTTP,
+		TransferType: request.NONETYPE,
 		Reloadable:   true,
 		HeaderArgs:   header,
 		Parameters:   ctx.GetDataBox().HttpRequestBody,
@@ -466,13 +465,13 @@ func staticQueryFunc(ctx *Context) {
 			}
 
 			// TODO mock
-			//pubAnsInfo := &PubAnsInfo{}
-			//pubAnsInfo.ResCode = "000000"
-			//pubAnsInfo.ResMsg = "成功"
-			//pubRespMsg.PubAnsInfo = pubAnsInfo
+			pubAnsInfo := &PubAnsInfo{}
+			pubAnsInfo.ResCode = "000000"
+			pubAnsInfo.ResMsg = "成功"
+			pubRespMsg.PubAnsInfo = pubAnsInfo
 			//pubRespMsg.DetailInfo.Tag = "疑似仿冒包装"
 			//pubRespMsg.DetailInfo.EvilScore = 77
-			//ctx.DataResponse.Body, _ = json.Marshal(pubRespMsg)
+			ctx.DataResponse.Body, _ = json.Marshal(pubRespMsg)
 			//fmt.Println(string(ctx.DataResponse.Body))
 			// TODO mock-end
 
@@ -523,7 +522,7 @@ func execQuery(ctx *Context, supMemberId string) error {
 		Rule:         "staticquery",
 		Method:       "POSTBODY",
 		Url:          memberDetailInfo.SvrURL,
-		TransferType: request.FASTHTTP,
+		TransferType: request.NONETYPE,
 		Reloadable:   true,
 		HeaderArgs:   header,
 		Parameters:   ctx.GetDataBox().HttpRequestBody,
@@ -551,7 +550,11 @@ func callResponseFunc(ctx *Context) {
 	//fmt.Println(string(ctx.DataResponse.Body))
 	// TODO mock-end
 
-	ctx.GetDataBox().BodyChan <- ctx.DataResponse.Body
+	select {
+	case <-ctx.GetDataBox().StopChan:
+	case ctx.GetDataBox().BodyChan <- ctx.DataResponse.Body:
+	}
+	//ctx.GetDataBox().BodyChan <- ctx.DataResponse.Body
 
 	if err := json.Unmarshal(ctx.DataResponse.Body, pubRespMsg); err != nil {
 		logger.Error("[callResponseFunc] unmarshal response body to PubResProductMsg_0_000_000 err: [%s] ", err.Error())
@@ -647,7 +650,11 @@ func returnBalanceFunc(ctx *Context) {
 		responseByte = []byte("response error")
 	}
 
-	ctx.GetDataBox().BodyChan <- responseByte
+	select {
+	case <-ctx.GetDataBox().StopChan:
+	case ctx.GetDataBox().BodyChan <- responseByte:
+	}
+	//ctx.GetDataBox().BodyChan <- responseByte
 
 	dataRequest := &request.DataRequest{
 		Rule:          "end",
