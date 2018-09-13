@@ -56,6 +56,7 @@ type OrderData struct {
 	MemberRole             string
 	TaskInfoMapById        map[string]*OrderDetailInfo //以TaskId作为key
 	TaskInfoMapByConnObjID map[string]*OrderDetailInfo //以ConnObjID作为key
+	OrderDetailList        []*OrderDetailInfo
 }
 
 func SetOrderInfos(orderInfos *OrderInfoList) *OrderInfoList {
@@ -86,6 +87,7 @@ func SetOrderInfoMap(orderInfos *OrderInfoList) {
 			MemberRole:             o.MemberRole,
 			TaskInfoMapById:        taskInfoMapById,
 			TaskInfoMapByConnObjID: taskInfoMapByConnObjID,
+			OrderDetailList:        o.OrderDetailList.OrderDetailInfo,
 		}
 	}
 }

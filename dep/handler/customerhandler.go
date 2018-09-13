@@ -9,7 +9,6 @@ import (
 	"path"
 	"drcs/core"
 	"time"
-	"fmt"
 	"strconv"
 )
 
@@ -18,7 +17,7 @@ import (
     Created: 2018-05-08 15:19:02
 */
 const (
-	tmpServerFilePath = "D:/dds_receive/tmp"
+	tmpServerFilePath = "tmp"
 )
 
 type CustomerHandler struct{}
@@ -29,42 +28,52 @@ func NewCustomerHandler() *CustomerHandler {
 
 func (n *CustomerHandler) UploadCSVfile(ctx *fasthttp.RequestCtx) {
 	logger.Info("CustomerHandler UploadCSVfile start")
+
 	bodyChan := make(chan []byte)
-	x, err := ctx.FormFile("file")
+
+	ctxFile, err := ctx.FormFile("file")
 	if err != nil {
 		logger.Error("[CustomerHandler] UploadCSVfile get file from ctx err [%s]", err.Error())
 		return
 	}
-	targetFilePath :=tmpServerFilePath+"/"+strconv.FormatInt(time.Now().UTC().UnixNano(), 10)
+
+	targetFilePath :=path.Join(tmpServerFilePath, strconv.FormatInt(time.Now().UTC().UnixNano(), 10))
 	os.MkdirAll(filepath.Clean(targetFilePath), 0644)
-	sourcefile, err := x.Open()
+
+	sourcefile, err := ctxFile.Open()
 	if err != nil {
-		logger.Error("[CustomerHandler] UploadCSVfile open file[%s] err [%s]", x.Filename, err.Error())
+		logger.Error("[CustomerHandler] UploadCSVfile open file[%s] err [%s]", ctxFile.Filename, err.Error())
 		return
 	}
-	targetFile, err := os.OpenFile(path.Join(targetFilePath, x.Filename), os.O_WRONLY|os.O_CREATE, 0644)
+	targetFile, err := os.OpenFile(path.Join(targetFilePath, ctxFile.Filename), os.O_WRONLY|os.O_CREATE, 0644)
 	defer targetFile.Close()
 	if err != nil {
-		logger.Error("[CustomerHandler] UploadCSVfile open file[%s] err [%s]", x.Filename, err.Error())
+		logger.Error("[CustomerHandler] UploadCSVfile open file[%s] err [%s]", ctxFile.Filename, err.Error())
 		return
 	}
 	io.Copy(targetFile, sourcefile)
 
-	boxName := "customer_request"
-	//boxName = "smart_request"
-	b := assetnode.AssetNodeEntity.GetDataBoxByName(boxName)
-	if b == nil {
-		logger.Error("databox [%s] is nil!", boxName)
+	jobId := string(ctx.FormValue("jobId"))
+	if jobId == "" {
+		logger.Error("[CustomerHandler] param jobId is nil")
 		return
 	}
 
-	b.DataFilePath = path.Join(targetFilePath, x.Filename)
+	boxName := "customer_request"
+	b := assetnode.AssetNodeEntity.GetDataBoxByName(boxName)
+	if b == nil {
+		logger.Error("[CustomerHandler] databox [%s] is nil!", boxName)
+		return
+	}
+
+	b.DataFilePath = path.Join(targetFilePath, ctxFile.Filename)
 
 	b.SetParam("processType", "upload")
+	b.SetParam("jobId", jobId)
 
 	b.BodyChan = bodyChan
 	setDataBoxQueue(b)
-	//fmt.Println("response body:", string("www"))
+
 	select {
 	case body := <-bodyChan:
 		ctx.SetBody(body)
@@ -72,16 +81,21 @@ func (n *CustomerHandler) UploadCSVfile(ctx *fasthttp.RequestCtx) {
 		go func() {
 			time.Sleep(time.Microsecond*1000)
 			if err := os.RemoveAll(targetFilePath); err != nil {
-				fmt.Println(err.Error())
+				logger.Error("[CustomerHandler] remove file path [%s] error [%s]", targetFilePath, err.Error())
 			}
 		}()
 	}
-
 }
 
-func (n *CustomerHandler) PredictCreditScore(ctx *fasthttp.RequestCtx) {
-	logger.Info("CustomerHandler PredictCreditScore start")
+func (n *CustomerHandler) Predict(ctx *fasthttp.RequestCtx) {
+	logger.Info("CustomerHandler Predict start")
 	bodyChan := make(chan []byte)
+
+	jobId := string(ctx.FormValue("jobId"))
+	if jobId == "" {
+		logger.Error("[CustomerHandler] param jobId is nil")
+		return
+	}
 
 	boxName := "customer_request"
 	b := assetnode.AssetNodeEntity.GetDataBoxByName(boxName)
@@ -94,17 +108,17 @@ func (n *CustomerHandler) PredictCreditScore(ctx *fasthttp.RequestCtx) {
 
 	b.BodyChan = bodyChan
 	setDataBoxQueue(b)
-	//fmt.Println("response body:", string("www"))
+
 	select {
 	case body := <-bodyChan:
 		ctx.SetBody(body)
 		close(bodyChan)
 	}
-
 }
 
 func (n *CustomerHandler) PredictCreditScoreCard(ctx *fasthttp.RequestCtx) {
 	logger.Info("CustomerHandler PredictCreditScoreCard start")
+
 	bodyChan := make(chan []byte)
 
 	boxName := "customer_request"
@@ -118,11 +132,10 @@ func (n *CustomerHandler) PredictCreditScoreCard(ctx *fasthttp.RequestCtx) {
 
 	b.BodyChan = bodyChan
 	setDataBoxQueue(b)
-	//fmt.Println("response body:", string("www"))
+
 	select {
 	case body := <-bodyChan:
 		ctx.SetBody(body)
 		close(bodyChan)
 	}
-
 }

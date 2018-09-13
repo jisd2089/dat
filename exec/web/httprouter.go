@@ -43,12 +43,11 @@ func (r *HttpRouter) Register() {
 	r.Router.POST("/api/p/genKey", NewNodeHandler().GenKeys)
 	r.Router.POST("/api/p/initSafeConfig/", NewNodeHandler().InitSecurityConfig)
 
-	r.Router.POST("/api/drcs/customerUploadfile", NewCustomerHandler().UploadCSVfile)
-	r.Router.POST("/api/drcs/customerPredictCreditScore", NewCustomerHandler().PredictCreditScore)
-	r.Router.POST("/api/drcs/customerPredictCreditScoreCard", NewCustomerHandler().PredictCreditScoreCard)
-	r.Router.POST("/api/drcs/serverAcceptfile", NewServerHandler().AcceptCSVfile)
-	r.Router.POST("/api/drcs/serverPredictCreditScore", NewServerHandler().PredictCreditScore)
-	r.Router.POST("/api/drcs/serverPredictCreditScoreCard", NewServerHandler().PredictCreditScore)
+	r.Router.POST("/api/fusion/customeruploadfile", NewCustomerHandler().UploadCSVfile)
+	r.Router.POST("/api/fusion/customerpredict", NewCustomerHandler().Predict)
+	r.Router.POST("/api/fusion/serveracceptfile", NewServerHandler().AcceptCSVfile)
+	r.Router.POST("/api/fusion/serverpredict", NewServerHandler().ExecPredict)
+
 	// 生产业务流程
 	//r.Router.POST("/api/dmp/orderRouteQry/", demander.HTTPService{}.DoService)
 	//r.Router.POST("/api/p/pushFile/", common.CommonSvc.PlatPushFile)

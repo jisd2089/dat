@@ -18,38 +18,39 @@ import (
     Created: 2018-05-08 15:19:02
 */
 const (
-	tmpCustomerFilePath = "D:/dds_accept/tmp"
+	tmpCustomerFilePath = "tmp"
 )
 
-type DrcsServerHandler struct{}
+type ServerHandler struct{}
 
-func NewServerHandler() *DrcsServerHandler {
-	return &DrcsServerHandler{}
+func NewServerHandler() *ServerHandler {
+	return &ServerHandler{}
 }
 
-func (n *DrcsServerHandler) AcceptCSVfile(ctx *fasthttp.RequestCtx) {
-	logger.Info("DrcsServerHandler AcceptCSVfile start")
+func (n *ServerHandler) AcceptCSVfile(ctx *fasthttp.RequestCtx) {
+	logger.Info("ServerHandler AcceptCSVfile start")
 
 	bodyChan := make(chan []byte)
 
 	acpFile, err := ctx.FormFile("file")
 	if err != nil {
-		logger.Error("[DrcsServerHandler] AcceptCSVfile get file from ctx err [%s]", err.Error())
+		logger.Error("[ServerHandler] AcceptCSVfile get file from ctx err [%s]", err.Error())
 		return
 	}
 	acpFileContent, err := acpFile.Open()
 	defer acpFileContent.Close()
 	if err != nil {
-		logger.Error("[DrcsServerHandler] AcceptCSVfile open file[%s] err [%s]", acpFile.Filename, err.Error())
+		logger.Error("[ServerHandler] AcceptCSVfile open file[%s] err [%s]", acpFile.Filename, err.Error())
 		return
 	}
-	targetFilePath := tmpCustomerFilePath+"/"+strconv.FormatInt(time.Now().UTC().UnixNano(), 10)
+
+	targetFilePath := path.Join(tmpCustomerFilePath, strconv.FormatInt(time.Now().UTC().UnixNano(), 10))
 	os.MkdirAll(filepath.Clean(targetFilePath), 0644)
 
 	targetFile, err := os.OpenFile(path.Join(targetFilePath, acpFile.Filename), os.O_WRONLY|os.O_CREATE, 0644)
 	defer targetFile.Close()
 	if err != nil {
-		logger.Error("[DrcsServerHandler] AcceptCSVfile open file[%s] err [%s]", acpFile.Filename, err.Error())
+		logger.Error("[ServerHandler] AcceptCSVfile open file[%s] err [%s]", acpFile.Filename, err.Error())
 		return
 	}
 	io.Copy(targetFile, acpFileContent)
@@ -79,21 +80,52 @@ func (n *DrcsServerHandler) AcceptCSVfile(ctx *fasthttp.RequestCtx) {
 			}
 		}()
 	}
-
 }
 
-func (n *DrcsServerHandler) PredictCreditScore(ctx *fasthttp.RequestCtx) {
-	logger.Info("DrcsServerHandler PredictCreditScore start")
-	bodyChan := make(chan []byte)
+func (n *ServerHandler) ExecPredict(ctx *fasthttp.RequestCtx) {
+	logger.Info("ServerHandler ExecPredict start")
+
+	prdtIdCd := string(ctx.Request.Header.Peek("prdtIdCd"))
+	if prdtIdCd == "" {
+		logger.Error("[ServerHandler] prdtIdC d is nil!")
+		return
+	}
+
+	serialNo := string(ctx.Request.Header.Peek("serialNo"))
+	if serialNo == "" {
+		logger.Error("[ServerHandler] serialNo is nil!")
+		return
+	}
+
+	busiSerialNo := string(ctx.Request.Header.Peek("busiSerialNo"))
+	if busiSerialNo == "" {
+		logger.Error("[ServerHandler] busiSerialNo is nil!")
+		return
+	}
+
+	jobId := string(ctx.Request.Header.Peek("jobId"))
+	if jobId == "" {
+		logger.Error("[ServerHandler] jobId is nil!")
+		return
+	}
+
 	boxName := "server_response"
 	b := assetnode.AssetNodeEntity.GetDataBoxByName(boxName)
 	if b == nil {
-		logger.Error("databox [%s] is nil!", boxName)
+		logger.Error("[ServerHandler] databox [%s] is nil!", boxName)
 		return
 	}
 	b.SetParam("processType", "api")
+	b.SetParam("serialNo", serialNo)
+	b.SetParam("prdtIdCd", prdtIdCd)
+	b.SetParam("busiSerialNo", busiSerialNo)
+	b.SetParam("jobId", jobId)
+
 	b.HttpRequestBody = ctx.Request.Body()
+
+	bodyChan := make(chan []byte)
 	b.BodyChan = bodyChan
+
 	setDataBoxQueue(b)
 
 	select {
@@ -101,12 +133,10 @@ func (n *DrcsServerHandler) PredictCreditScore(ctx *fasthttp.RequestCtx) {
 		ctx.SetBody(body)
 		close(bodyChan)
 	}
-
 }
 
-
-func (n *DrcsServerHandler) PredictCreditScoreCard(ctx *fasthttp.RequestCtx) {
-	logger.Info("DrcsServerHandler PredictCreditScoreCard start")
+func (n *ServerHandler) PredictCreditScoreCard(ctx *fasthttp.RequestCtx) {
+	logger.Info("ServerHandler PredictCreditScoreCard start")
 	bodyChan := make(chan []byte)
 	boxName := "server_response"
 	b := assetnode.AssetNodeEntity.GetDataBoxByName(boxName)
@@ -124,5 +154,4 @@ func (n *DrcsServerHandler) PredictCreditScoreCard(ctx *fasthttp.RequestCtx) {
 		ctx.SetBody(body)
 		close(bodyChan)
 	}
-
 }

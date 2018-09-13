@@ -17,7 +17,7 @@ const (
 
 
 type PredictCreditScoreReq struct {
-	ModelUID        string `json:"modelUID""`
-	InstancesAmount string `json:"instancesAmount""`
-	InstancesArray  string `json:"instancesArray""`
+	ModelUID        string `json:"modelUID"`
+	InstancesAmount string `json:"instancesAmount"`
+	InstancesArray  string `json:"instancesArray"`
 }

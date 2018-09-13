@@ -4,12 +4,17 @@ import (
 	"drcs/core/interaction/request"
 	. "drcs/core/databox"
 	. "drcs/dep/nodelib/fusion/taifinance"
+	. "drcs/dep/nodelib/fusion/common"
 	"fmt"
 	"time"
 	"github.com/valyala/fasthttp"
 	"strings"
 
 	logger "drcs/log"
+	"os"
+	"bufio"
+	"io"
+	"strconv"
 )
 
 /**
@@ -33,35 +38,20 @@ var SERVER = &DataBox{
 			"execuploadsuccess": {
 				ParseFunc: uploadTFSuccessFunc,
 			},
-			"execPredictCreditScore": {
-				ParseFunc: execPredictCreditScoreFunc,
+			"execpredict": {
+				ParseFunc: execPredictFunc,
 			},
-			"execPredictCreditScoreSuccess": {
-				ParseFunc: execPredictCreditScoreSuccessFunc,
-			},
-			"execPredictCreditScoreCard": {
-				ParseFunc: execPredictCreditScoreCardFunc,
-			},
-			"execPredictCreditScoreCardSuccess": {
-				ParseFunc: execPredictCreditScoreCardSuccessFunc,
+			"predictresponse": {
+				ParseFunc: execPredictResponseFunc,
 			},
 			"execGetProcessedDataSet": {
 				ParseFunc: getProcessDataSetSuccessFunc,
 			},
+			"sendrecord": {
+				ParseFunc: sendRecordFunc,
+			},
 			"parseparam": {
 				ParseFunc: parseResponseParamFunc,
-			},
-			"rsaencrypt": {
-				ParseFunc: rsaEncryptParamFunc,
-			},
-			"execquery": {
-				ParseFunc: querySmartResponseFunc,
-			},
-			"mockexecquery": {
-				ParseFunc: mockQuerySmartResponseFunc,
-			},
-			"rsadecrypt": {
-				ParseFunc: rsaDecryptFunc,
 			},
 			"end": {
 				ParseFunc: procEndFunc,
@@ -71,9 +61,10 @@ var SERVER = &DataBox{
 }
 
 func serverRootFunc(ctx *Context) {
-	processType := ctx.GetDataBox().Param("processType")
-	switch processType {
+
+	switch ctx.GetDataBox().Param("processType") {
 	case "upload":
+
 		ctx.AddChanQueue(&request.DataRequest{
 			Rule:         "execuploaddataset",
 			Method:       "GET",
@@ -81,7 +72,10 @@ func serverRootFunc(ctx *Context) {
 			Reloadable:   true,
 			ConnTimeout:  time.Duration(time.Second * 3000),
 		})
+
 	case "api":
+
+
 		ctx.AddChanQueue(&request.DataRequest{
 			Rule:         "execPredictCreditScore",
 			Method:       "GET",
@@ -89,16 +83,7 @@ func serverRootFunc(ctx *Context) {
 			Reloadable:   true,
 			ConnTimeout:  time.Duration(time.Second * 3000),
 		})
-	case "apiCard":
-		ctx.AddChanQueue(&request.DataRequest{
-			Rule:         "execPredictCreditScoreCard",
-			Method:       "GET",
-			TransferType: request.NONETYPE,
-			Reloadable:   true,
-			ConnTimeout:  time.Duration(time.Second * 3000),
-		})
 	}
-
 }
 
 func execUploadDataSetFunc(ctx *Context) {
@@ -121,15 +106,16 @@ func execUploadDataSetFunc(ctx *Context) {
 	ctx.AddChanQueue(dataRequest)
 }
 
-func execPredictCreditScoreFunc(ctx *Context) {
+func execPredictFunc(ctx *Context) {
+
+
 	header := &fasthttp.RequestHeader{}
 	header.Set("tfapi-key", TFAPI_KEY)
 	header.SetMethod("GET")
 
 	postArgs := &PredictCreditScoreReq{}
-
 	if err := json.Unmarshal(ctx.GetDataBox().HttpRequestBody, postArgs); err != nil {
-		logger.Error("[execPredictCreditScoreFunc] json unmarshal failed [%s]", err.Error())
+		logger.Error("[execPredictFunc] json unmarshal failed [%s]", err.Error())
 		errEnd(ctx)
 		return
 	}
@@ -139,55 +125,67 @@ func execPredictCreditScoreFunc(ctx *Context) {
 	postArgsMap["instancesAmount"] = postArgs.InstancesAmount
 	postArgsMap["instancesArray"] = postArgs.InstancesArray
 
-	dataRequest := &request.DataRequest{
-		Rule:         "execPredictCreditScoreSuccess",
+	// TODO
+	var tfApiUrl string
+	switch ctx.GetDataBox().Param("jobId") {
+	case "JON20180912000000781":
+		tfApiUrl = TFAPI_PREDICT_CREDIT_SCORE_URL
+	case "JON20180913000000782":
+		tfApiUrl = TFAPI_PREDICT_CREDIT_SCORE_CARD_URL
+	}
+
+	ctx.AddChanQueue(&request.DataRequest{
+		Rule:         "predictresponse",
 		Method:       "POSTARGS",
-		Url:          TFAPI_PREDICT_CREDIT_SCORE_URL,
-		TransferType: request.FASTHTTP,
+		Url:          tfApiUrl,
+		TransferType: request.NONETYPE,
 		Reloadable:   true,
 		HeaderArgs:   header,
 		PostArgs:     postArgsMap,
-		Parameters:   ctx.GetDataBox().HttpRequestBody,
 		ConnTimeout:  time.Duration(time.Second * 300),
-	}
-
-	ctx.AddChanQueue(dataRequest)
+	})
 }
 
-func execPredictCreditScoreCardFunc(ctx *Context) {
-	header := &fasthttp.RequestHeader{}
-	header.Set("tfapi-key", TFAPI_KEY)
-	header.SetMethod("GET")
+func execPredictResponseFunc(ctx *Context) {
 
-	postArgs := &PredictCreditScoreReq{}
-
-	if err := json.Unmarshal(ctx.GetDataBox().HttpRequestBody, postArgs); err != nil {
-		logger.Error("[execPredictCreditScoreCardFunc] json unmarshal failed [%s]", err.Error())
+	if ctx.DataResponse.StatusCode == 200 && !strings.EqualFold(ctx.DataResponse.ReturnCode, "000000") {
+		logger.Error("[execPredictResponseFunc] resultmsg encode failed [%s]", ctx.DataResponse.ReturnMsg)
 		errEnd(ctx)
 		return
 	}
 
-	postArgsMap := make(map[string]string)
-	postArgsMap["modelUID"] = postArgs.ModelUID
-	postArgsMap["instancesAmount"] = postArgs.InstancesAmount
-	//postArgsMap["instancesArray"] = postArgs.InstancesArray_P_
-
-	dataRequest := &request.DataRequest{
-		Rule:         "execPredictCreditScoreCardSuccess",
-		Method:       "POSTARGS",
-		Url:          TFAPI_PREDICT_CREDIT_SCORE_CARD_URL,
-		TransferType: request.FASTHTTP,
-		Reloadable:   true,
-		HeaderArgs:   header,
-		PostArgs:     postArgsMap,
-		Parameters:   ctx.GetDataBox().HttpRequestBody,
-		ConnTimeout:  time.Duration(time.Second * 300),
+	responseData := &ResponseData{}
+	if err := json.Unmarshal(ctx.DataResponse.Body, responseData); err != nil {
+		logger.Error("[rsaDecryptFunc] json unmarshal response data err [%s]", err.Error())
+		errEnd(ctx)
+		return
 	}
 
-	dataRequest.SetParam("instancesArray", postArgs.InstancesArray)
+	// 请求真实供方 成功返回
+	pubRespMsg := &PubResProductMsg{}
 
-	ctx.AddChanQueue(dataRequest)
+	pubAnsInfo := &PubAnsInfo{}
+	pubAnsInfo.ResCode = GetCenterCodeFromTAIFIN(responseData.RespCode)
+	pubAnsInfo.ResMsg = "成功"
+	pubAnsInfo.SerialNo = ctx.GetDataBox().Param("serialNo")
+	pubAnsInfo.BusiSerialNo = ctx.GetDataBox().Param("busiSerialNo")
+	pubAnsInfo.TimeStamp = strconv.Itoa(int(time.Now().UnixNano() / 1e6))
+
+	pubRespMsg.PubAnsInfo = pubAnsInfo
+	pubRespMsg.DetailInfo = responseData.RespDetail
+
+	pubRespMsgByte, err := json.Marshal(pubRespMsg)
+	if err != nil {
+		logger.Error("[execPredictResponseFunc] json marshal PubResProductMsg err [%s]", err.Error())
+		errEnd(ctx)
+		return
+	}
+
+	ctx.GetDataBox().BodyChan <- pubRespMsgByte
+
+	procEndFunc(ctx)
 }
+
 
 func uploadTFSuccessFunc(ctx *Context) {
 	if ctx.DataResponse.StatusCode == 200 && !strings.EqualFold(ctx.DataResponse.ReturnCode, "000000") {
@@ -214,33 +212,9 @@ func uploadTFSuccessFunc(ctx *Context) {
 	dataRequest.SetParam("expansionType", "UNRELATED_ITEM")
 	dataRequest.SetParam("modelType", "CREDIT_SCORE")
 
-
-
 	ctx.AddChanQueue(dataRequest)
-
 }
 
-func execPredictCreditScoreSuccessFunc(ctx *Context) {
-	if ctx.DataResponse.StatusCode == 200 && !strings.EqualFold(ctx.DataResponse.ReturnCode, "000000") {
-		logger.Error("[execPredictCreditScoreSuccessFunc] resultmsg encode failed [%s]", ctx.DataResponse.ReturnMsg)
-		errEnd(ctx)
-		return
-	}
-	fmt.Println(string(ctx.DataResponse.Body))
-	ctx.GetDataBox().BodyChan <- ctx.DataResponse.Body
-	procEndFunc(ctx)
-}
-
-func execPredictCreditScoreCardSuccessFunc(ctx *Context) {
-	if ctx.DataResponse.StatusCode == 200 && !strings.EqualFold(ctx.DataResponse.ReturnCode, "000000") {
-		logger.Error("[execPredictCreditScoreCardSuccessFunc] resultmsg encode failed [%s]", ctx.DataResponse.ReturnMsg)
-		errEnd(ctx)
-		return
-	}
-	fmt.Println(string(ctx.DataResponse.Body))
-	ctx.GetDataBox().BodyChan <- ctx.DataResponse.Body
-	procEndFunc(ctx)
-}
 
 //获取泰融数据集和特征值
 func getProcessDataSetSuccessFunc(ctx *Context) {
@@ -255,261 +229,115 @@ func getProcessDataSetSuccessFunc(ctx *Context) {
 
 	ctx.GetDataBox().BodyChan <- ctx.DataResponse.Body
 
-
-
-	procEndFunc(ctx)
+	ctx.AddChanQueue(&request.DataRequest{
+		Rule:         "sendrecord",
+		Method:       "GET",
+		TransferType: request.NONETYPE,
+		Reloadable:   true,
+	})
 }
 
-// api
+func sendRecordFunc(ctx *Context) {
+
+	if ctx.DataResponse.StatusCode == 200 && !strings.EqualFold(ctx.DataResponse.ReturnCode, "000000") {
+		errEnd(ctx)
+		return
+	}
+
+	dataFilePath := ctx.GetDataBox().DataFilePath
+
+	dataFile, err := os.Open(dataFilePath)
+	defer dataFile.Close()
+	if err != nil {
+		errEnd(ctx)
+		return
+	}
+
+	buf := bufio.NewReader(dataFile)
+
+	cnt := 0
+	for {
+		_, _, err := buf.ReadLine()
+		if err != nil {
+			if err == io.EOF {
+				break
+			} else {
+				errEnd(ctx)
+				return
+			}
+		}
+
+		cnt ++
+	}
+
+	ctx.Output(map[string]interface{}{
+		"exID":       "",
+		"demMemID":   ctx.GetDataBox().Param("UserId"),
+		"supMemID":   ctx.GetDataBox().Param("NodeMemberId"),
+		"taskID":     strings.Replace(ctx.GetDataBox().Param("TaskId"), "|@|", ".", -1),
+		"seqNo":      ctx.GetDataBox().Param("seqNo"),
+		"dmpSeqNo":   ctx.GetDataBox().Param("fileNo"),
+		"recordType": "2",
+		"succCount":  strconv.Itoa(cnt),
+		"flowStatus": "11",
+		"usedTime":   11,
+		"errCode":    "031014",
+		//"stepInfoM":  stepInfoM,
+	})
+}
+
 func parseResponseParamFunc(ctx *Context) {
-	//logger.Info("parseResponseParamFunc start ", ctx.GetDataBox().GetId())
+	logger.Info("parseResponseParamFunc start ", ctx.GetDataBox().GetId())
 
-	//reqBody := ctx.GetDataBox().HttpRequestBody
+	reqBody := ctx.GetDataBox().HttpRequestBody
 
-	//busiInfo := map[string]interface{}{}
-	//err := json.Unmarshal(reqBody, &busiInfo)
-	//if err != nil {
-	//	logger.Error("[parseResponseParamFunc] unmarshal request body err [%s]", err.Error())
-	//	errEnd(ctx)
-	//	return
-	//}
-	//
-	//requestData := &RequestData{}
-	//name, ok := busiInfo["fullName"]
-	//if !ok {
-	//	logger.Error("[parseResponseParamFunc] request data param [%s] is nil", "fullName")
-	//	errEnd(ctx)
-	//	return
-	//}
-	//requestData.Name = name.(string)
-	//phoneNumber, ok := busiInfo["phoneNumber"]
-	//if !ok {
-	//	logger.Error("[parseResponseParamFunc] request data param [%s] is nil", "phoneNumber")
-	//	errEnd(ctx)
-	//	return
-	//}
-	//requestData.Phone = phoneNumber.(string)
-	//starttime, ok := busiInfo["starttime"]
-	//if !ok {
-	//	logger.Error("[parseResponseParamFunc] request data param [%s] is nil", "starttime")
-	//	errEnd(ctx)
-	//	return
-	//}
-	//requestData.StartTime = starttime.(string)
-	//
-	//requestDataByte, err := json.Marshal(requestData)
-	//if err != nil {
-	//	logger.Error("[parseResponseParamFunc] json marshal request data err [%v]", err.Error())
-	//	errEnd(ctx)
-	//	return
-	//}
-	//
-	//dataReq := &request.DataRequest{
-	//	Rule:         "rsaencrypt",
-	//	Method:       "RSAENCRYPT",
-	//	TransferType: request.ENCRYPT,
-	//	Reloadable:   true,
-	//	Parameters:   requestDataByte,
-	//}
-	//
+	busiInfo := map[string]interface{}{}
+	err := json.Unmarshal(reqBody, &busiInfo)
+	if err != nil {
+		logger.Error("[parseResponseParamFunc] unmarshal request body err [%s]", err.Error())
+		errEnd(ctx)
+		return
+	}
+
+	requestData := &PredictCreditScoreReq{}
+	modelUID, ok := busiInfo["modelUID"]
+	if !ok {
+		logger.Error("[parseResponseParamFunc] request data param [%s] is nil", "modelUID")
+		errEnd(ctx)
+		return
+	}
+	requestData.ModelUID = modelUID.(string)
+	instancesAmount, ok := busiInfo["instancesAmount"]
+	if !ok {
+		logger.Error("[parseResponseParamFunc] request data param [%s] is nil", "instancesAmount")
+		errEnd(ctx)
+		return
+	}
+	requestData.InstancesAmount = instancesAmount.(string)
+	instancesArray, ok := busiInfo["instancesArray"]
+	if !ok {
+		logger.Error("[parseResponseParamFunc] request data param [%s] is nil", "instancesArray")
+		errEnd(ctx)
+		return
+	}
+	requestData.InstancesArray = instancesArray.(string)
+
+	requestDataByte, err := json.Marshal(requestData)
+	if err != nil {
+		logger.Error("[parseResponseParamFunc] json marshal request data err [%v]", err.Error())
+		errEnd(ctx)
+		return
+	}
+
+	dataReq := &request.DataRequest{
+		Rule:         "execPredictCreditScore",
+		Method:       "GET",
+		TransferType: request.NONETYPE,
+		Reloadable:   true,
+		Parameters:   requestDataByte,
+	}
+
 	//dataReq.SetParam("encryptKey", SMARTSAIL_PUBLIC_KEY)
-	//
-	//ctx.AddChanQueue(dataReq)
-}
 
-func rsaEncryptParamFunc(ctx *Context) {
-	//logger.Info("rsaEncryptParamFunc start ", ctx.GetDataBox().GetId())
-
-	//if ctx.DataResponse.StatusCode == 200 && !strings.EqualFold(ctx.DataResponse.ReturnCode, "000000") {
-	//	logger.Error("[rsaEncryptParamFunc] base64 encode failed [%s]", ctx.DataResponse.ReturnMsg)
-	//	errEnd(ctx)
-	//	return
-	//}
-	//
-	//header := &fasthttp.RequestHeader{}
-	//header.SetContentType("application/json;charset=UTF-8")
-	//header.SetMethod("POST")
-	//
-	//requestMsg := &RequestMsg{}
-	//requestMsg.CliKey = SMARTSAIL_CLIKEY
-	//requestMsg.RequestData = ctx.DataResponse.BodyStr
-	//
-	//requestMsgByte, err := json.Marshal(requestMsg)
-	//if err != nil {
-	//	logger.Error("[rsaEncryptParamFunc] json Marshal uriData failed [%s]", err.Error())
-	//	errEnd(ctx)
-	//	return
-	//}
-	//
-	//args := make(map[string]string, 0)
-	//args["data"] = string(requestMsgByte)
-	//
-	//ctx.AddChanQueue(&request.DataRequest{
-	//	Rule:   "execquery",
-	//	Method: "POSTARGS",
-	//	Url:    "http://10.101.12.43:8088/api/sup/resp",
-	//	//Url:          SMARTSAIL_URL,
-	//	TransferType: request.FASTHTTP,
-	//	Reloadable:   true,
-	//	HeaderArgs:   header,
-	//	PostArgs:     args,
-	//})
-}
-
-func querySmartResponseFunc(ctx *Context) {
-	//logger.Info("querySmartResponseFunc start ", ctx.GetDataBox().GetId())
-
-	//if ctx.DataResponse.StatusCode == 200 && !strings.EqualFold(ctx.DataResponse.ReturnCode, "000000") {
-	//	logger.Error("[querySmartResponseFunc] execute query failed [%s]", ctx.DataResponse.ReturnMsg)
-	//	errEnd(ctx)
-	//	return
-	//}
-	//
-	//responseData := &ResponseData{}
-	//if err := json.Unmarshal(ctx.DataResponse.Body, responseData); err != nil {
-	//	logger.Error("[querySmartResponseFunc] json unmarshal response data err [%s]", err.Error())
-	//	errEnd(ctx)
-	//	return
-	//}
-	//
-	//if responseData.RespCode != SMARTSAIL_SUCC {
-	//	logger.Error("[querySmartResponseFunc] smartsail execute query response [%s]", responseData.RespMessage)
-	//
-	//	pubRespMsg := &PubResProductMsg{}
-	//
-	//	pubAnsInfo := &PubAnsInfo{}
-	//	pubAnsInfo.ResCode = GetCenterCodeFromSMARTSAIL(responseData.RespCode)
-	//	pubAnsInfo.ResMsg = responseData.RespMessage
-	//	pubAnsInfo.SerialNo = ctx.GetDataBox().Param("serialNo")
-	//	pubAnsInfo.BusiSerialNo = ctx.GetDataBox().Param("busiSerialNo")
-	//	pubAnsInfo.TimeStamp = strconv.Itoa(int(time.Now().UnixNano() / 1e6))
-	//
-	//	pubRespMsg.PubAnsInfo = pubAnsInfo
-	//
-	//	pubRespMsgByte, err := json.Marshal(pubRespMsg)
-	//	if err != nil {
-	//		errEnd(ctx)
-	//		return
-	//	}
-	//
-	//	ctx.GetDataBox().BodyChan <- pubRespMsgByte
-	//
-	//	procEndFunc(ctx)
-	//	return
-	//}
-	//
-	//ctx.GetDataBox().SetParam("resCode", GetCenterCodeFromSMARTSAIL(responseData.RespCode))
-	//
-	//dataRequest := &request.DataRequest{
-	//	Rule:         "rsadecrypt",
-	//	Method:       "RSADECRYPT",
-	//	TransferType: request.ENCRYPT,
-	//	Reloadable:   true,
-	//	PostData:     responseData.RespDetail,
-	//}
-	//
-	//dataRequest.SetParam("encryptKey", SMARTSAIL_PRIVATE_KEY)
-	//
-	//ctx.AddChanQueue(dataRequest)
-}
-
-func mockQuerySmartResponseFunc(ctx *Context) {
-	//logger.Info("mockQuerySmartResponseFunc start ", ctx.GetDataBox().GetId())
-
-	//if ctx.DataResponse.StatusCode == 200 && !strings.EqualFold(ctx.DataResponse.ReturnCode, "000000") {
-	//	logger.Error("[mockQuerySmartResponseFunc] execute query failed [%s]", ctx.DataResponse.ReturnMsg)
-	//	errEnd(ctx)
-	//	return
-	//}
-	//
-	//ctx.DataResponse.Body = []byte(`{"code":0,"msg":"系统正常","data":"ySApoEWkw0dMfRIk8vGV4ufnnR9ojNHUsR0PSyuxD39WVP/XLujQm8W130BqUw/yAb1hodRf8PK7iy+OyXCAlQJ+y960nIsKcvwvP2oaAVfTbe/cu2J4s3eeO0GroghY0VhMSJfTP2VKcrOu6EpbaJHDZpQ83y3XCjmB1SH9KGSgjapVpEiON/nG4I5Nb4a4rCcsgntH6CyWjOsabvbYlx6Ix5HYhqGL96KCNPwRmGpce9bAlaK/5/UBIKocSvCYog1kDUl9g39eT68F+oPNmD0U7p8WyxDFoyUkcweXL9mp1yOfnpXUZdpVGosM+qrwsfNeVTCGydX0PAkXEq3jGg=="}`)
-	//
-	//responseData := &ResponseData{}
-	//if err := json.Unmarshal(ctx.DataResponse.Body, responseData); err != nil {
-	//	logger.Error("[mockQuerySmartResponseFunc] json unmarshal response data err [%s]", err.Error())
-	//	errEnd(ctx)
-	//	return
-	//}
-	//
-	//if responseData.RespCode != SMARTSAIL_SUCC {
-	//	logger.Error("[mockQuerySmartResponseFunc] smartsail execute query response [%s]", responseData.RespMessage)
-	//
-	//	pubRespMsg := &PubResProductMsg{}
-	//
-	//	pubAnsInfo := &PubAnsInfo{}
-	//	pubAnsInfo.ResCode = GetCenterCodeFromSMARTSAIL(responseData.RespCode)
-	//	pubAnsInfo.ResMsg = responseData.RespMessage
-	//	pubAnsInfo.SerialNo = ctx.GetDataBox().Param("serialNo")
-	//	pubAnsInfo.BusiSerialNo = ctx.GetDataBox().Param("busiSerialNo")
-	//	pubAnsInfo.TimeStamp = strconv.Itoa(int(time.Now().UnixNano() / 1e6))
-	//
-	//	pubRespMsg.PubAnsInfo = pubAnsInfo
-	//
-	//	pubRespMsgByte, err := json.Marshal(pubRespMsg)
-	//	if err != nil {
-	//		errEnd(ctx)
-	//		return
-	//	}
-	//
-	//	ctx.GetDataBox().BodyChan <- pubRespMsgByte
-	//
-	//	procEndFunc(ctx)
-	//	return
-	//}
-	//
-	//ctx.GetDataBox().SetParam("resCode", GetCenterCodeFromSMARTSAIL(responseData.RespCode))
-	//
-	//dataRequest := &request.DataRequest{
-	//	Rule:         "rsadecrypt",
-	//	Method:       "RSADECRYPT",
-	//	TransferType: request.ENCRYPT,
-	//	Reloadable:   true,
-	//	PostData:     responseData.RespDetail,
-	//	ConnTimeout:  time.Duration(time.Minute * 30),
-	//}
-	//
-	//dataRequest.SetParam("encryptKey", SMARTSAIL_PRIVATE_KEY)
-	//
-	//ctx.AddChanQueue(dataRequest)
-}
-
-func rsaDecryptFunc(ctx *Context) {
-	//logger.Info("rsaDecryptFunc start ", ctx.GetDataBox().GetId())
-
-	//if ctx.DataResponse.StatusCode == 200 && !strings.EqualFold(ctx.DataResponse.ReturnCode, "000000") {
-	//	logger.Error("[rsaDecryptFunc] rsa decrypt err [%s]", ctx.DataResponse.ReturnMsg)
-	//	errEnd(ctx)
-	//	return
-	//}
-	//
-	//responseData := &ResponseDecryptData{}
-	//if err := json.Unmarshal(ctx.DataResponse.Body, responseData); err != nil {
-	//	logger.Error("[rsaDecryptFunc] json unmarshal response data err [%s]", err.Error())
-	//	errEnd(ctx)
-	//	return
-	//}
-	//
-	//// 请求真实供方 成功返回
-	//pubRespMsg := &PubResProductMsg{}
-	//
-	//pubAnsInfo := &PubAnsInfo{}
-	//pubAnsInfo.ResCode = ctx.GetDataBox().Param("resCode")
-	//pubAnsInfo.ResMsg = "成功"
-	//pubAnsInfo.SerialNo = ctx.GetDataBox().Param("serialNo")
-	//pubAnsInfo.BusiSerialNo = ctx.GetDataBox().Param("busiSerialNo")
-	//pubAnsInfo.TimeStamp = strconv.Itoa(int(time.Now().UnixNano() / 1e6))
-	//
-	//pubRespMsg.PubAnsInfo = pubAnsInfo
-	//pubRespMsg.DetailInfo = responseData.RespDetail
-	//
-	//pubRespMsgByte, err := json.Marshal(pubRespMsg)
-	//if err != nil {
-	//	logger.Error("[rsaDecryptFunc] json marshal PubResProductMsg err [%s]", err.Error())
-	//	errEnd(ctx)
-	//	return
-	//}
-	//
-	//ctx.GetDataBox().BodyChan <- pubRespMsgByte
-	//
-	//procEndFunc(ctx)
+	ctx.AddChanQueue(dataReq)
 }

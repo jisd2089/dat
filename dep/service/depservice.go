@@ -475,15 +475,3 @@ func getCrpBoxName(requestBody []byte) (string, error) {
 
 	return fmt.Sprint("%s_%s", memberId, prdtIdCd), nil
 }
-
-// 处理上传数据集
-func (s *DepService) ProcessUploadDataSet(ctx *fasthttp.RequestCtx) {
-
-	//boxName := "customer_request"
-}
-
-// 处理上传数据集
-//func (s *DepService) ProcessUploadDataSet(ctx *fasthttp.RequestCtx) {
-//
-//	//boxName := "customer_request"
-//}

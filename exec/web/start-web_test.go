@@ -11,12 +11,14 @@ import (
 	//_ "drcs/dep/nodelib/demanderonly"
 	//_ "drcs/dep/nodelib/dep"
 	//_ "drcs/dep/nodelib/batchdistribution"
-	_ "drcs/dep/nodelib/crp"
+	//_ "drcs/dep/nodelib/crp"
+	_ "drcs/dep/nodelib/fusion"
 
 	"fmt"
 	"strconv"
 	"reflect"
 	"time"
+	"drcs/dep/service"
 )
 
 //func init() {
@@ -31,6 +33,8 @@ func TestDemRun(t *testing.T) {
 }
 
 func TestSupRun(t *testing.T) {
+
+	service.SettingPath = "D:/GoglandProjects/src/drcs/exec/web/properties"
 
 	RunTest(8096)
 }
