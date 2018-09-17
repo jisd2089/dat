@@ -12,6 +12,7 @@ import (
 	"drcs/dep/or"
 	"drcs/dep/member"
 	"drcs/dep/order"
+	"drcs/dep/util"
 	"crypto/md5"
 	"drcs/dep/security"
 	"drcs/common/cncrypt"
@@ -73,14 +74,6 @@ func customerRootFunc(ctx *Context) {
 	case "api":
 		ctx.AddChanQueue(&request.DataRequest{
 			Rule:         "parseparam",
-			Method:       "GET",
-			TransferType: request.NONETYPE,
-			Reloadable:   true,
-			ConnTimeout:  time.Duration(time.Second * 3000),
-		})
-	case "apiCard":
-		ctx.AddChanQueue(&request.DataRequest{
-			Rule:         "supPredictCreditScoreCard",
 			Method:       "GET",
 			TransferType: request.NONETYPE,
 			Reloadable:   true,
@@ -168,6 +161,7 @@ func supPredictFunc(ctx *Context) {
 	orPolicyMap, ok := or.OrderRoutePolicyMap[jobId]
 	if !ok {
 		logger.Error("[supPredictFunc] get order route policy by jobId failed")
+		errEnd(ctx)
 		return
 	}
 
@@ -175,21 +169,25 @@ func supPredictFunc(ctx *Context) {
 	memberDetailInfo, err := member.GetPartnerInfoById(supMemberId)
 	if err != nil {
 		logger.Error("[supPredictFunc] get partner info by memberid [%s] error: [%s]", supMemberId, err.Error())
+		errEnd(ctx)
 		return
 	}
+
+	seqUtil := &util.SeqUtil{}
+	busiSerialNo := seqUtil.GenBusiSerialNo(ctx.GetDataBox().Param("demMemberId"))
 
 	header := &fasthttp.RequestHeader{}
 	header.SetContentType("application/json;charset=UTF-8")
 	header.SetMethod("POST")
 	header.Set("prdtIdCd", ctx.GetDataBox().Param("prdtIdCd"))
 	header.Set("serialNo", ctx.GetDataBox().Param("serialNo"))
-	header.Set("busiSerialNo", ctx.GetDataBox().Param("busiSerialNo"))
+	header.Set("busiSerialNo", busiSerialNo)
 	header.Set("jobId", ctx.GetDataBox().Param("jobId"))
 
 	ctx.AddChanQueue(&request.DataRequest{
 		Rule:         "suppredictresponse",
 		Method:       "POSTBODY",
-		TransferType: request.NONETYPE,
+		TransferType: request.FASTHTTP,
 		//Url:          "http://127.0.0.1:8096/api/drcs/serverPredictCreditScore",
 		Url:          memberDetailInfo.SvrURL,
 		Reloadable:   true,

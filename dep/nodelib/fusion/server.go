@@ -77,7 +77,7 @@ func serverRootFunc(ctx *Context) {
 
 
 		ctx.AddChanQueue(&request.DataRequest{
-			Rule:         "execPredictCreditScore",
+			Rule:         "execpredict",
 			Method:       "GET",
 			TransferType: request.NONETYPE,
 			Reloadable:   true,
@@ -107,7 +107,6 @@ func execUploadDataSetFunc(ctx *Context) {
 }
 
 func execPredictFunc(ctx *Context) {
-
 
 	header := &fasthttp.RequestHeader{}
 	header.Set("tfapi-key", TFAPI_KEY)
@@ -154,6 +153,20 @@ func execPredictResponseFunc(ctx *Context) {
 		return
 	}
 
+	// mock
+	ctx.DataResponse.Body = []byte(`{
+	"resultCode": 0,
+	"resultMessage": "API执行成功",
+	"resultData": {
+		"defaultProbability": [
+			0.6799222597181479,
+			0.43125540974628596
+		],
+		"creditScore": [338.46999117398, 420.21021112098003]
+	}
+}`)
+	//mock-end
+
 	responseData := &ResponseData{}
 	if err := json.Unmarshal(ctx.DataResponse.Body, responseData); err != nil {
 		logger.Error("[rsaDecryptFunc] json unmarshal response data err [%s]", err.Error())
@@ -188,6 +201,7 @@ func execPredictResponseFunc(ctx *Context) {
 
 
 func uploadTFSuccessFunc(ctx *Context) {
+
 	if ctx.DataResponse.StatusCode == 200 && !strings.EqualFold(ctx.DataResponse.ReturnCode, "000000") {
 		logger.Error("[uploadTFSuccessFunc] resultmsg encode failed [%s]", ctx.DataResponse.ReturnMsg)
 		errEnd(ctx)

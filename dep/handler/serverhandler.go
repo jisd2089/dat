@@ -85,11 +85,11 @@ func (n *ServerHandler) AcceptCSVfile(ctx *fasthttp.RequestCtx) {
 func (n *ServerHandler) ExecPredict(ctx *fasthttp.RequestCtx) {
 	logger.Info("ServerHandler ExecPredict start")
 
-	prdtIdCd := string(ctx.Request.Header.Peek("prdtIdCd"))
-	if prdtIdCd == "" {
-		logger.Error("[ServerHandler] prdtIdC d is nil!")
-		return
-	}
+	//prdtIdCd := string(ctx.Request.Header.Peek("prdtIdCd"))
+	//if prdtIdCd == "" {
+	//	logger.Error("[ServerHandler] prdtIdC d is nil!")
+	//	return
+	//}
 
 	serialNo := string(ctx.Request.Header.Peek("serialNo"))
 	if serialNo == "" {
@@ -117,7 +117,7 @@ func (n *ServerHandler) ExecPredict(ctx *fasthttp.RequestCtx) {
 	}
 	b.SetParam("processType", "api")
 	b.SetParam("serialNo", serialNo)
-	b.SetParam("prdtIdCd", prdtIdCd)
+	//b.SetParam("prdtIdCd", prdtIdCd)
 	b.SetParam("busiSerialNo", busiSerialNo)
 	b.SetParam("jobId", jobId)
 

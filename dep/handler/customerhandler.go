@@ -91,12 +91,6 @@ func (n *CustomerHandler) Predict(ctx *fasthttp.RequestCtx) {
 	logger.Info("CustomerHandler Predict start")
 	bodyChan := make(chan []byte)
 
-	jobId := string(ctx.FormValue("jobId"))
-	if jobId == "" {
-		logger.Error("[CustomerHandler] param jobId is nil")
-		return
-	}
-
 	boxName := "customer_request"
 	b := assetnode.AssetNodeEntity.GetDataBoxByName(boxName)
 	if b == nil {
