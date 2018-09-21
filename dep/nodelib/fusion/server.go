@@ -15,6 +15,7 @@ import (
 	"bufio"
 	"io"
 	"strconv"
+	"path"
 )
 
 /**
@@ -61,6 +62,7 @@ var SERVER = &DataBox{
 }
 
 func serverRootFunc(ctx *Context) {
+	logger.Info("serverRootFunc start ", ctx.GetDataBox().GetId())
 
 	switch ctx.GetDataBox().Param("processType") {
 	case "upload":
@@ -74,8 +76,6 @@ func serverRootFunc(ctx *Context) {
 		})
 
 	case "api":
-
-
 		ctx.AddChanQueue(&request.DataRequest{
 			Rule:         "execpredict",
 			Method:       "GET",
@@ -83,11 +83,20 @@ func serverRootFunc(ctx *Context) {
 			Reloadable:   true,
 			ConnTimeout:  time.Duration(time.Second * 3000),
 		})
+	default:
+		logger.Error("[serverRootFunc] processType [%s] error", ctx.GetDataBox().Param("processType"))
+		errEnd(ctx)
 	}
 }
 
+/**
+*******************************************************************************************
+*   数据集上传
+*******************************************************************************************
+ */
 func execUploadDataSetFunc(ctx *Context) {
-	//logger.Info("execUploadDataSetFunc start ", ctx.GetDataBox().GetId())
+	logger.Info("execUploadDataSetFunc start ", ctx.GetDataBox().GetId())
+
 	// 调用 泰融 上传接口
 	header := &fasthttp.RequestHeader{}
 	header.Set("tfapi-key", TFAPI_KEY)
@@ -106,7 +115,113 @@ func execUploadDataSetFunc(ctx *Context) {
 	ctx.AddChanQueue(dataRequest)
 }
 
+func uploadTFSuccessFunc(ctx *Context) {
+	logger.Info("uploadTFSuccessFunc start ", ctx.GetDataBox().GetId())
+
+	if ctx.DataResponse.StatusCode == 200 && !strings.EqualFold(ctx.DataResponse.ReturnCode, "000000") {
+		logger.Error("[uploadTFSuccessFunc] resultmsg encode failed [%s]", ctx.DataResponse.ReturnMsg)
+		errEnd(ctx)
+		return
+	}
+
+	// 调用 泰融 获取数据集和特征值接口
+	header := &fasthttp.RequestHeader{}
+	header.Set("tfapi-key", TFAPI_KEY)
+	dataRequest := &request.DataRequest{
+		Rule:         "execGetProcessedDataSet",
+		Method:       "POSTBODY",
+		Url:          TFAPI_PROCESSED_DATASETS_URL,
+		TransferType: request.NONETYPE,
+		Reloadable:   true,
+		HeaderArgs:   header,
+		ConnTimeout:  time.Duration(time.Second * 300),
+	}
+
+	dataRequest.SetParam("name", "testNow")
+	dataRequest.SetParam("datasetAbsPath", string(ctx.DataResponse.Body))
+	dataRequest.SetParam("expansionType", "UNRELATED_ITEM")
+	dataRequest.SetParam("modelType", "CREDIT_SCORE")
+
+	ctx.AddChanQueue(dataRequest)
+}
+
+
+//获取泰融数据集和特征值
+func getProcessDataSetSuccessFunc(ctx *Context) {
+	logger.Info("getProcessDataSetSuccessFunc start ", ctx.GetDataBox().GetId())
+
+	if ctx.DataResponse.StatusCode == 200 && !strings.EqualFold(ctx.DataResponse.ReturnCode, "000000") {
+		logger.Error("[getProcessDataSetSuccessFunc] resultmsg encode failed [%s]", ctx.DataResponse.ReturnMsg)
+		errEnd(ctx)
+		return
+	}
+	fmt.Println(string(ctx.DataResponse.Body))
+
+	ctx.DataResponse.Body = []byte(`response success`)
+
+	ctx.GetDataBox().BodyChan <- ctx.DataResponse.Body
+
+	ctx.AddChanQueue(&request.DataRequest{
+		Rule:         "sendrecord",
+		Method:       "GET",
+		TransferType: request.NONETYPE,
+		Reloadable:   true,
+	})
+}
+
+func sendRecordFunc(ctx *Context) {
+	logger.Info("sendRecordFunc start ", ctx.GetDataBox().GetId())
+
+	dataFile, err := os.Open(ctx.GetDataBox().DataFilePath)
+	defer dataFile.Close()
+	if err != nil {
+		logger.Error("[sendRecordFunc] open dataset file failed [%s]", err.Error())
+		errEnd(ctx)
+		return
+	}
+
+	buf := bufio.NewReader(dataFile)
+
+	cnt := 0
+	for {
+		_, _, err := buf.ReadLine()
+		if err != nil {
+			if err == io.EOF {
+				break
+			} else {
+				errEnd(ctx)
+				return
+			}
+		}
+
+		cnt ++
+	}
+
+	go os.RemoveAll(path.Dir(ctx.GetDataBox().DataFilePath))
+
+	ctx.Output(map[string]interface{}{
+		"exID":       "",
+		"demMemID":   ctx.GetDataBox().Param("UserId"),
+		"supMemID":   ctx.GetDataBox().Param("NodeMemberId"),
+		"taskID":     strings.Replace(ctx.GetDataBox().Param("TaskId"), "|@|", ".", -1),
+		"seqNo":      ctx.GetDataBox().Param("seqNo"),
+		"dmpSeqNo":   ctx.GetDataBox().Param("fileNo"),
+		"recordType": "2",
+		"succCount":  strconv.Itoa(cnt),
+		"flowStatus": "11",
+		"usedTime":   11,
+		"errCode":    "031014",
+		//"stepInfoM":  stepInfoM,
+	})
+}
+
+/**
+*******************************************************************************************
+*   模型api调用
+*******************************************************************************************
+ */
 func execPredictFunc(ctx *Context) {
+	logger.Info("execPredictFunc start ", ctx.GetDataBox().GetId())
 
 	header := &fasthttp.RequestHeader{}
 	header.Set("tfapi-key", TFAPI_KEY)
@@ -146,6 +261,7 @@ func execPredictFunc(ctx *Context) {
 }
 
 func execPredictResponseFunc(ctx *Context) {
+	logger.Info("execPredictResponseFunc start ", ctx.GetDataBox().GetId())
 
 	if ctx.DataResponse.StatusCode == 200 && !strings.EqualFold(ctx.DataResponse.ReturnCode, "000000") {
 		logger.Error("[execPredictResponseFunc] resultmsg encode failed [%s]", ctx.DataResponse.ReturnMsg)
@@ -169,7 +285,7 @@ func execPredictResponseFunc(ctx *Context) {
 
 	responseData := &ResponseData{}
 	if err := json.Unmarshal(ctx.DataResponse.Body, responseData); err != nil {
-		logger.Error("[rsaDecryptFunc] json unmarshal response data err [%s]", err.Error())
+		logger.Error("[execPredictResponseFunc] json unmarshal response data err [%s]", err.Error())
 		errEnd(ctx)
 		return
 	}
@@ -200,105 +316,9 @@ func execPredictResponseFunc(ctx *Context) {
 }
 
 
-func uploadTFSuccessFunc(ctx *Context) {
-
-	if ctx.DataResponse.StatusCode == 200 && !strings.EqualFold(ctx.DataResponse.ReturnCode, "000000") {
-		logger.Error("[uploadTFSuccessFunc] resultmsg encode failed [%s]", ctx.DataResponse.ReturnMsg)
-		errEnd(ctx)
-		return
-	}
-
-	// 调用 泰融 获取数据集和特征值接口
-	header := &fasthttp.RequestHeader{}
-	header.Set("tfapi-key", TFAPI_KEY)
-	dataRequest := &request.DataRequest{
-		Rule:         "execGetProcessedDataSet",
-		Method:       "POSTBODY",
-		Url:          TFAPI_PROCESSED_DATASETS_URL,
-		TransferType: request.NONETYPE,
-		Reloadable:   true,
-		HeaderArgs:   header,
-		ConnTimeout:  time.Duration(time.Second * 300),
-	}
-
-	dataRequest.SetParam("name", "testNow")
-	dataRequest.SetParam("datasetAbsPath", string(ctx.DataResponse.Body))
-	dataRequest.SetParam("expansionType", "UNRELATED_ITEM")
-	dataRequest.SetParam("modelType", "CREDIT_SCORE")
-
-	ctx.AddChanQueue(dataRequest)
-}
 
 
-//获取泰融数据集和特征值
-func getProcessDataSetSuccessFunc(ctx *Context) {
-	if ctx.DataResponse.StatusCode == 200 && !strings.EqualFold(ctx.DataResponse.ReturnCode, "000000") {
-		logger.Error("[getProcessDataSetSuccessFunc] resultmsg encode failed [%s]", ctx.DataResponse.ReturnMsg)
-		errEnd(ctx)
-		return
-	}
-	fmt.Println(string(ctx.DataResponse.Body))
 
-	ctx.DataResponse.Body = []byte(`response success`)
-
-	ctx.GetDataBox().BodyChan <- ctx.DataResponse.Body
-
-	ctx.AddChanQueue(&request.DataRequest{
-		Rule:         "sendrecord",
-		Method:       "GET",
-		TransferType: request.NONETYPE,
-		Reloadable:   true,
-	})
-}
-
-func sendRecordFunc(ctx *Context) {
-
-	if ctx.DataResponse.StatusCode == 200 && !strings.EqualFold(ctx.DataResponse.ReturnCode, "000000") {
-		errEnd(ctx)
-		return
-	}
-
-	dataFilePath := ctx.GetDataBox().DataFilePath
-
-	dataFile, err := os.Open(dataFilePath)
-	defer dataFile.Close()
-	if err != nil {
-		errEnd(ctx)
-		return
-	}
-
-	buf := bufio.NewReader(dataFile)
-
-	cnt := 0
-	for {
-		_, _, err := buf.ReadLine()
-		if err != nil {
-			if err == io.EOF {
-				break
-			} else {
-				errEnd(ctx)
-				return
-			}
-		}
-
-		cnt ++
-	}
-
-	ctx.Output(map[string]interface{}{
-		"exID":       "",
-		"demMemID":   ctx.GetDataBox().Param("UserId"),
-		"supMemID":   ctx.GetDataBox().Param("NodeMemberId"),
-		"taskID":     strings.Replace(ctx.GetDataBox().Param("TaskId"), "|@|", ".", -1),
-		"seqNo":      ctx.GetDataBox().Param("seqNo"),
-		"dmpSeqNo":   ctx.GetDataBox().Param("fileNo"),
-		"recordType": "2",
-		"succCount":  strconv.Itoa(cnt),
-		"flowStatus": "11",
-		"usedTime":   11,
-		"errCode":    "031014",
-		//"stepInfoM":  stepInfoM,
-	})
-}
 
 func parseResponseParamFunc(ctx *Context) {
 	logger.Info("parseResponseParamFunc start ", ctx.GetDataBox().GetId())

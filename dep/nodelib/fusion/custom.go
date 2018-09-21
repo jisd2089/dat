@@ -2,21 +2,21 @@ package fusion
 
 import (
 	. "drcs/core/databox"
-	"strings"
 	logger "drcs/log"
 	"drcs/core/interaction/request"
-	. "drcs/dep/nodelib/fusion/common"
 	"time"
-	"fmt"
-	"github.com/valyala/fasthttp"
-	"drcs/dep/or"
-	"drcs/dep/member"
 	"drcs/dep/order"
-	"drcs/dep/util"
+	"drcs/dep/member"
+	"drcs/dep/or"
+	"github.com/valyala/fasthttp"
+	"strings"
+	"strconv"
 	"crypto/md5"
+	"fmt"
 	"drcs/dep/security"
 	"drcs/common/cncrypt"
-	"strconv"
+	. "drcs/dep/nodelib/fusion/common"
+	"drcs/dep/util"
 )
 
 /**
@@ -60,7 +60,7 @@ var CUSTOMER = &DataBox{
 }
 
 func customerRootFunc(ctx *Context) {
-	//logger.Info("customerRootFunc start ", ctx.GetDataBox().GetId())
+	logger.Info("customerRootFunc start ", ctx.GetDataBox().GetId())
 
 	switch ctx.GetDataBox().Param("processType") {
 	case "upload":
@@ -79,11 +79,19 @@ func customerRootFunc(ctx *Context) {
 			Reloadable:   true,
 			ConnTimeout:  time.Duration(time.Second * 3000),
 		})
+	default:
+		logger.Error("[customerRootFunc] processType [%s] error", ctx.GetDataBox().Param("processType"))
+		errEnd(ctx)
 	}
 }
 
+/**
+*******************************************************************************************
+*   数据集上传
+*******************************************************************************************
+ */
 func uploadDataSetFunc(ctx *Context) {
-	//logger.Info("uploadDataSetFunc start ", ctx.GetDataBox().GetId())
+	logger.Info("uploadDataSetFunc start ", ctx.GetDataBox().GetId())
 
 	// 业务逻辑
 	jobId := ctx.GetDataBox().Param("jobId")
@@ -92,18 +100,21 @@ func uploadDataSetFunc(ctx *Context) {
 	orderInfoMap, ok := order.GetOrderInfoMap()[jobId]
 	if !ok {
 		logger.Error("[uploadDataSetFunc] get order list by jobId [%s] failed", jobId)
+		errEnd(ctx)
 		return
 	}
 
 	odl := orderInfoMap.OrderDetailList[0]
 	if odl == nil {
 		logger.Error("[uploadDataSetFunc] get order detail info failed")
+		errEnd(ctx)
 		return
 	}
 
 	memberDetailInfo, err := member.GetPartnerInfoById(odl.DemMemId)
 	if err != nil {
 		logger.Error("[uploadDataSetFunc] get partner info by memberid [%s] error: [%s]", odl.DemMemId, err.Error())
+		errEnd(ctx)
 		return
 	}
 
@@ -119,6 +130,26 @@ func uploadDataSetFunc(ctx *Context) {
 	})
 }
 
+func uploadDataSetSuccessFunc(ctx *Context) {
+	logger.Info("uploadDataSetSuccessFunc start ", ctx.GetDataBox().GetId())
+
+	if ctx.DataResponse.StatusCode == 200 && !strings.EqualFold(ctx.DataResponse.ReturnCode, "000000") {
+		logger.Error("[uploadDataSetSuccessFunc] resultmsg encode failed [%s]", ctx.DataResponse.ReturnMsg)
+		errEnd(ctx)
+		return
+	}
+	fmt.Println(string(ctx.DataResponse.Body))
+
+	ctx.GetDataBox().BodyChan <- ctx.DataResponse.Body
+
+	procEndFunc(ctx)
+}
+
+/**
+*******************************************************************************************
+*   模型api请求
+*******************************************************************************************
+ */
 func parseReqParamFunc(ctx *Context) {
 	logger.Info("parseReqParamFunc start ", ctx.GetDataBox().GetId())
 
@@ -132,7 +163,7 @@ func parseReqParamFunc(ctx *Context) {
 
 	reqDataJson, err := json.Marshal(commonRequestData.BusiInfo)
 	if err != nil {
-		logger.Error("[depAuthFunc] marshal request data err: [%s] ", err.Error())
+		logger.Error("[parseReqParamFunc] marshal request data err: [%s] ", err.Error())
 		errEnd(ctx)
 		return
 	}
@@ -154,6 +185,7 @@ func parseReqParamFunc(ctx *Context) {
 }
 
 func supPredictFunc(ctx *Context) {
+	logger.Info("supPredictFunc start ", ctx.GetDataBox().GetId())
 
 	jobId := ctx.GetDataBox().Param("jobId")
 
@@ -198,6 +230,7 @@ func supPredictFunc(ctx *Context) {
 }
 
 func supPredictResponseFunc(ctx *Context) {
+	logger.Info("supPredictResponseFunc start ", ctx.GetDataBox().GetId())
 
 	if ctx.DataResponse.StatusCode == 200 && !strings.EqualFold(ctx.DataResponse.ReturnCode, "000000") {
 		logger.Error("[supPredictResponseFunc] resultmsg encode failed [%s]", ctx.DataResponse.ReturnMsg)
@@ -206,7 +239,6 @@ func supPredictResponseFunc(ctx *Context) {
 	}
 
 	ctx.GetDataBox().BodyChan <- ctx.DataResponse.Body
-
 
 	demMemberId := ctx.GetDataBox().Param("demMemberId")
 	busiSerialNo := ctx.GetDataBox().Param("busiSerialNo")
@@ -252,19 +284,10 @@ func supPredictResponseFunc(ctx *Context) {
 	procEndFunc(ctx)
 }
 
-func uploadDataSetSuccessFunc(ctx *Context) {
 
-	if ctx.DataResponse.StatusCode == 200 && !strings.EqualFold(ctx.DataResponse.ReturnCode, "000000") {
-		logger.Error("[uploadDataSetSuccessFunc] resultmsg encode failed [%s]", ctx.DataResponse.ReturnMsg)
-		errEnd(ctx)
-		return
-	}
-	fmt.Println(string(ctx.DataResponse.Body))
 
-	ctx.GetDataBox().BodyChan <- ctx.DataResponse.Body
 
-	procEndFunc(ctx)
-}
+
 
 func depAuthFunc(ctx *Context) {
 	//logger.Info("depAuthFunc start ", ctx.GetDataBox().GetId())

@@ -8,7 +8,6 @@ import (
 	"path/filepath"
 	"path"
 	"drcs/core"
-	"fmt"
 	"time"
 	"strconv"
 )
@@ -73,12 +72,6 @@ func (n *ServerHandler) AcceptCSVfile(ctx *fasthttp.RequestCtx) {
 	case body := <-bodyChan:
 		ctx.SetBody(body)
 		close(bodyChan)
-		go func() {
-			time.Sleep(time.Microsecond*1000)
-			if err := os.RemoveAll(targetFilePath); err != nil {
-				fmt.Println(err.Error())
-			}
-		}()
 	}
 }
 
@@ -126,27 +119,6 @@ func (n *ServerHandler) ExecPredict(ctx *fasthttp.RequestCtx) {
 	bodyChan := make(chan []byte)
 	b.BodyChan = bodyChan
 
-	setDataBoxQueue(b)
-
-	select {
-	case body := <-bodyChan:
-		ctx.SetBody(body)
-		close(bodyChan)
-	}
-}
-
-func (n *ServerHandler) PredictCreditScoreCard(ctx *fasthttp.RequestCtx) {
-	logger.Info("ServerHandler PredictCreditScoreCard start")
-	bodyChan := make(chan []byte)
-	boxName := "server_response"
-	b := assetnode.AssetNodeEntity.GetDataBoxByName(boxName)
-	if b == nil {
-		logger.Error("databox [%s] is nil!", boxName)
-		return
-	}
-	b.SetParam("processType", "apiCard")
-	b.HttpRequestBody = ctx.Request.Body()
-	b.BodyChan = bodyChan
 	setDataBoxQueue(b)
 
 	select {
