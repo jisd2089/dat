@@ -339,32 +339,37 @@ func (s *DepService) ProcessCrpResponse(ctx *fasthttp.RequestCtx) {
 
 	prdtIdCd := string(ctx.Request.Header.Peek("prdtIdCd"))
 	if prdtIdCd == "" {
-		logger.Error("prdtIdC d is nil!")
+		logger.Error("[DepService] prdtIdC d is nil!")
 		return
 	}
 
 	serialNo := string(ctx.Request.Header.Peek("serialNo"))
 	if serialNo == "" {
-		logger.Error("serialNo is nil!")
+		logger.Error("[DepService] serialNo is nil!")
 		return
 	}
 
 	busiSerialNo := string(ctx.Request.Header.Peek("busiSerialNo"))
 	if busiSerialNo == "" {
-		logger.Error("busiSerialNo is nil!")
+		logger.Error("[DepService] busiSerialNo is nil!")
 		return
 	}
 
 	boxName := boxMap[prdtIdCd]
 
+	common := st.GetCommonSettings()
+	logger.Info("[DepService] common setting", common)
+
+
 	b := assetnode.AssetNodeEntity.GetDataBoxByName(boxName)
 	if b == nil {
-		logger.Error("databox is nil!")
+		logger.Error("[DepService] databox is nil!")
 		return
 	}
 
 	b.SetParam("serialNo", serialNo)
 	b.SetParam("busiSerialNo", busiSerialNo)
+	b.SetParam("guardFlag", common.Other.GuardFlag)
 
 	b.HttpRequestBody = ctx.Request.Body()
 
@@ -380,7 +385,7 @@ func (s *DepService) ProcessCrpResponse(ctx *fasthttp.RequestCtx) {
 		ctx.SetBody(body)
 		close(stopChan)
 	case <-time.After(timeOut):
-		logger.Error("http response timeout")
+		logger.Error("[DepService] http response timeout")
 		ctx.SetBody([]byte("http request timeout"))
 		close(stopChan)
 		break

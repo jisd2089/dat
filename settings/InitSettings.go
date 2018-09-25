@@ -71,6 +71,9 @@ type Conf struct {
 	LogDir        string `yaml:"logDir"`
 	XmlDir        string `yaml:"xmlDir"`
 	XmlReloadTime int    `yaml:"xmlReloadTime"`
+	AppId         string `yaml:"appId"`
+	Cluster       string `yaml:"cluster"`
+	Ip            string `yaml:"ip"`
 }
 
 type Redis struct {

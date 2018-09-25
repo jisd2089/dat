@@ -91,7 +91,6 @@ type PubResProductMsg_Error struct {
 	PubAnsInfo *PubAnsInfo `json:"pubAnsInfo"`
 }
 
-
 /*
 业务日志相关数据结构和接口
 */
@@ -178,6 +177,7 @@ const (
 const (
 	CenterCodeOther      = "999999" //其他未定义错误，具体信息参见返回信息
 	CenterCodeSucc       = "000000" //成功
+	CenterCodeMockSucc   = "555555" //挡板返回成功
 	CenterCodeFormat     = "020001" //报文格式错误
 	CenterCodeNoService  = "020002" //服务不存在
 	CenterCodeNoAppkey   = "021000" //未上送appkey
@@ -208,7 +208,7 @@ var centerCodeText = map[string]string{
 	CenterCodeNoAccess:   "无接口访问权限",
 	CenterCodeNoMoney:    "无接口访问权限,欠费",
 
-	CenterCodeTestNoHit: "未查找到该条数据",
+	CenterCodeTestNoHit:       "未查找到该条数据",
 	CenterCodeReqFailNoCharge: "请求失败，不收费",
 }
 

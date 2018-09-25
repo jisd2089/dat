@@ -465,17 +465,17 @@ func staticQueryFunc(ctx *Context) {
 			}
 
 			// TODO mock
-			pubAnsInfo := &PubAnsInfo{}
-			pubAnsInfo.ResCode = "000000"
-			pubAnsInfo.ResMsg = "成功"
-			pubRespMsg.PubAnsInfo = pubAnsInfo
+			//pubAnsInfo := &PubAnsInfo{}
+			//pubAnsInfo.ResCode = "000000"
+			//pubAnsInfo.ResMsg = "成功"
+			//pubRespMsg.PubAnsInfo = pubAnsInfo
 			//pubRespMsg.DetailInfo.Tag = "疑似仿冒包装"
 			//pubRespMsg.DetailInfo.EvilScore = 77
-			ctx.DataResponse.Body, _ = json.Marshal(pubRespMsg)
+			//ctx.DataResponse.Body, _ = json.Marshal(pubRespMsg)
 			//fmt.Println(string(ctx.DataResponse.Body))
 			// TODO mock-end
 
-			if strings.EqualFold(pubRespMsg.PubAnsInfo.ResCode, CenterCodeSucc) {
+			if strings.EqualFold(pubRespMsg.PubAnsInfo.ResCode, CenterCodeSucc) || strings.EqualFold(pubRespMsg.PubAnsInfo.ResCode, CenterCodeMockSucc) {
 				ctx.AddChanQueue(&request.DataRequest{
 					Rule:         "queryedunresponse",
 					Method:       "POSTBODY",
@@ -522,7 +522,8 @@ func execQuery(ctx *Context, supMemberId string) error {
 		Rule:         "staticquery",
 		Method:       "POSTBODY",
 		Url:          memberDetailInfo.SvrURL,
-		TransferType: request.NONETYPE,
+		//Url:          "http://127.0.0.1:8096/api/crp/sup",
+		TransferType: request.FASTHTTP,
 		Reloadable:   true,
 		HeaderArgs:   header,
 		Parameters:   ctx.GetDataBox().HttpRequestBody,
@@ -557,13 +558,13 @@ func callResponseFunc(ctx *Context) {
 	//ctx.GetDataBox().BodyChan <- ctx.DataResponse.Body
 
 	if err := json.Unmarshal(ctx.DataResponse.Body, pubRespMsg); err != nil {
-		logger.Error("[callResponseFunc] unmarshal response body to PubResProductMsg_0_000_000 err: [%s] ", err.Error())
+		logger.Error("[callResponseFunc] unmarshal response body to PubResProductMsg err: [%s] ", err.Error())
 		returnBalanceFunc(ctx)
 		return
 	}
 
 	// 不收费处理逻辑
-	if strings.EqualFold(pubRespMsg.PubAnsInfo.ResCode, CenterCodeReqFailNoCharge) {
+	if strings.EqualFold(pubRespMsg.PubAnsInfo.ResCode, CenterCodeMockSucc) {
 		ctx.AddChanQueue(&request.DataRequest{
 			Rule:         "returnbalance",
 			Method:       "GET",

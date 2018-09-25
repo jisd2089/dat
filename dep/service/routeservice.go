@@ -12,6 +12,7 @@ import (
 	"drcs/dep/agollo"
 	"drcs/dep/or"
 	"path/filepath"
+	st "drcs/settings"
 	"fmt"
 )
 
@@ -97,10 +98,11 @@ func initRouteCfg(config *agollo.AppConfig, jobId string) {
 }
 
 func (o *RouteService) InitByJobId(jobId string) {
+	common := st.GetCommonSettings()
 	config := &agollo.AppConfig{}
-	config.AppId = "DLS"
-	config.Cluster = "default"
-	config.Ip = "10.101.12.29:8085"
+	config.AppId = common.Conf.AppId
+	config.Cluster = common.Conf.Cluster
+	config.Ip = common.Conf.Ip
 	config.NamespaceName = fmt.Sprintf("route_%s.xml", jobId)
 	go initRouteCfg(config, jobId)
 }

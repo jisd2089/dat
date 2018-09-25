@@ -143,16 +143,33 @@ func rsaEncryptParamFunc(ctx *Context) {
 	args := make(map[string]string, 0)
 	args["data"] = string(requestMsgByte)
 
+	var (
+		nextRule     string
+		transferType string
+	)
+
+	switch ctx.GetDataBox().Param("guardFlag") {
+	case "00":
+		nextRule = "execquery"
+		transferType = request.FASTHTTP
+	case "01":
+		nextRule = "mockexecquery"
+		transferType = request.NONETYPE
+	default:
+		nextRule = "execquery"
+		transferType = request.FASTHTTP
+	}
+
 	ctx.AddChanQueue(&request.DataRequest{
-		Rule:   "execquery",
-		Method: "POSTARGS",
-		//Url:    "http://10.101.12.43:8088/api/sup/resp",
+		Rule:         nextRule,
+		Method:       "POSTARGS",
 		Url:          SMARTSAIL_URL,
-		TransferType: request.FASTHTTP,
+		TransferType: transferType,
 		Reloadable:   true,
 		HeaderArgs:   header,
 		PostArgs:     args,
 		ConnTimeout:  time.Duration(time.Minute * 30),
+		//Url:    "http://10.101.12.43:8088/api/sup/resp",
 	})
 }
 
@@ -220,67 +237,83 @@ func querySmartResponseFunc(ctx *Context) {
 }
 
 func mockQuerySmartResponseFunc(ctx *Context) {
-	//logger.Info("mockQuerySmartResponseFunc start ", ctx.GetDataBox().GetId())
+	logger.Info("mockQuerySmartResponseFunc start ", ctx.GetDataBox().GetId())
 
-	if ctx.DataResponse.StatusCode == 200 && !strings.EqualFold(ctx.DataResponse.ReturnCode, "000000") {
-		logger.Error("[mockQuerySmartResponseFunc] execute query failed [%s]", ctx.DataResponse.ReturnMsg)
-		errEnd(ctx)
-		return
-	}
+	//ctx.DataResponse.Body = []byte(`{"code":0,"msg":"系统正常","data":"ySApoEWkw0dMfRIk8vGV4ufnnR9ojNHUsR0PSyuxD39WVP/XLujQm8W130BqUw/yAb1hodRf8PK7iy+OyXCAlQJ+y960nIsKcvwvP2oaAVfTbe/cu2J4s3eeO0GroghY0VhMSJfTP2VKcrOu6EpbaJHDZpQ83y3XCjmB1SH9KGSgjapVpEiON/nG4I5Nb4a4rCcsgntH6CyWjOsabvbYlx6Ix5HYhqGL96KCNPwRmGpce9bAlaK/5/UBIKocSvCYog1kDUl9g39eT68F+oPNmD0U7p8WyxDFoyUkcweXL9mp1yOfnpXUZdpVGosM+qrwsfNeVTCGydX0PAkXEq3jGg=="}`)
+	ctx.DataResponse.Body = []byte(`{
+	"code": 200,
+	"msg": null,
+	"reqTime": "2018-09-06 14:25:20",
+	"code_message": "successful result",
+	"var_detail": [{
+		"mobile": "13868185986",
+		"consume_12m_cnt": 2,
+		"earliest_cons_m": 28,
+		"latest_record_m": 6,
+		"consvariety": 0.7401520569,
+		"cons_type_amtrate": 0.5015,
+		"cons_type_cntrate": 0.3333,
+		"consume_12m_amt": 28.7,
+		"month_num": 2,
+		"mon_max_record": 19.9,
+		"max_interval_month": 11,
+		"cos_stab": 0.3867595819,
+		"label_24_num": 4,
+		"close_12m_mean_money": 8.8,
+		"level_12m_consume": 1,
+		"child_6m_money": 0.0,
+		"child_6m_num": 0,
+		"hosehold_6m_money": 0.0,
+		"hosehold_6m_num": 0,
+		"virtual_6m_money": 0.0,
+		"type_12m_sum": 2,
+		"car_6m_money": 0.0,
+		"car_6m_num": 0,
+		"diamond_6m_money": 0.0,
+		"diamond_6m_num": 0,
+		"sports_6m_money": 0.0,
+		"sports_6m_num": 0,
+		"entertainment_6m_money": 0.0,
+		"entertainment_6m_num": 0,
+		"digital_6m_money": 0.0,
+		"digital_6m_num": 0,
+		"virtual_6m_num": 0
+	}],
+	"error_msg": null
+}`)
 
-	ctx.DataResponse.Body = []byte(`{"code":0,"msg":"系统正常","data":"ySApoEWkw0dMfRIk8vGV4ufnnR9ojNHUsR0PSyuxD39WVP/XLujQm8W130BqUw/yAb1hodRf8PK7iy+OyXCAlQJ+y960nIsKcvwvP2oaAVfTbe/cu2J4s3eeO0GroghY0VhMSJfTP2VKcrOu6EpbaJHDZpQ83y3XCjmB1SH9KGSgjapVpEiON/nG4I5Nb4a4rCcsgntH6CyWjOsabvbYlx6Ix5HYhqGL96KCNPwRmGpce9bAlaK/5/UBIKocSvCYog1kDUl9g39eT68F+oPNmD0U7p8WyxDFoyUkcweXL9mp1yOfnpXUZdpVGosM+qrwsfNeVTCGydX0PAkXEq3jGg=="}`)
-
-	responseData := &ResponseData{}
+	responseData := &ResponseDecryptData{}
 	if err := json.Unmarshal(ctx.DataResponse.Body, responseData); err != nil {
 		logger.Error("[mockQuerySmartResponseFunc] json unmarshal response data err [%s]", err.Error())
 		errEnd(ctx)
 		return
 	}
 
-	if responseData.RespCode != SMARTSAIL_SUCC {
-		logger.Error("[mockQuerySmartResponseFunc] smartsail execute query response [%s]", responseData.RespMessage)
+	pubRespMsg := &PubResProductMsg{}
 
-		pubRespMsg := &PubResProductMsg{}
+	pubAnsInfo := &PubAnsInfo{}
+	pubAnsInfo.ResCode = CenterCodeMockSucc
+	pubAnsInfo.ResMsg = "挡板返回成功"
+	pubAnsInfo.SerialNo = ctx.GetDataBox().Param("serialNo")
+	pubAnsInfo.BusiSerialNo = ctx.GetDataBox().Param("busiSerialNo")
+	pubAnsInfo.TimeStamp = strconv.Itoa(int(time.Now().UnixNano() / 1e6))
 
-		pubAnsInfo := &PubAnsInfo{}
-		pubAnsInfo.ResCode = GetCenterCodeFromSMARTSAIL(responseData.RespCode)
-		pubAnsInfo.ResMsg = responseData.RespMessage
-		pubAnsInfo.SerialNo = ctx.GetDataBox().Param("serialNo")
-		pubAnsInfo.BusiSerialNo = ctx.GetDataBox().Param("busiSerialNo")
-		pubAnsInfo.TimeStamp = strconv.Itoa(int(time.Now().UnixNano() / 1e6))
+	pubRespMsg.PubAnsInfo = pubAnsInfo
+	pubRespMsg.DetailInfo = responseData.RespDetail
 
-		pubRespMsg.PubAnsInfo = pubAnsInfo
-
-		pubRespMsgByte, err := json.Marshal(pubRespMsg)
-		if err != nil {
-			errEnd(ctx)
-			return
-		}
-
-		select {
-		case <-ctx.GetDataBox().StopChan:
-		case ctx.GetDataBox().BodyChan <- pubRespMsgByte:
-		}
-		//ctx.GetDataBox().BodyChan <- pubRespMsgByte
-
-		procEndFunc(ctx)
+	pubRespMsgByte, err := json.Marshal(pubRespMsg)
+	if err != nil {
+		errEnd(ctx)
 		return
 	}
 
-	ctx.GetDataBox().SetParam("resCode", GetCenterCodeFromSMARTSAIL(responseData.RespCode))
-
-	dataRequest := &request.DataRequest{
-		Rule:         "rsadecrypt",
-		Method:       "RSADECRYPT",
-		TransferType: request.ENCRYPT,
-		Reloadable:   true,
-		PostData:     responseData.RespDetail,
-		ConnTimeout:  time.Duration(time.Minute * 30),
+	select {
+	case <-ctx.GetDataBox().StopChan:
+	case ctx.GetDataBox().BodyChan <- pubRespMsgByte:
 	}
+	//ctx.GetDataBox().BodyChan <- pubRespMsgByte
 
-	dataRequest.SetParam("encryptKey", SMARTSAIL_PRIVATE_KEY)
-
-	ctx.AddChanQueue(dataRequest)
+	procEndFunc(ctx)
 }
 
 func rsaDecryptFunc(ctx *Context) {

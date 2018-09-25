@@ -59,7 +59,7 @@ func (s *NodeService) Init() {
 	wg.Add(2)
 	NewDepService().Init()
 	NewMemberService().Init()
-	NewOrderService().Init()
+	//NewOrderService().Init()
 	//NewRouteService().Init()
 
 	s.init()
@@ -89,6 +89,8 @@ func (s *NodeService) init() {
 		if err := security.Initialize(); err != nil {
 			logger.Error("security initialize failed %s", err.Error())
 		}
+
+		NewOrderService().Init()
 
 		wg.Done()
 		break
