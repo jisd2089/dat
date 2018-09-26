@@ -105,7 +105,7 @@ func execUploadDataSetFunc(ctx *Context) {
 		Rule:         "execuploadsuccess",
 		Method:       "POSTFILE",
 		Url:          TFAPI_UPLOAD_URL,
-		TransferType: request.NONETYPE,
+		TransferType: request.FASTHTTP,
 		Reloadable:   true,
 		HeaderArgs:   header,
 		PostData:     ctx.GetDataBox().DataFilePath,
@@ -131,7 +131,7 @@ func uploadTFSuccessFunc(ctx *Context) {
 		Rule:         "execGetProcessedDataSet",
 		Method:       "POSTBODY",
 		Url:          TFAPI_PROCESSED_DATASETS_URL,
-		TransferType: request.NONETYPE,
+		TransferType: request.FASTHTTP,
 		Reloadable:   true,
 		HeaderArgs:   header,
 		ConnTimeout:  time.Duration(time.Second * 300),
@@ -157,7 +157,26 @@ func getProcessDataSetSuccessFunc(ctx *Context) {
 	}
 	fmt.Println(string(ctx.DataResponse.Body))
 
-	ctx.DataResponse.Body = []byte(`response success`)
+//	ctx.DataResponse.Body = []byte(`[{
+//	"id": 273,
+//	"name": "示例数据集",
+//	"description": "",
+//	"rowNumber": 2810,
+//	"obsStartDate": "2018-08-31T15:57:00",
+//	"obsEndDate": "2018-08-31T15:57:59",
+//	"behaviorStartDate": "2018-08-31T15:57:00",
+//	"behaviorEndDate": "2018-08-31T15:57:59",
+//	"datasetAbsPath": "/creditScoreAPI/datasets/88/7d18303b-a380-4eb5-b64e-f30b079c6c5c/demoDataset.csv",
+//	"defaultRatio": 0.39466193,
+//	"labelIntroduction": "",
+//	"datasetIntroduction": "",
+//	"creditScoreFeatureCollectionId": 177,
+//	"creditScoreFeatureCollectionName": "示例数据集的特征集",
+//	"valid": true,
+//	"numOfMetadataFeatures": 22,
+//	"expansionType": "UNRELATED_ITEM",
+//	"modelType": "CREDIT_SCORE"
+//}]`)
 
 	ctx.GetDataBox().BodyChan <- ctx.DataResponse.Body
 
@@ -252,7 +271,7 @@ func execPredictFunc(ctx *Context) {
 		Rule:         "predictresponse",
 		Method:       "POSTARGS",
 		Url:          tfApiUrl,
-		TransferType: request.NONETYPE,
+		TransferType: request.FASTHTTP,
 		Reloadable:   true,
 		HeaderArgs:   header,
 		PostArgs:     postArgsMap,
@@ -270,17 +289,17 @@ func execPredictResponseFunc(ctx *Context) {
 	}
 
 	// mock
-	ctx.DataResponse.Body = []byte(`{
-	"resultCode": 0,
-	"resultMessage": "API执行成功",
-	"resultData": {
-		"defaultProbability": [
-			0.6799222597181479,
-			0.43125540974628596
-		],
-		"creditScore": [338.46999117398, 420.21021112098003]
-	}
-}`)
+//	ctx.DataResponse.Body = []byte(`{
+//	"resultCode": 0,
+//	"resultMessage": "API执行成功",
+//	"resultData": {
+//		"defaultProbability": [
+//			0.6799222597181479,
+//			0.43125540974628596
+//		],
+//		"creditScore": [338.46999117398, 420.21021112098003]
+//	}
+//}`)
 	//mock-end
 
 	responseData := &ResponseData{}
